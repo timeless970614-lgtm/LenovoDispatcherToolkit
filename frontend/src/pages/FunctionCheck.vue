@@ -1,0 +1,976 @@
+<template>
+  <div class="func-check-page">
+    <!-- Function Tabs -->
+    <div class="func-tabs">
+      <button 
+        v-for="tab in functionTabs" 
+        :key="tab.id"
+        :class="['func-tab', { active: activeTab === tab.id }]"
+        @click="activeTab = tab.id"
+      >
+        <span class="tab-icon" v-html="tab.icon"></span>
+        <span class="tab-label">{{ tab.label }}</span>
+      </button>
+    </div>
+
+    <!-- GPU Function Content -->
+    <div v-if="activeTab === 'gpu'" class="func-content">
+      <!-- IGPU Mode Control Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
+            </svg>
+            Dispatcher GPU Mode Control
+          </h3>
+        </div>
+        
+        <div class="igpu-status">
+          <div class="status-item">
+            <span class="status-label">Current Status</span>
+            <span :class="['status-value', 'status-' + (igpuStatus.available ? 'ok' : 'error')]">
+              {{ igpuStatus.available ? (igpuStatus.mode === 0 ? 'DGPU Plug In (DIS)' : 'DGPU Plug Out (UMA)') : 'Not Available' }}
+            </span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Status Code</span>
+            <span class="status-value">{{ igpuStatus.mode }}</span>
+          </div>
+        </div>
+
+        <div class="igpu-control">
+          <div class="control-info">
+            <p><strong>Mode 0:</strong> DGPU Plug In (DIS) - Discrete GPU enabled</p>
+            <p><strong>Mode 1:</strong> DGPU Plug Out (UMA) - Integrated GPU only</p>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" @click="setIGPUMode(0)" :disabled="settingMode || igpuStatus.mode === 0">
+              Enable DGPU (Mode 0)
+            </button>
+            <button class="btn btn-warning" @click="setIGPUMode(1)" :disabled="settingMode || igpuStatus.mode === 1">
+              Enable UMA Only (Mode 1)
+            </button>
+          </div>
+        </div>
+
+        <div v-if="settingMode" class="loading-overlay">
+          <div class="spinner"></div>
+          <p>Setting IGPU mode...</p>
+        </div>
+
+        <div v-if="settingResult" :class="['result-message', settingResult.success ? 'success' : 'error']">
+          {{ settingResult.message }}
+        </div>
+      </div>
+
+      <!-- NVIDIA Status Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            </svg>
+            NVIDIA GPU Status
+          </h3>
+          <button class="btn btn-secondary btn-sm" @click="checkNvidia" :disabled="checkingNvidia">
+            <span v-if="checkingNvidia" class="spinner-small"></span>
+            <span v-else>Check</span>
+          </button>
+        </div>
+        
+        <div class="nvidia-status">
+          <div :class="['nvidia-badge', nvidiaStatus.detected ? 'detected' : 'not-detected']">
+            <span v-if="nvidiaStatus.detected">NVIDIA GPU Detected</span>
+            <span v-else>NVIDIA GPU Not Detected</span>
+          </div>
+          <div v-if="nvidiaStatus.detected" class="nvidia-details">
+            <p><strong>NVML Status:</strong> {{ nvidiaStatus.nvmlLoaded ? 'Loaded' : 'Not Loaded' }}</p>
+            <p><strong>Service Status:</strong> {{ nvidiaStatus.serviceRunning ? 'Running' : 'Not Running' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Diagnostic -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4M12 8h.01"/>
+            </svg>
+            System Diagnostic
+          </h3>
+        </div>
+        
+        <div class="diag-grid">
+          <div class="diag-item">
+            <span class="diag-label">Total GPUs Found</span>
+            <span class="diag-value">{{ gpuList.length }}</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">Discrete GPUs</span>
+            <span class="diag-value">{{ discreteCount }}</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">Integrated GPUs</span>
+            <span class="diag-value">{{ igpuCount }}</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">GPU Processes</span>
+            <span class="diag-value">{{ processList.length }}</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">WMI Available</span>
+            <span class="diag-value">{{ igpuStatus.available ? 'Yes' : 'No' }}</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">NVIDIA Detected</span>
+            <span class="diag-value">{{ nvidiaStatus.detected ? 'Yes' : 'No' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GPU Using Processes - After System Diagnostic -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              <line x1="9" y1="14" x2="15" y2="14"/>
+            </svg>
+            GPU-Using Processes
+          </h3>
+          <button class="btn btn-secondary btn-sm" @click="refreshProcesses" :disabled="loadingProcesses">
+            <span v-if="loadingProcesses" class="spinner-small"></span>
+            <span v-else>Refresh</span>
+          </button>
+        </div>
+        
+        <div v-if="processList.length > 0" class="process-list">
+          <div class="process-header">
+            <span class="col-pid">PID</span>
+            <span class="col-name">Name</span>
+            <span class="col-memory">Memory</span>
+          </div>
+          <div v-for="proc in processList" :key="proc.pid" class="process-item">
+            <span class="col-pid">{{ proc.pid }}</span>
+            <span class="col-name">{{ proc.name }}</span>
+            <span class="col-memory">{{ proc.memory }}</span>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <p>No GPU-using processes found</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab A Content -->
+    <div v-if="activeTab === 'a'" class="func-content">
+
+      <!-- SSD Info Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="6" width="20" height="12" rx="2"/>
+              <path d="M6 10h4M6 14h2"/>
+            </svg>
+            SSD Information
+          </h3>
+          <button class="btn btn-secondary btn-sm" @click="refreshSSD" :disabled="loadingSSD">
+            <span v-if="loadingSSD" class="spinner-small"></span>
+            <span v-else>Refresh</span>
+          </button>
+        </div>
+
+        <div v-if="ssdList.length === 0 && !loadingSSD" class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3; margin-bottom:8px">
+            <rect x="2" y="6" width="20" height="12" rx="2"/>
+            <path d="M6 10h4M6 14h2"/>
+          </svg>
+          <p>No NVMe SSDs detected</p>
+        </div>
+
+        <div v-for="(ssd, idx) in ssdList" :key="idx" class="ssd-item">
+          <div class="ssd-header">
+            <span class="ssd-index">Drive {{ idx }}</span>
+            <span class="ssd-name">{{ ssd.name }}</span>
+            <span :class="['ssd-badge', ssd.multiModeCapable ? 'badge-capable' : 'badge-limited']">
+              {{ ssd.multiModeCapable ? 'MultiMode' : 'Standard' }}
+            </span>
+          </div>
+
+          <div class="ssd-info-grid">
+            <div class="info-item">
+              <span class="info-label">Model</span>
+              <span class="info-value">{{ ssd.model || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Capacity</span>
+              <span class="info-value">{{ ssd.capacityStr }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Protocol</span>
+              <span class="info-value">{{ ssd.protocol }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Serial Number</span>
+              <span class="info-value mono-sm">{{ ssd.serialNumber || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Current Mode</span>
+              <span :class="['info-value', 'mode-badge', ssd.currentModeStr !== 'N/A' ? 'mode-active' : '']">
+                {{ ssd.currentModeStr }}
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Physical Drive</span>
+              <span class="info-value">\\.\PhysicalDrive{{ ssd.driveIndex }}</span>
+            </div>
+          </div>
+
+          <!-- Mode Selector (only for MultiMode capable) -->
+          <div v-if="ssd.multiModeCapable" class="ssd-mode-control">
+            <div class="mode-section-label">SSD Performance Mode</div>
+            <div class="ssd-mode-buttons">
+              <button
+                v-for="mode in ssdModes"
+                :key="mode.value"
+                :class="['ssd-mode-btn', { active: ssd.currentMode === mode.value, loading: settingModeDrive === ssd.driveIndex }]"
+                :disabled="settingModeDrive === ssd.driveIndex"
+                @click="setSSDMode(ssd.driveIndex, mode.value)"
+              >
+                <span class="mode-abbr">{{ mode.label }}</span>
+                <span class="mode-full">{{ mode.name }}</span>
+              </button>
+            </div>
+            <p class="mode-hint" v-if="ssd.currentModeStr !== 'N/A'">
+              <span class="hint-dot"></span>
+              Current: <strong>{{ ssd.currentModeStr }}</strong> — Service restart required to apply changes
+            </p>
+          </div>
+
+          <div v-if="ssd.error" class="ssd-error">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {{ ssd.error }}
+          </div>
+
+          <div v-if="modeResult && modeResult.driveIndex === ssd.driveIndex" :class="['result-message', modeResult.success ? 'success' : 'error']">
+            {{ modeResult.message }}
+          </div>
+        </div>
+      </div>
+
+      <!-- NVMe Protocol Info Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            NVMe Protocol
+          </h3>
+        </div>
+        <div class="card-content">
+          <div class="info-item">
+            <span class="info-label">Vendor Opcode</span>
+            <span class="info-value mono-sm">0xC6</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Magic ID</span>
+            <span class="info-value mono-sm">0x4657</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">GET Mode SubCmd</span>
+            <span class="info-value mono-sm">0x0F</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">SET Mode SubCmd</span>
+            <span class="info-value mono-sm">0x0E</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">CEL Log Page</span>
+            <span class="info-value mono-sm">0x05</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">IOCTL</span>
+            <span class="info-value mono-sm">IOCTL_STORAGE_PROTOCOL_COMMAND</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tab B Content -->
+    <div v-if="activeTab === 'b'" class="func-content">
+      <div class="card placeholder-card">
+        <div class="placeholder-icon">WIP</div>
+        <div class="placeholder-title">Function B</div>
+        <div class="placeholder-desc">Coming soon - reserved for future functionality</div>
+      </div>
+    </div>
+
+    <!-- Tab C Content -->
+    <div v-if="activeTab === 'c'" class="func-content">
+      <div class="card placeholder-card">
+        <div class="placeholder-icon">WIP</div>
+        <div class="placeholder-title">Function C</div>
+        <div class="placeholder-desc">Coming soon - reserved for future functionality</div>
+      </div>
+    </div>
+
+  </div>
+</template>
+<script>
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode } from '../../wailsjs/go/main/App'
+
+export default {
+  name: 'FunctionCheck',
+  data() {
+    return {
+      activeTab: 'gpu',
+      functionTabs: [
+        { id: 'gpu', label: 'GPU Function', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
+        { id: 'a', label: 'SSD', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h2"/></svg>' },
+        { id: 'b', label: 'DNPU', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M9 9h6v6H9z"/></svg>' },
+        { id: 'c', label: 'GPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
+      ],
+      gpuList: [],
+      processList: [],
+      igpuStatus: {
+        available: false,
+        mode: -1
+      },
+      nvidiaStatus: {
+        detected: false,
+        nvmlLoaded: false,
+        serviceRunning: false
+      },
+      settingResult: null,
+      loading: false,
+      loadingSSD: false,
+      ssdList: [],
+      ssdModes: [
+        { value: 0, label: 'STD', name: 'Standard' },
+        { value: 1, label: 'PERF', name: 'Performance' },
+        { value: 2, label: 'PWR', name: 'Power Saving' },
+        { value: 3, label: 'DEF', name: 'Default' }
+      ],
+      settingModeDrive: null,
+      modeResult: null,
+      loadingProcesses: false,
+      settingMode: false,
+      checkingNvidia: false
+    }
+  },
+  computed: {
+    discreteCount() {
+      return this.gpuList.filter(g => g.isDiscrete).length
+    },
+    igpuCount() {
+      return this.gpuList.filter(g => !g.isDiscrete).length
+    }
+  },
+  async mounted() {
+    await this.refreshAll()
+  },
+  methods: {
+    formatMemory(bytes) {
+      if (!bytes || bytes === 0) return 'N/A'
+      if (bytes >= 1024 * 1024 * 1024) {
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
+      } else if (bytes >= 1024 * 1024) {
+        return Math.round(bytes / (1024 * 1024)) + ' MB'
+      }
+      return bytes + ' B'
+    },
+
+    async refreshSSD() {
+      this.loadingSSD = true
+      this.modeResult = null
+      try {
+        const list = await GetSSDInfo()
+        this.ssdList = list || []
+      } catch (e) {
+        this.ssdList = []
+      } finally {
+        this.loadingSSD = false
+      }
+    },
+
+    async setSSDMode(driveIndex, modeValue) {
+      this.settingModeDrive = driveIndex
+      this.modeResult = null
+      try {
+        const result = await SetSSDMode(driveIndex, modeValue)
+        this.modeResult = result
+        if (result.success) {
+          // Update current mode display optimistically
+          const ssd = this.ssdList.find(s => s.driveIndex === driveIndex)
+          if (ssd) {
+            const modes = ['Standard', 'Performance', 'Power Saving', 'Default']
+            ssd.currentMode = modeValue
+            ssd.currentModeStr = modes[modeValue] || 'N/A'
+          }
+        }
+      } catch (e) {
+        this.modeResult = { driveIndex, success: false, message: String(e) }
+      } finally {
+        this.settingModeDrive = null
+      }
+    },
+
+    async refreshGPU() {
+      this.loading = true
+      try {
+        const result = await EnumerateGPUs()
+        this.gpuList = result
+      } catch (e) {
+        console.error('Error getting GPU info:', e)
+        this.gpuList = []
+      }
+      this.loading = false
+    },
+    
+    async refreshProcesses() {
+      this.loadingProcesses = true
+      try {
+        const result = await EnumerateGPUProcesses()
+        this.processList = result
+      } catch (e) {
+        console.error('Error getting processes:', e)
+        this.processList = []
+      }
+      this.loadingProcesses = false
+    },
+    
+    async checkNvidia() {
+      this.checkingNvidia = true
+      try {
+        const result = await CheckNVIDIAStatus()
+        this.nvidiaStatus = result
+      } catch (e) {
+        console.error('Error checking NVIDIA:', e)
+        this.nvidiaStatus = { detected: false, nvmlLoaded: false, serviceRunning: false }
+      }
+      this.checkingNvidia = false
+    },
+    async refreshAll() {
+      await Promise.all([
+        this.refreshGPU(),
+        this.refreshProcesses(),
+        this.getIGPUMode(),
+        this.checkNvidia(),
+        this.refreshSSD()
+      ])
+    },
+    async getIGPUMode() {
+      try {
+        const result = await GetIGPUMode()
+        this.igpuStatus = result
+      } catch (e) {
+        console.error('Error getting IGPU mode:', e)
+        this.igpuStatus = { available: false, mode: -1 }
+      }
+    },
+    
+    async setIGPUMode(mode) {
+      this.settingMode = true
+      this.settingResult = null
+      try {
+        const result = await SetIGPUMode(mode)
+        this.settingResult = result
+        if (result.success) {
+          await this.getIGPUMode()
+        }
+      } catch (e) {
+        this.settingResult = { success: false, message: 'Error: ' + e }
+      }
+      this.settingMode = false
+    }
+  }
+}
+</script>
+
+<style scoped>
+.func-check-page {
+  padding: 0;
+}
+
+/* Function Tabs */
+.func-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.func-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.func-tab:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.func-tab.active {
+  background: linear-gradient(90deg, rgba(230, 63, 50, 0.15) 0%, rgba(230, 63, 50, 0.05) 100%);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.tab-icon {
+  font-size: 16px;
+}
+
+.tab-label {
+  font-weight: 500;
+}
+
+.func-content {
+  padding: 20px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.placeholder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.placeholder-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.placeholder-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.spinner-small {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* GPU List */
+.gpu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gpu-item {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.gpu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.gpu-index {
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.gpu-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-dgpu {
+  background: rgba(0, 102, 204, 0.2);
+  color: #0066CC;
+}
+
+.badge-igpu {
+  background: rgba(230, 63, 50, 0.2);
+  color: #E63F32;
+}
+
+.gpu-info-single-row {
+  grid-template-columns: 2fr 1fr 1fr !important;
+}
+
+.gpu-info-single-row .info-item {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+}
+
+.gpu-info-single-row .info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+.hw-id {
+  font-size: 11px;
+  word-break: break-all;
+  color: var(--text-secondary);
+}
+
+.gpu-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.info-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* Process List */
+.process-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.process-header {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.process-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+}
+
+.process-item:last-child {
+  border-bottom: none;
+}
+
+.col-memory {
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+/* IGPU Control */
+.igpu-status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.status-item {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.status-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.status-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-ok {
+  color: var(--success-color);
+}
+
+.status-error {
+  color: var(--error-color);
+}
+
+.igpu-control {
+  position: relative;
+}
+
+.control-info {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+.control-info strong {
+  color: var(--text-primary);
+}
+
+.btn-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 13, 13, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-overlay p {
+  margin-top: 12px;
+  color: var(--text-secondary);
+}
+
+.result-message {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.result-message.success {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: var(--success-color);
+}
+
+.result-message.error {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: var(--error-color);
+}
+
+/* NVIDIA Status */
+.nvidia-status {
+  text-align: center;
+}
+
+.nvidia-badge {
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.nvidia-badge.detected {
+  background: rgba(118, 185, 0, 0.1);
+  border: 1px solid rgba(118, 185, 0, 0.3);
+  color: #76B900;
+}
+
+.nvidia-badge.not-detected {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.nvidia-details {
+  text-align: left;
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.nvidia-details strong {
+  color: var(--text-primary);
+}
+
+/* Diagnostic Grid */
+.diag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.diag-item {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.diag-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.diag-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-tertiary);
+}
+
+/* ── SSD Tab ───────────────────────────────────────────── */
+.ssd-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.ssd-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ssd-index {
+  font-size: 11px; font-weight: 700; color: var(--lenovo-red);
+  background: rgba(230,63,50,0.1); padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
+}
+.ssd-name { font-size: 15px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.ssd-badge { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 10px; }
+.badge-capable { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3); }
+.badge-limited { background: rgba(107,114,128,0.1); color: var(--text-secondary); border: 1px solid rgba(107,114,128,0.2); }
+.ssd-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.ssd-mode-control { background: var(--bg-tertiary); border-radius: var(--radius-md); padding: 14px; }
+.mode-section-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.ssd-mode-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.ssd-mode-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 14px; border: 2px solid var(--border-color);
+  border-radius: var(--radius-md); background: var(--bg-card);
+  cursor: pointer; transition: var(--transition); min-width: 72px;
+}
+.ssd-mode-btn:hover:not(:disabled) { border-color: var(--lenovo-red); background: rgba(230,63,50,0.05); }
+.ssd-mode-btn.active { border-color: var(--lenovo-red); background: rgba(230,63,50,0.1); box-shadow: 0 0 12px rgba(230,63,50,0.25); }
+.ssd-mode-btn.loading { opacity: 0.6; cursor: wait; }
+.ssd-mode-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.mode-abbr { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.mode-full { font-size: 10px; color: var(--text-secondary); }
+.mode-hint { margin-top: 10px; font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.hint-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lenovo-red); flex-shrink: 0; }
+.mono-sm { font-family: 'Consolas','Monaco',monospace; font-size: 12px; }
+.ssd-error {
+  margin-top: 10px; padding: 8px 12px;
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-sm); color: #EF4444; font-size: 12px; display: flex; align-items: center; gap: 6px;
+}
+.mode-badge.mode-active { color: var(--lenovo-red); font-weight: 700; }
+.placeholder-card { text-align: center; padding: 60px 40px; }
+.placeholder-icon { font-size: 40px; margin-bottom: 16px; }
+.placeholder-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.placeholder-desc { font-size: 14px; color: var(--text-secondary); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
