@@ -60,6 +60,17 @@
             </svg>
             Dispatcher Device Information
           </span>
+          <button class="btn-enable-log" @click="enableLog" :disabled="enablingLog" :title="logEnabled ? 'Log already enabled' : 'Enable Dynamic Log'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span v-if="enablingLog">Enabling...</span>
+            <span v-else-if="logEnabled">Log Enabled</span>
+            <span v-else>EnableLog</span>
+          </button>
         </div>
         <div class="card-content" v-if="deviceInfo">
           <div class="info-item">
@@ -120,7 +131,9 @@ export default {
       sysInfo: null,
       deviceInfo: null,
       serviceStatus: 'Unknown',
-      refreshInterval: null
+      refreshInterval: null,
+      enablingLog: false,
+      logEnabled: false
     }
   },
   async mounted() {
@@ -134,14 +147,16 @@ export default {
     async refresh() {
       try {
         if (window.go && window.go.main && window.go.main.App) {
-          const [sysInfo, modeInfo, status] = await Promise.all([
+          const [sysInfo, modeInfo, status, logStatus] = await Promise.all([
             window.go.main.App.GetSystemInfo(),
             window.go.main.App.GetModeCheckInfo(),
             window.go.main.App.GetServiceStatus(),
+            window.go.main.App.GetDynamicLogStatus(),
           ])
           if (sysInfo) this.sysInfo = sysInfo
           if (modeInfo) this.deviceInfo = modeInfo
           if (status) this.serviceStatus = status
+          if (logStatus !== undefined) this.logEnabled = logStatus
         }
       } catch (e) {
         console.error('Refresh error:', e)
@@ -170,6 +185,24 @@ export default {
           await this.refresh()
         }
       } catch (e) { console.error('Restart service error:', e) }
+    },
+    async enableLog() {
+      this.enablingLog = true
+      try {
+        if (window.go && window.go.main && window.go.main.App) {
+          const result = await window.go.main.App.EnableDynamicLog()
+          if (result.success) {
+            this.logEnabled = true
+            alert(result.message)
+          } else {
+            alert('Failed to enable log: ' + result.message)
+          }
+        }
+      } catch (e) {
+        alert('Error: ' + e)
+      } finally {
+        this.enablingLog = false
+      }
     }
   }
 }
@@ -209,5 +242,32 @@ export default {
 .info-value.mono {
   font-family: 'Courier New', monospace;
   font-size: 13px;
+}
+
+.btn-enable-log {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.btn-enable-log:hover:not(:disabled) {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.btn-enable-log:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

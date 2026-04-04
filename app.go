@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"lenovo-toolkit/backend"
 )
 
@@ -242,6 +244,61 @@ func (a *App) GetIGPUMode() backend.IGPUStatus {
 	}
 }
 
+// GetGPUPrefStatus reads PE_GPUPrefStatus registry value in real-time
+func (a *App) GetGPUPrefStatus() backend.GPUPrefStatus {
+	return backend.GetGPUPrefStatus()
+}
+
+// Intel GPU Frequency Control
+func (a *App) GetIntelGPUFrequency() backend.IntelGPUFrequency {
+	return backend.GetIntelGPUFrequency()
+}
+
+func (a *App) SetIntelGPUFrequencyRange(minFreq, maxFreq uint32) backend.IntelGPUFreqTestResult {
+	return backend.SetIntelGPUFrequencyRange(minFreq, maxFreq)
+}
+
+func (a *App) TestIntelGPUFrequency(testType string) backend.IntelGPUFreqTestResult {
+	return backend.TestIntelGPUFrequency(testType)
+}
+
+func (a *App) CtlFrequencySetRange(adapterIndex, minFreq, maxFreq uint32) backend.IntelGPUFreqTestResult {
+	return backend.CtlFrequencySetRange(adapterIndex, minFreq, maxFreq)
+}
+
+func (a *App) GetIntelDriverDownloadURL() string {
+	return backend.GetIntelDriverDownloadURL()
+}
+
+func (a *App) StartGPUStatusWatcher() error {
+	err := backend.StartGPUStatusWatcher()
+	if err != nil {
+		return err
+	}
+
+	// Register callback to push events to frontend when GPU status changes
+	backend.OnGPUStatusChange(func(status backend.GPUPrefStatus) {
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "gpu:status-change", status)
+		}
+	})
+
+	return nil
+}
+
+func (a *App) StopGPUStatusWatcher() {
+	backend.RemoveGPUStatusCallbacks()
+	backend.StopGPUStatusWatcher()
+}
+
+func (a *App) GetGPUPrefStatusFromCache() backend.GPUPrefStatus {
+	return backend.GetGPUPrefStatusFromCache()
+}
+
+func (a *App) GetCachedGPUStatus() (uint32, bool, uint32, bool) {
+	return backend.GetCachedGPUStatus()
+}
+
 // SetIGPUMode sets the IGPU mode (0=DGPU Plug In, 1=DGPU Plug Out)
 func (a *App) SetIGPUMode(mode uint32) backend.SetResult {
 	success, returnedMode := backend.SetIGPUModeStatusWMI(mode)
@@ -315,6 +372,12 @@ func (a *App) GetMLLogStatus() backend.MLLogStatus {
 	return backend.GetMLLogStatus()
 }
 
+// OpenFolder opens a folder in Windows Explorer
+func (a *App) OpenFolder(path string) error {
+	cmd := exec.Command("explorer.exe", path)
+	return cmd.Start()
+}
+
 // ============ AI Analysis ============
 
 // GetLogFiles returns the list of dispatcher log files
@@ -330,4 +393,23 @@ func (a *App) ReadLogTail(maxLines int) string {
 // GetLogSummary returns structured log summary for AI analysis
 func (a *App) GetLogSummary() map[string]interface{} {
 	return backend.GetLogSummary()
+}
+
+// ============ Uninstall ============
+
+// UninstallDispatcher uninstalls the Lenovo Process Management driver
+func (a *App) UninstallDispatcher() backend.UninstallResult {
+	return backend.UninstallDispatcherSimple()
+}
+
+// ============ Dynamic Log ============
+
+// GetDynamicLogStatus checks if dynamic log is enabled
+func (a *App) GetDynamicLogStatus() bool {
+	return backend.GetDynamicLogStatus()
+}
+
+// EnableDynamicLog enables the dynamic log and restarts the service
+func (a *App) EnableDynamicLog() backend.DynamicLogResult {
+	return backend.EnableDynamicLog()
 }

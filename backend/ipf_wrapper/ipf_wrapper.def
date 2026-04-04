@@ -1,0 +1,19 @@
+LIBRARY "ipf_wrapper"
+EXPORTS
+    IPF_Connect
+    IPF_GetVersion
+    IPF_Disconnect
+    IPF_GetSystemPower_mW
+    IPF_GetCpuTemp_cK
+    IPF_GetPL1_mW
+    IPF_GetPL2_mW
+    IPF_GetPL4_mW
+    IPF_GetAllPL_mW
+    IPF_SetDllPath
+    IPF_ReadMSR
+    IPF_GetEPP
+    IPF_GetEPP1
+    IPF_GetFrequencyLimit_MHz
+    IPF_GetHeteroInc
+    IPF_GetHeteroDec
+    IPF_GetSoftParkLatency

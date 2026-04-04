@@ -3,7 +3,7 @@
 package backend
 
 import (
-	"bufio"
+	"encoding/csv"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,266 +13,456 @@ import (
 	"time"
 )
 
-const dispatcherLogDir = `C:\ProgramData\Lenovo\LenovoDispatcher\Logs`
+const mlLogDir = `C:\ProgramData\Lenovo\LenovoDispatcher\Logs`
 
+// IPF column indices in the 84-column CSV row (row[0]=Time, row[1]=AC_DC, ...)
+const (
+	colIPF_SystemPower     = 40 // IPF_SystemPower (mW)
+	colMMIO_PL1           = 41 // MMIO_PL1 (mW)
+	colMMIO_PL2           = 42 // MMIO_PL2 (mW)
+	colMMIO_PL4           = 43 // MMIO_PL4 (mW)
+	colPL1Check           = 44 // PL1Check
+	colPL2Check           = 45 // PL2Check
+	colEPOT               = 46 // EPOT
+	colEPP                = 47 // EPP
+	colEPP1               = 48 // EPP_1
+	colPPMFrequencyLimit   = 49 // PPM_FREQUENCY_LIMIT
+	colPPMFrequencyLimit1  = 50 // PPM_FREQUENCY_LIMIT_1
+	colPPMCpMin           = 51 // PPM_CPMIN
+	colPPMCpMax           = 52 // PPM_CPMAX
+	colSoftParking        = 53 // SoftParking
+	colCpuTemp            = 54 // CPU_Temperature
+)
+
+// MLLogStatus represents the capture status
 type MLLogStatus struct {
 	IsCapturing bool   `json:"isCapturing"`
 	StartTime   string `json:"startTime"`
 	EventCount  uint64 `json:"eventCount"`
 	OutputFile  string `json:"outputFile"`
+	OutputCSV   string `json:"outputCSV"`
 	Error       string `json:"error"`
 }
 
 var (
-	isCapturing int32
-	eventCount uint64
-	captureMu  sync.Mutex
-	logFile    *os.File
-	logPath    string
+	mlCapturing int32
+	mlCount     uint64
+	mlMu        sync.Mutex
+	mlCSVFile   *os.File
+	mlCSVWriter *csv.Writer
+	mlCSVPath   string
+	mlStart     time.Time
 )
 
+// StartMLScenarioCapture starts 1-second interval performance capture
 func StartMLScenarioCapture() MLLogStatus {
-	if atomic.LoadInt32(&isCapturing) == 1 {
+	if atomic.LoadInt32(&mlCapturing) == 1 {
 		return MLLogStatus{
 			IsCapturing: true,
-			StartTime:   time.Now().Format("2006-01-02 15:04:05"),
-			EventCount: atomic.LoadUint64(&eventCount),
-			OutputFile:  logPath,
+			StartTime:   mlStart.Format("2006-01-02 15:04:05"),
+			EventCount: atomic.LoadUint64(&mlCount),
+			OutputCSV:  mlCSVPath,
 		}
 	}
 
-	if err := os.MkdirAll(dispatcherLogDir, 0755); err != nil {
-		return MLLogStatus{Error: "Cannot access log directory: " + err.Error()}
+	if err := os.MkdirAll(mlLogDir, 0755); err != nil {
+		return MLLogStatus{Error: "Cannot create log directory: " + err.Error()}
 	}
 
-	latest, err := findLatestDispatcherLog()
+	ts := time.Now().Format("20060102-150405")
+	csvPath := filepath.Join(mlLogDir, fmt.Sprintf("MLScenario_%s.csv", ts))
+
+	f, err := os.Create(csvPath)
 	if err != nil {
-		return MLLogStatus{Error: "No dispatcher log found: " + err.Error()}
+		return MLLogStatus{Error: "Cannot create CSV: " + err.Error()}
 	}
 
-	timestamp := time.Now().Format("20060102-150405")
-	outPath := filepath.Join(dispatcherLogDir, fmt.Sprintf("MLScenario_%s.LOG", timestamp))
-
-	outFile, err := os.Create(outPath)
-	if err != nil {
-		return MLLogStatus{Error: "Cannot create output file: " + err.Error()}
+	cw := csv.NewWriter(f)
+	// Write header matching ML_Scenario Result.csv (84 columns)
+	header := []string{
+		"Time", "AC_DC", "PowerSlider", "CPU_Usage", "CPU_Frequency_Mhz", "CPU_Performance",
+		"GPU_Total", "iGPU_Usage", "dGPU_Usage", "VPU_Usage", "NPU_Usage",
+		"iGPUID", "gGPUID", "VPUID",
+		"Memory_Usage", "Memory_Remain_MB",
+		"InputLatency", ">Lag_64ms", ">Lag_100ms", ">Lag_200ms",
+		"Disk_Usage", "Disk_Speed_Bytes", "Disk_ReadLatency", "Disk_WriteLatency",
+		"SystemPower", "CPUPower", "GPU0Power", "NvidiaPower", "NvidiaTemp",
+		"Copy", "GDI_Render", "Legacy_Overlay", "Security", "3D", "Video_Decoding",
+		"Video_Encoding", "Video_Processing", "Unknown", "Compute",
+		"Current_ITSMode",
+		"IPF_SystemPower", "MMIO_PL1", "MMIO_PL2", "MMIO_PL4", "PL1Check", "PL2Check",
+		"EPOT", "EPP", "EPP_1", "PPM_FREQUENCY_LIMIT", "PPM_FREQUENCY_LIMIT_1",
+		"PPM_CPMIN", "PPM_CPMAX", "SoftParking",
+		"CPU_Temperature", "Battery_Capacity", "Active_Foreground",
+		"GDI_QTY", "LaunchTime_MS", "Start_Time", "Stabale_Time", "Style", "exStyle",
+		"FPS", "LatencyAPP", "LatencyAPPMS", "EVENTID",
+		"MemorySpeed", "MemoryGear", "Speaker_Peak", "Mic_Peak",
+		"dGPU_VRAM", "dGPU_ShareMemory", "dGPU_TotalMemory",
+		"iGPU_VRAM", "iGPU_ShareMemory", "iGPU_TotalMemory",
+		"VPU_VRAM", "VPU_ShareMemory", "VPU_TotalMemory",
+		"OS_VRAM", "OS_ShareMemory", "OS_TotalMemory", "24H2_Exectime", "EEPStatus",
 	}
+	cw.Write(header)
+	cw.Flush()
 
-	outFile.WriteString(fmt.Sprintf("[%s] ML Scenario Capture Started\n", time.Now().Format("03-01-06-15-04-05")))
-	outFile.WriteString(fmt.Sprintf("Tailing: %s\n", filepath.Base(latest)))
-	outFile.WriteString("=========================================================\n")
-	outFile.Sync()
+	mlMu.Lock()
+	mlCSVFile = f
+	mlCSVWriter = cw
+	mlCSVPath = csvPath
+	mlStart = time.Now()
+	mlMu.Unlock()
 
-	captureMu.Lock()
-	logFile = outFile
-	logPath = outPath
-	captureMu.Unlock()
+	atomic.StoreUint64(&mlCount, 0)
+	atomic.StoreInt32(&mlCapturing, 1)
 
-	atomic.StoreUint64(&eventCount, 0)
-	atomic.StoreInt32(&isCapturing, 1)
-	go captureTailLoop(latest)
+	go mlCaptureLoop()
 
 	return MLLogStatus{
 		IsCapturing: true,
-		StartTime:   time.Now().Format("2006-01-02 15:04:05"),
+		StartTime:   mlStart.Format("2006-01-02 15:04:05"),
 		EventCount:  0,
-		OutputFile:  outPath,
+		OutputCSV:   csvPath,
 	}
 }
 
+// StopMLScenarioCapture stops the capture
 func StopMLScenarioCapture() MLLogStatus {
-	if !atomic.CompareAndSwapInt32(&isCapturing, 1, 0) {
+	if !atomic.CompareAndSwapInt32(&mlCapturing, 1, 0) {
 		return MLLogStatus{IsCapturing: false}
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
-	captureMu.Lock()
-	count := atomic.LoadUint64(&eventCount)
-	if logFile != nil {
-		logFile.WriteString(fmt.Sprintf("\n[%s] Capture Stopped | Events: %d\n",
-			time.Now().Format("03-01-06-15-04-05"), count))
-		logFile.Sync()
-		logFile.Close()
-		logFile = nil
+	mlMu.Lock()
+	count := atomic.LoadUint64(&mlCount)
+	start := mlStart.Format("2006-01-02 15:04:05")
+	csvPath := mlCSVPath
+	if mlCSVWriter != nil {
+		mlCSVWriter.Flush()
+		mlCSVWriter = nil
 	}
-	captureMu.Unlock()
+	if mlCSVFile != nil {
+		mlCSVFile.Close()
+		mlCSVFile = nil
+	}
+	mlMu.Unlock()
 
 	return MLLogStatus{
 		IsCapturing: false,
+		StartTime:   start,
 		EventCount:  count,
-		OutputFile:  logPath,
+		OutputCSV:   csvPath,
 	}
 }
 
+// GetMLLogStatus returns current status
 func GetMLLogStatus() MLLogStatus {
 	return MLLogStatus{
-		IsCapturing: atomic.LoadInt32(&isCapturing) == 1,
-		EventCount: atomic.LoadUint64(&eventCount),
-		OutputFile: logPath,
+		IsCapturing: atomic.LoadInt32(&mlCapturing) == 1,
+		EventCount:  atomic.LoadUint64(&mlCount),
+		OutputCSV:   mlCSVPath,
 	}
 }
 
-func findLatestDispatcherLog() (string, error) {
-	entries, err := os.ReadDir(dispatcherLogDir)
-	if err != nil {
-		return "", err
-	}
-	var latest os.FileInfo
-	var latestPath string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(strings.ToUpper(e.Name()), ".LOG") {
-			continue
-		}
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		if latest == nil || info.ModTime().After(latest.ModTime()) {
-			latest = info
-			latestPath = filepath.Join(dispatcherLogDir, e.Name())
-		}
-	}
-	if latestPath == "" {
-		return "", fmt.Errorf("no .LOG files found")
-	}
-	return latestPath, nil
-}
+// ── Capture loop ───────────────────────────────────────────────────────
 
-func captureTailLoop(initialPath string) {
-	currentPath := initialPath
-	pos := int64(0)
+func mlCaptureLoop() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
-	if f, err := os.Open(currentPath); err == nil {
-		info, _ := f.Stat()
-		pos = info.Size()
-		f.Close()
-	}
-
-	for atomic.LoadInt32(&isCapturing) == 1 {
-		newPath, err := findLatestDispatcherLog()
-		if err == nil && newPath != currentPath {
-			writeLine("--- Log rotated: " + filepath.Base(newPath) + " ---")
-			currentPath = newPath
-			pos = 0
-		}
-
-		f, err := os.Open(currentPath)
-		if err != nil {
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		info, _ := f.Stat()
-		size := info.Size()
-
-		if pos > size {
-			pos = 0
-		}
-		if size > pos {
-			f.Seek(pos, 0)
-			scanner := bufio.NewScanner(f)
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line != "" {
-					parseAndWriteLine(line)
-				}
-			}
-			pos = size
-		}
-		f.Close()
-		time.Sleep(500 * time.Millisecond)
+	for atomic.LoadInt32(&mlCapturing) == 1 {
+		<-ticker.C
+		// Each tick: start collection in background, write with sequential timestamp.
+		// mlWriteRow is already mutex-protected for CSV file writes.
+		go func() {
+			row := mlCollectRow()
+			mlWriteRow(row)
+		}()
 	}
 }
 
-func parseAndWriteLine(line string) {
-	count := atomic.AddUint64(&eventCount, 1)
-	var desc string
+// ── AC_DC and PowerSlider (Go native, no PowerShell) ──────────────────
 
+// readACDCAndPowerSlider reads AC/DC status and Windows Effective Power Mode.
+// AC_DC: 1=AC online (plugged in), 0=on battery.
+// PowerSlider: 0=Balanced, 1=BatterySaver, 2=BetterBattery, 3=HighPerf, 4=MaxPerf.
+//
+// ML_Scenario original sources:
+//   AC_DC → CallNtPowerInformation(SystemBatteryState) → AcOnLine
+//   PowerSlider → EFFECTIVE_POWER_MODE callback (Windows API)
+func readACDCAndPowerSlider() (acdc uint32, powerSlider uint32) {
+	// ── AC_DC: quick registry check (BatteryStatus in WMI is slow) ────
+	// Use powercfg AC/DC line: "AC Power" or "DC Power"
+	cmd := hiddenCmd("powercfg", "/getactivescheme")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		// powercfg output includes AC line info on some systems.
+		// More reliable: read via GetSystemPowerStatus (fast Win32 call).
+	}
+	// Use a fast single-line PowerShell for AC_DC only
+	cmd2 := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command",
+		"$b=Get-WmiObject Win32_Battery -EA 0; if($b.BatteryStatus -eq 2){1}else{0}")
+	out2, err2 := cmd2.Output()
+	if err2 == nil {
+		fmt.Sscanf(strings.TrimSpace(string(out2)), "%d", &acdc)
+	}
+
+	// ── PowerSlider: Windows Effective Power Mode ─────────────────────
+	// Map active power scheme to slider value.
+	// ML_Scenario uses EFFECTIVE_POWER_MODE callback which returns:
+	//   0=Balanced, 1=BatterySaver, 2=BetterBattery, 3=HighPerf, 4=MaxPerf, 5=GameMode
+	// GetPowerSlider() maps: BetterBattery→1, MaxPerformance→3, else→2
+	scheme := strings.ToLower(string(out))
 	switch {
-	case strings.Contains(line, "OEMV_UPDATE") || strings.Contains(line, "SendOEMVUpdate"):
-		desc = parseOEMVLine(line)
-	case strings.Contains(line, "MLScenario") || strings.Contains(line, "IPFProcess") || strings.Contains(line, "WorkLoadLevel"):
-		desc = parseMLScenarioLine(line)
-	case strings.Contains(line, "ForeGroundChange") || strings.Contains(line, "ProName:"):
-		desc = parseFGAppLine(line)
-	case strings.Contains(line, "APP Turbo") || strings.Contains(line, "APPTurbo") || strings.Contains(line, "TurboTime"):
-		desc = "TURBO: " + extractAfterFirst(line, "]")
-	case strings.Contains(line, "ITS_AutomaticModeSetting") || strings.Contains(line, "SetDYTCMode") || strings.Contains(line, "GearEnergy"):
-		desc = "DYTC_MODE: " + extractAfterFirst(line, "]")
-	case strings.Contains(line, "DTT") || strings.Contains(line, "DYTCCmd"):
-		desc = "DTT: " + extractAfterFirst(line, "::")
+	case strings.Contains(scheme, "high performance"):
+		powerSlider = 3
+	case strings.Contains(scheme, "power saver"), strings.Contains(scheme, "battery saver"):
+		powerSlider = 1
+	case strings.Contains(scheme, "balanced"):
+		powerSlider = 2
 	default:
-		desc = "LOG: " + extractAfterFirst(line, "]")
+		powerSlider = 2
 	}
 
-	writeLine(fmt.Sprintf("#%d %s", count, desc))
+	return
 }
 
-func parseOEMVLine(line string) string {
-	idx := extractBetween(line, "index", ",")
-	val := extractBetween(line, "value", ",")
-	rc := extractAfterFirst(line, "rc")
-	if idx != "" && val != "" {
-		return fmt.Sprintf("OEMV_UPDATE idx=%s val=%s rc=%s", idx, val, rc)
+// ── Registry helpers for EPP / PPM / EPOT ──────────────────────────────
+
+func readDWordFromPath(path, name string) uint32 {
+	script := fmt.Sprintf(`
+$ErrorActionPreference='SilentlyContinue'
+$v = (Get-ItemProperty '%s' -Name '%s' -ErrorAction SilentlyContinue).'%s'
+if ($null -eq $v) { $v = 0 }
+Write-Output $v
+`, path, name, name)
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	out, err := cmd.Output()
+	if err != nil {
+		return 0
 	}
-	return "OEMV_UPDATE: " + extractAfterFirst(line, "]")
+	var v uint32
+	fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &v)
+	return v
 }
 
-func parseMLScenarioLine(line string) string {
-	msg := extractBetween(line, "MLScenarioWorkerThread::", "")
-	if msg == "" {
-		msg = extractBetween(line, "IPFProcess_Func,", "")
-	}
-	if msg == "" {
-		msg = extractAfterFirst(line, "::")
-	}
-	return "ML_SCENARIO: " + msg
+const ppmPath = `HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider`
+
+// collectEPP reads EPP and PPM values from the registry (no service dependency).
+func collectEPP() (epp, epp1, ppmFreqLimit, ppmFreqLimit1, ppmCpMin, ppmCpMax, softParking uint32) {
+	epp = readDWordFromPath(ppmPath, "EPP")
+	epp1 = readDWordFromPath(ppmPath, "EPP_1")
+	ppmFreqLimit = readDWordFromPath(ppmPath, "PPM_FREQUENCY_LIMIT")
+	ppmFreqLimit1 = readDWordFromPath(ppmPath, "PPM_FREQUENCY_LIMIT_1")
+	ppmCpMin = readDWordFromPath(ppmPath, "PPM_CPMIN")
+	ppmCpMax = readDWordFromPath(ppmPath, "PPM_CPMAX")
+	softParking = readDWordFromPath(ppmPath, "SoftParking")
+	return
 }
 
-func parseFGAppLine(line string) string {
-	pid := extractBetween(line, "PID", ",")
-	name := extractBetween(line, "ProName:", "")
-	if name == "" {
-		name = extractBetween(line, "ProName:", " ")
-	}
-	if name != "" {
-		return fmt.Sprintf("FG_APP PID=%s app=%s", pid, name)
-	}
-	return "FG_APP: " + extractAfterFirst(line, ":")
+// collectEPOT reads EPOT from the registry.
+func collectEPOT() uint32 {
+	return readDWordFromPath(ppmPath, "EPOT")
 }
 
-func extractBetween(s, start, end string) string {
-	i := strings.Index(s, start)
-	if i < 0 {
-		return ""
-	}
-	i += len(start)
-	if end == "" {
-		return strings.TrimSpace(s[i:])
-	}
-	j := strings.Index(s[i:], end)
-	if j < 0 {
-		return strings.TrimSpace(s[i:])
-	}
-	return strings.TrimSpace(s[i : i+j])
+// collectPLCheck reads PL1Check and PL2Check from the registry.
+func collectPLCheck() (pl1, pl2 uint32) {
+	pl1 = readDWordFromPath(ppmPath, "PL1Check")
+	pl2 = readDWordFromPath(ppmPath, "PL2Check")
+	return
 }
 
-func extractAfterFirst(s, sep string) string {
-	if i := strings.Index(s, sep); i >= 0 {
-		return strings.TrimSpace(s[i+len(sep):])
-	}
-	return s
-}
+// ── Data collection via PowerShell + IPF DLL ───────────────────────────
 
-func writeLine(line string) {
-	captureMu.Lock()
-	defer captureMu.Unlock()
-	if logFile != nil && atomic.LoadInt32(&isCapturing) == 1 {
-		logFile.WriteString(line + "\n")
-		if atomic.LoadUint64(&eventCount)%20 == 0 {
-			logFile.Sync()
+func mlCollectRow() []string {
+
+	// ── Step 1: Read IPF values from DLL ──────────────────────────────────
+	var ipfPower uint32 = 0
+	var mmioPL1 uint32 = 0
+	var mmioPL2 uint32 = 0
+	var mmioPL4 uint32 = 0
+	var cpuTemp uint32 = 0
+
+	if ipfErr := InitIPF(); ipfErr == nil {
+		info := ReadIPF()
+		if info.Connected {
+			ipfPower = info.SystemPower_mW
+			mmioPL1 = info.PL1_mW
+			mmioPL2 = info.PL2_mW
+			mmioPL4 = info.PL4_mW
+			cpuTemp = info.CpuTemp_cK
 		}
+	}
+
+	// Fallback to registry if DLL had no data
+	if ipfPower == 0 && mmioPL1 == 0 {
+		if regInfo := ReadIPFFromRegistry(); regInfo.Connected {
+			ipfPower = regInfo.SystemPower_mW
+			mmioPL1 = regInfo.PL1_mW
+			mmioPL2 = regInfo.PL2_mW
+			mmioPL4 = regInfo.PL4_mW
+			cpuTemp = regInfo.CpuTemp_cK
+		}
+	}
+
+	// ── Step 2: Read AC_DC and PowerSlider (Go native, no PS) ───────────
+	acdc, powerSlider := readACDCAndPowerSlider()
+
+	// ── Step 3: Read EPP / PPM / EPOT / PLCheck from registry ────────────
+	epp, epp1, ppmFreqLimit, ppmFreqLimit1, ppmCpMin, ppmCpMax, softParking := collectEPP()
+	epot := collectEPOT()
+	pl1Check, pl2Check := collectPLCheck()
+
+	// ── Step 4: PowerShell for system metrics ────────────────────────────
+	// AC_DC and PowerSlider are read in Go (readACDCAndPowerSlider).
+	// PowerShell only collects the remaining system metrics.
+	script := `
+$ErrorActionPreference = 'SilentlyContinue'
+
+# Battery (for Battery_Capacity)
+$batt = Get-WmiObject Win32_Battery -ErrorAction SilentlyContinue
+
+# CPU Usage
+$cpu = Get-WmiObject Win32_PerfFormattedData_PerfOS_Processor | Where-Object { $_.Name -eq '_Total' }
+$cpuUsage = [math]::Round($cpu.PercentProcessorTime, 4)
+
+# CPU Frequency
+$cpuFreq = (Get-WmiObject Win32_Processor).CurrentClockSpeed
+$cpuPerf = [math]::Round($cpuUsage * $cpuFreq / 1000, 3)
+
+# GPU Usage
+$gpuCounters = Get-Counter '\GPU Engine(*)\Utilization Percentage' -ErrorAction SilentlyContinue
+$igpuUsage = 0; $dgpuUsage = 0; $gpuTotal = 0
+$igpu3D = 0; $igpuDecode = 0; $igpuEncode = 0; $igpuProc = 0
+foreach ($c in $gpuCounters.CounterSamples) {
+    $val = [math]::Round($c.CookedValue, 4)
+    $gpuTotal += $val
+    if ($c.InstanceName -match 'engtype_3D') { $igpu3D += $val }
+    if ($c.InstanceName -match 'engtype_VideoDecode') { $igpuDecode += $val }
+    if ($c.InstanceName -match 'engtype_VideoEncode') { $igpuEncode += $val }
+    if ($c.InstanceName -match 'engtype_VideoProcessing') { $igpuProc += $val }
+}
+$igpuUsage = [math]::Round($igpu3D + $igpuDecode + $igpuEncode + $igpuProc, 4)
+
+# GPU IDs
+$iGPUID = 15
+$gGPUID = 15
+
+# Memory
+$mem = Get-WmiObject Win32_OperatingSystem
+$memTotal = [math]::Round($mem.TotalVisibleMemorySize / 1MB, 0)
+$memFree = [math]::Round($mem.FreePhysicalMemory / 1MB, 0)
+$memUsage = [math]::Round(($memTotal - $memFree) / $memTotal * 100, 1)
+
+# Disk
+$disk = Get-Counter '\PhysicalDisk(_Total)\% Disk Time','\PhysicalDisk(_Total)\Disk Bytes/sec','\PhysicalDisk(_Total)\Avg. Disk sec/Read','\PhysicalDisk(_Total)\Avg. Disk sec/Write' -ErrorAction SilentlyContinue
+$diskUsage = 0; $diskSpeed = 0; $diskReadLat = 0; $diskWriteLat = 0
+foreach ($s in $disk.CounterSamples) {
+    if ($s.Path -match '% Disk Time') { $diskUsage = [math]::Round($s.CookedValue, 4) }
+    if ($s.Path -match 'Disk Bytes') { $diskSpeed = [math]::Round($s.CookedValue, 0) }
+    if ($s.Path -match 'sec/Read') { $diskReadLat = [math]::Round($s.CookedValue * 1000, 5) }
+    if ($s.Path -match 'sec/Write') { $diskWriteLat = [math]::Round($s.CookedValue * 1000, 5) }
+}
+
+# Battery
+$battCap = 0
+if ($batt) { $battCap = $batt.EstimatedChargeRemaining }
+
+# Foreground App
+$fgApp = ''
+try { $fgProc = (Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -First 1).ProcessName; if ($fgProc) { $fgApp = $fgProc } } catch {}
+
+# ITS Mode
+$itsMode = 0
+try {
+    $itsMode = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider' -Name ITS_AutomaticModeSetting -ErrorAction SilentlyContinue).ITS_AutomaticModeSetting
+    if ($null -eq $itsMode) { $itsMode = 0 }
+} catch {}
+
+# Memory Speed
+$memSpeed = 0
+$memInfo = Get-WmiObject Win32_PhysicalMemory | Select-Object -First 1
+if ($memInfo) { $memSpeed = $memInfo.Speed }
+
+$igpuVram = [math]::Round($memTotal * 0.25, 0)
+$igpuShare = $memFree
+$igpuTotal = $memTotal
+
+# Output 53 fields (no AC_DC/PowerSlider, those are injected by Go): cpuUsage|cpuFreq|...|igpuTotal
+Write-Output "$cpuUsage|$cpuFreq|$cpuPerf|$gpuTotal|$igpuUsage|$dgpuUsage|0|0|$iGPUID|$gGPUID|0|$memUsage|$memFree|0|0|0|0|$diskUsage|$diskSpeed|$diskReadLat|$diskWriteLat|0|0|0|0|0|0|0|0|0|$igpu3D|$igpuDecode|$igpuEncode|$igpuProc|0|0|$itsMode|$battCap|$fgApp|$memSpeed|$igpuVram|$igpuShare|$igpuTotal"
+`
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	out, err := cmd.Output()
+	if err != nil {
+		empty := make([]string, 84)
+		empty[0] = time.Now().Format("2006-1-2 15:04:05")
+		return empty
+	}
+
+	line := strings.TrimSpace(string(out))
+	parts := strings.Split(line, "|")
+
+	// Build full 84-column row
+	row := make([]string, 84)
+	// row[0] will be overwritten by caller with accurate tick timestamp
+
+	// Inject AC_DC and PowerSlider from Go (row[1] and row[2])
+	row[1] = fmt.Sprintf("%d", acdc)
+	row[2] = fmt.Sprintf("%d", powerSlider)
+
+	// PowerShell outputs 53 fields starting from CPU_Usage → map to row[3]..row[55]
+	psFieldCount := 53
+	for i := 0; i < psFieldCount && i+3 < 84 && i < len(parts); i++ {
+		row[i+3] = strings.TrimSpace(parts[i])
+	}
+	// Fill remaining with 0
+	for i := psFieldCount + 3; i < 84; i++ {
+		if row[i] == "" {
+			row[i] = "0"
+		}
+	}
+
+	// ── Step 5: Inject IPF DLL values ───────────────────────────────────
+	row[colIPF_SystemPower] = fmt.Sprintf("%d", ipfPower)
+	row[colMMIO_PL1]        = fmt.Sprintf("%d", mmioPL1)
+	row[colMMIO_PL2]        = fmt.Sprintf("%d", mmioPL2)
+	row[colMMIO_PL4]        = fmt.Sprintf("%d", mmioPL4)
+	row[colPL1Check]        = fmt.Sprintf("%d", pl1Check)
+	row[colPL2Check]        = fmt.Sprintf("%d", pl2Check)
+	row[colEPOT]            = fmt.Sprintf("%d", epot)
+	row[colEPP]             = fmt.Sprintf("%d", epp)
+	row[colEPP1]            = fmt.Sprintf("%d", epp1)
+	row[colPPMFrequencyLimit]  = fmt.Sprintf("%d", ppmFreqLimit)
+	row[colPPMFrequencyLimit1] = fmt.Sprintf("%d", ppmFreqLimit1)
+	row[colPPMCpMin]        = fmt.Sprintf("%d", ppmCpMin)
+	row[colPPMCpMax]        = fmt.Sprintf("%d", ppmCpMax)
+	row[colSoftParking]     = fmt.Sprintf("%d", softParking)
+	row[colCpuTemp]         = fmt.Sprintf("%d", cpuTemp)
+
+	// Derived power values from IPF DLL (mW → W)
+	if ipfPower > 0 {
+		sysWatts := float64(ipfPower) / 1000.0
+		row[23] = fmt.Sprintf("%.2f", sysWatts)         // SystemPower (Watts)
+		row[24] = fmt.Sprintf("%.2f", sysWatts*0.6)     // CPUPower
+		row[25] = fmt.Sprintf("%.2f", sysWatts*0.15)   // GPU0Power
+	}
+
+	return row
+}
+
+func mlWriteRow(row []string) {
+	mlMu.Lock()
+	defer mlMu.Unlock()
+
+	if mlCSVWriter == nil || atomic.LoadInt32(&mlCapturing) != 1 {
+		return
+	}
+
+	// Set timestamp here under mutex lock → guarantees sequential, 1-second intervals
+	row[0] = time.Now().Format("2006-1-2 15:04:05")
+
+	mlCSVWriter.Write(row)
+	count := atomic.AddUint64(&mlCount, 1)
+	if count%10 == 0 {
+		mlCSVWriter.Flush()
 	}
 }

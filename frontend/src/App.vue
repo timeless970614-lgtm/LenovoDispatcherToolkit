@@ -43,23 +43,32 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-          <svg v-if="theme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
-          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
+        <div class="sidebar-footer-icons">
+          <div class="icon-btn" @click="toggleLang" :title="lang === 'en' ? '切换到中文' : 'Switch to English'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <div class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+            <svg v-if="theme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </div>
         </div>
-        <div class="version-tag">v1.0.0</div>
+        <div class="version-tag">v1.0.14</div>
       </div>
     </aside>
 
@@ -72,7 +81,7 @@
         </div>
         <div class="header-right">
           <!-- ML Log Capture Button -->
-          <button class="btn-ml-capture" :class="{ capturing: mlCapturing }" @click="toggleMLCapture" :title="mlCapturing ? 'Stop ML Log Capture' : 'Start ML Log Capture'">
+          <button class="btn-ml-capture" :class="{ capturing: mlCapturing }" @click="toggleMLCapture" :title="mlCapturing ? 'Stop capture (LOG+CSV)' : 'Start capture (LOG+CSV)'">
             <svg v-if="!mlCapturing" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <circle cx="12" cy="12" r="6"/>
               <rect x="10" y="2" width="4" height="6" rx="1"/>
@@ -80,21 +89,29 @@
             <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="rec-dot">
               <circle cx="12" cy="12" r="8"/>
             </svg>
-            <span>{{ mlCapturing ? 'Stop ML' : 'ML Log' }}</span>
-            <span v-if="mlCapturing && mlEventCount > 0" class="ml-count">{{ mlEventCount }}</span>
+            <span>{{ mlCapturing ? 'Stop' : 'ML Log' }}</span>
+            <span class="ml-format">LOG+CSV</span>
           </button>
 
           <div class="service-status-pill" v-if="serviceRunning !== null">
             <span :class="['svc-dot', serviceRunning ? 'svc-dot-running' : 'svc-dot-stopped']"></span>
             <span class="svc-label">{{ serviceRunning ? 'Running' : 'Stopped' }}</span>
           </div>
-          <div class="current-mode-pill" v-if="currentMode || pinnedMode">
+          <div class="current-mode-pill" v-if="currentMode !== ''">
             <span class="mode-dot"></span>
             <span class="mode-label">Current Mode</span>
             <span class="mode-value">{{ pinnedMode || currentMode }}</span>
             <span v-if="pinnedMode" class="pin-indicator">📌</span>
           </div>
-          <div class="header-time">{{ currentTime }}</div>
+          <!-- Uninstall Button -->
+          <button class="btn-uninstall" @click="handleUninstall" :disabled="uninstalling" title="Uninstall Dispatcher Driver">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            <span>{{ uninstalling ? 'Uninstalling...' : 'Uninstall' }}</span>
+          </button>
         </div>
       </header>
       
@@ -120,7 +137,7 @@ import ModeCheck from './pages/ModeCheck.vue'
 import AIAnalysis from './pages/AIAnalysis.vue'
 import Settings from './pages/Settings.vue'
 import About from './pages/About.vue'
-import { StartMLScenarioCapture, StopMLScenarioCapture, GetMLLogStatus } from '../wailsjs/go/main/App'
+import { StartMLScenarioCapture, StopMLScenarioCapture, GetMLLogStatus, OpenFolder, UninstallDispatcher } from '../wailsjs/go/main/App'
 
 export default {
   name: 'App',
@@ -139,14 +156,16 @@ export default {
       theme: 'dark',
       lang: 'en',
       currentTime: '',
-      currentMode: '',
+      currentMode: 'N/A',
       pinnedMode: '',
       serviceRunning: null,
       mlCapturing: false,
       mlEventCount: 0,
+      mlResult: null,
       mlInterval: null,
       timeInterval: null,
       modeInterval: null,
+      uninstalling: false,
       mainNavItems: [
         { 
           id: 'dashboard', 
@@ -154,13 +173,6 @@ export default {
           subtitle: 'System overview & status',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
         },
-        { 
-          id: 'ppm', 
-          label: 'PPM Driver', 
-          subtitle: 'Processor power management',
-          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>'
-        },
-
         { 
           id: 'funccheck', 
           label: 'Function Check', 
@@ -178,7 +190,13 @@ export default {
           label: 'AI Analysis',
           subtitle: 'Log analysis & diagnostics',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'
-        }
+        },
+        { 
+          id: 'ppm', 
+          label: 'PPM Driver', 
+          subtitle: 'Processor power management',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>'
+        },
       ],
       bottomNavItems: [
         { 
@@ -245,24 +263,18 @@ export default {
             window.go.main.App.GetPinnedDYTCMode(),
           ])
           this.pinnedMode = pinned || ''
-          if (info && info.CurrentMode) {
-            const modeMap = {
-              'Battery Saving': 'BSM',
-              'Intelligent Battery Saving': 'IBSM',
-              'Intelligent Auto Quiet': 'AQM',
-              'Intelligent Stand Mode': 'STD',
-              'Intelligent Auto Performance': 'APM',
-              'Intelligent Extreme': 'IEPM',
-              'Extreme Performance': 'EPM',
-              'Yoga Tablet': 'Tablet',
-              'Yoga Tent': 'Tent',
-              'Yoga Flat': 'Flat',
-              'Geek Mode': 'GEEK',
+          
+          // Use AutoMode directly (it's the raw number from registry)
+          if (info && info.AutoMode) {
+            const num = info.AutoMode
+            const numToMode = { 
+              1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 
+              5: 'APM', 6: 'IEPM', 7: 'EPM', 
+              8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' 
             }
-            const raw = info.CurrentMode
-            const matched = Object.keys(modeMap).find(k => raw.startsWith(k))
-            this.currentMode = matched ? modeMap[matched] : raw
+            this.currentMode = numToMode[num] || ('Unknown(' + num + ')')
           }
+          
           const status = await window.go.main.App.GetServiceStatus()
           this.serviceRunning = (status === 'Running')
         }
@@ -282,6 +294,10 @@ export default {
       this.lang = newLang
       localStorage.setItem('lenovo-toolkit-lang', this.lang)
     },
+    toggleLang() {
+      this.lang = this.lang === 'en' ? 'zh' : 'en'
+      localStorage.setItem('lenovo-toolkit-lang', this.lang)
+    },
 
     async toggleMLCapture() {
       if (this.mlCapturing) {
@@ -292,9 +308,6 @@ export default {
           if (this.mlInterval) {
             clearInterval(this.mlInterval)
             this.mlInterval = null
-          }
-          if (result && result.outputFile) {
-            console.log('ML Log saved to:', result.outputFile)
           }
         } catch (e) {
           console.error('StopMLCapture error:', e)
@@ -310,6 +323,7 @@ export default {
           }
           this.mlCapturing = true
           this.mlEventCount = 0
+          this.mlResult = null
           // Poll status every second
           if (this.mlInterval) clearInterval(this.mlInterval)
           this.mlInterval = setInterval(async () => {
@@ -321,6 +335,36 @@ export default {
         } catch (e) {
           console.error('StartMLCapture error:', e)
         }
+      }
+    },
+
+    openMLLogDir() {
+      if (!this.mlResult) return
+      const dir = this.mlResult.outputFile
+      const lastSep = dir.lastIndexOf('\\')
+      const folder = lastSep > 0 ? dir.substring(0, lastSep) : dir.substring(0, dir.lastIndexOf('/'))
+      OpenFolder(folder)
+    },
+
+    async handleUninstall() {
+      // Show confirmation dialog
+      const confirmed = confirm('Are you sure you want to uninstall the Lenovo Process Management Dispatcher driver?\n\nThis will remove the driver from your system.')
+      if (!confirmed) {
+        return
+      }
+
+      this.uninstalling = true
+      try {
+        const result = await UninstallDispatcher()
+        if (result.success) {
+          alert(result.message)
+        } else {
+          alert('Uninstall failed: ' + result.message)
+        }
+      } catch (e) {
+        alert('Uninstall error: ' + e)
+      } finally {
+        this.uninstalling = false
       }
     }
   }
@@ -421,9 +465,119 @@ export default {
   min-width: 20px;
   text-align: center;
 }
+
+.ml-format {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+}
+
+/* ML Result Toast */
+.ml-result-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: var(--accent-green);
+  font-size: 12px;
+  white-space: nowrap;
+  animation: ml-toast-in 0.3s ease;
+}
+
+.ml-toast-title {
+  font-weight: 700;
+}
+
+.ml-toast-info {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ml-toast-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.ml-toast-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--text-primary);
+}
+
+.ml-toast-enter-active { transition: all 0.3s ease; }
+.ml-toast-leave-active { transition: all 0.2s ease; }
+.ml-toast-enter-from { opacity: 0; transform: translateY(-8px); }
+.ml-toast-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* Uninstall Button */
+.btn-uninstall {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid rgba(230, 63, 50, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(230, 63, 50, 0.08);
+  color: var(--lenovo-red);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-uninstall:hover:not(:disabled) {
+  background: var(--lenovo-red);
+  border-color: var(--lenovo-red);
+  color: white;
+}
+
+.btn-uninstall:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>
 
 <style scoped>
+.sidebar-footer-icons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.icon-btn:hover {
+  background: var(--lenovo-red);
+  color: white;
+}
+
 .theme-toggle {
   width: 40px;
   height: 40px;
@@ -435,7 +589,6 @@ export default {
   cursor: pointer;
   color: var(--text-secondary);
   transition: var(--transition);
-  margin-bottom: 12px;
 }
 
 .theme-toggle:hover {

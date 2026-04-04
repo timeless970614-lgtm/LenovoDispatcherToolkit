@@ -26,12 +26,24 @@ export function CheckNVIDIAStatus() {
   return window['go']['main']['App']['CheckNVIDIAStatus']();
 }
 
+export function CtlFrequencySetRange(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CtlFrequencySetRange'](arg1, arg2, arg3);
+}
+
+export function EnableDynamicLog() {
+  return window['go']['main']['App']['EnableDynamicLog']();
+}
+
 export function EnumerateGPUProcesses() {
   return window['go']['main']['App']['EnumerateGPUProcesses']();
 }
 
 export function EnumerateGPUs() {
   return window['go']['main']['App']['EnumerateGPUs']();
+}
+
+export function GetCachedGPUStatus() {
+  return window['go']['main']['App']['GetCachedGPUStatus']();
 }
 
 export function GetDYTCInfo() {
@@ -42,8 +54,28 @@ export function GetDispatcherInfo() {
   return window['go']['main']['App']['GetDispatcherInfo']();
 }
 
+export function GetDynamicLogStatus() {
+  return window['go']['main']['App']['GetDynamicLogStatus']();
+}
+
+export function GetGPUPrefStatus() {
+  return window['go']['main']['App']['GetGPUPrefStatus']();
+}
+
+export function GetGPUPrefStatusFromCache() {
+  return window['go']['main']['App']['GetGPUPrefStatusFromCache']();
+}
+
 export function GetIGPUMode() {
   return window['go']['main']['App']['GetIGPUMode']();
+}
+
+export function GetIntelDriverDownloadURL() {
+  return window['go']['main']['App']['GetIntelDriverDownloadURL']();
+}
+
+export function GetIntelGPUFrequency() {
+  return window['go']['main']['App']['GetIntelGPUFrequency']();
 }
 
 export function GetLogFiles() {
@@ -82,6 +114,10 @@ export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
 }
 
+export function OpenFolder(arg1) {
+  return window['go']['main']['App']['OpenFolder'](arg1);
+}
+
 export function PinDYTCMode(arg1) {
   return window['go']['main']['App']['PinDYTCMode'](arg1);
 }
@@ -110,6 +146,10 @@ export function SetIGPUMode(arg1) {
   return window['go']['main']['App']['SetIGPUMode'](arg1);
 }
 
+export function SetIntelGPUFrequencyRange(arg1, arg2) {
+  return window['go']['main']['App']['SetIntelGPUFrequencyRange'](arg1, arg2);
+}
+
 export function SetODV(arg1, arg2) {
   return window['go']['main']['App']['SetODV'](arg1, arg2);
 }
@@ -122,6 +162,10 @@ export function SetSSDMode(arg1, arg2) {
   return window['go']['main']['App']['SetSSDMode'](arg1, arg2);
 }
 
+export function StartGPUStatusWatcher() {
+  return window['go']['main']['App']['StartGPUStatusWatcher']();
+}
+
 export function StartMLScenarioCapture() {
   return window['go']['main']['App']['StartMLScenarioCapture']();
 }
@@ -130,12 +174,24 @@ export function StartService() {
   return window['go']['main']['App']['StartService']();
 }
 
+export function StopGPUStatusWatcher() {
+  return window['go']['main']['App']['StopGPUStatusWatcher']();
+}
+
 export function StopMLScenarioCapture() {
   return window['go']['main']['App']['StopMLScenarioCapture']();
 }
 
 export function StopService() {
   return window['go']['main']['App']['StopService']();
+}
+
+export function TestIntelGPUFrequency(arg1) {
+  return window['go']['main']['App']['TestIntelGPUFrequency'](arg1);
+}
+
+export function UninstallDispatcher() {
+  return window['go']['main']['App']['UninstallDispatcher']();
 }
 
 export function UnpinDYTCMode() {

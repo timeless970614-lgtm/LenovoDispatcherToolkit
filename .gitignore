@@ -5,3 +5,12 @@ frontend/dist/
 .tmp/
 *.exe
 *.zip
+
+# Build artifacts
+backend/ipf_wrapper/*.dll
+backend/ipf_wrapper/*.exp
+backend/ipf_wrapper/*.lib
+backend/ipf_wrapper/*.obj
+build/bin/
+build/diag_*.bat
+check_*.bat

@@ -13,12 +13,12 @@ import (
 
 // SystemInfo holds system information
 type SystemInfo struct {
-	CPUName       string  `json:"cpuName"`
-	BIOSVersion   string  `json:"biosVersion"`
-	OSCaption     string  `json:"osCaption"`
-	OSVersion     string  `json:"osVersion"`
-	TotalMemoryGB float64 `json:"totalMemoryGB"`
-	MemoryType    string  `json:"memoryType"`
+	CPUName       string  `json:"CPUName"`
+	BIOSVersion   string  `json:"BIOSVersion"`
+	OSCaption     string  `json:"OSCaption"`
+	OSVersion     string  `json:"OSVersion"`
+	TotalMemoryGB float64 `json:"TotalMemoryGB"`
+	MemoryType    string  `json:"MemoryType"`
 }
 
 // memoryStatusEx mirrors MEMORYSTATUSEX from Windows API

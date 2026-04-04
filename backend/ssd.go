@@ -4,7 +4,6 @@ package backend
 
 import (
 	"fmt"
-	"os/exec"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -93,7 +92,7 @@ foreach ($disk in $disks) {
     Write-Output "DISK|$driveIndex|$friendly|$model|$serial|$size|$capStr|$proto|$operational"
 }
 `
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		return []SSDInfo{{Error: "Failed to query physical disks"}}
 	}
@@ -192,7 +191,7 @@ if ($disk.BusType -ne 3) {
 Write-Output "OK"
 `, physicalDriveIndex)
 
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		result.Message = "Failed to query disk info"
 		return result

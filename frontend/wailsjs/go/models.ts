@@ -87,6 +87,20 @@ export namespace backend {
 	        this.autoMode = source["autoMode"];
 	    }
 	}
+	export class DynamicLogResult {
+	    success: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DynamicLogResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.message = source["message"];
+	    }
+	}
 	export class EnableFuncPolicy {
 	    bit: number;
 	    name: string;
@@ -143,6 +157,28 @@ export namespace backend {
 	        this.busNumber = source["busNumber"];
 	    }
 	}
+	export class GPUPrefStatus {
+	    available: boolean;
+	    value: number;
+	    label: string;
+	    pcmStatus: number;
+	    pcmStatusAvail: boolean;
+	    pcmLabel: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GPUPrefStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.value = source["value"];
+	        this.label = source["label"];
+	        this.pcmStatus = source["pcmStatus"];
+	        this.pcmStatusAvail = source["pcmStatusAvail"];
+	        this.pcmLabel = source["pcmLabel"];
+	    }
+	}
 	export class GPUProcess {
 	    pid: number;
 	    name: string;
@@ -173,6 +209,58 @@ export namespace backend {
 	        this.mode = source["mode"];
 	    }
 	}
+	export class IntelGPUFreqTestResult {
+	    success: boolean;
+	    message: string;
+	    minFreq: number;
+	    maxFreq: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new IntelGPUFreqTestResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.message = source["message"];
+	        this.minFreq = source["minFreq"];
+	        this.maxFreq = source["maxFreq"];
+	    }
+	}
+	export class IntelGPUFrequency {
+	    available: boolean;
+	    minFreq: number;
+	    maxFreq: number;
+	    currentMin: number;
+	    currentMax: number;
+	    step: number;
+	    gpuName: string;
+	    driverVersion: string;
+	    driverDate: string;
+	    minDriverVersion: string;
+	    driverOK: boolean;
+	    error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IntelGPUFrequency(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.minFreq = source["minFreq"];
+	        this.maxFreq = source["maxFreq"];
+	        this.currentMin = source["currentMin"];
+	        this.currentMax = source["currentMax"];
+	        this.step = source["step"];
+	        this.gpuName = source["gpuName"];
+	        this.driverVersion = source["driverVersion"];
+	        this.driverDate = source["driverDate"];
+	        this.minDriverVersion = source["minDriverVersion"];
+	        this.driverOK = source["driverOK"];
+	        this.error = source["error"];
+	    }
+	}
 	export class LogFileInfo {
 	    name: string;
 	    size: number;
@@ -194,6 +282,7 @@ export namespace backend {
 	    startTime: string;
 	    eventCount: number;
 	    outputFile: string;
+	    outputCSV: string;
 	    error: string;
 	
 	    static createFrom(source: any = {}) {
@@ -206,6 +295,7 @@ export namespace backend {
 	        this.startTime = source["startTime"];
 	        this.eventCount = source["eventCount"];
 	        this.outputFile = source["outputFile"];
+	        this.outputCSV = source["outputCSV"];
 	        this.error = source["error"];
 	    }
 	}
@@ -432,12 +522,12 @@ export namespace backend {
 	    }
 	}
 	export class SystemInfo {
-	    cpuName: string;
-	    biosVersion: string;
-	    osCaption: string;
-	    osVersion: string;
-	    totalMemoryGB: number;
-	    memoryType: string;
+	    CPUName: string;
+	    BIOSVersion: string;
+	    OSCaption: string;
+	    OSVersion: string;
+	    TotalMemoryGB: number;
+	    MemoryType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SystemInfo(source);
@@ -445,12 +535,28 @@ export namespace backend {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.cpuName = source["cpuName"];
-	        this.biosVersion = source["biosVersion"];
-	        this.osCaption = source["osCaption"];
-	        this.osVersion = source["osVersion"];
-	        this.totalMemoryGB = source["totalMemoryGB"];
-	        this.memoryType = source["memoryType"];
+	        this.CPUName = source["CPUName"];
+	        this.BIOSVersion = source["BIOSVersion"];
+	        this.OSCaption = source["OSCaption"];
+	        this.OSVersion = source["OSVersion"];
+	        this.TotalMemoryGB = source["TotalMemoryGB"];
+	        this.MemoryType = source["MemoryType"];
+	    }
+	}
+	export class UninstallResult {
+	    success: boolean;
+	    message: string;
+	    driversRemoved: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new UninstallResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.message = source["message"];
+	        this.driversRemoved = source["driversRemoved"];
 	    }
 	}
 

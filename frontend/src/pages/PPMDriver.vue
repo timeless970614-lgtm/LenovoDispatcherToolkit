@@ -193,6 +193,16 @@
           Live Power Settings
         </span>
         <div style="display:flex;gap:8px;align-items:center;">
+          <label class="auto-refresh-label">
+            <input type="checkbox" v-model="autoRefresh" @change="toggleAutoRefresh" />
+            Auto Refresh
+          </label>
+          <select v-model.number="refreshInterval" @change="updateRefreshInterval" class="refresh-select" :disabled="!autoRefresh">
+            <option :value="1">1s</option>
+            <option :value="2">2s</option>
+            <option :value="3">3s</option>
+            <option :value="5">5s</option>
+          </select>
           <span v-if="lastRefresh" class="refresh-time">{{ lastRefresh }}</span>
           <button class="btn-icon" @click="loadSettings" :disabled="loading" title="Refresh">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: loading }">
@@ -314,6 +324,9 @@ export default {
       statusMsg: '',
       statusOk: true,
       lastRefresh: '',
+      autoRefresh: false,
+      refreshInterval: 1,
+      refreshTimer: null,
       paramList: [
         { key: 'minPerf',    label: 'Min Processor State' },
         { key: 'maxPerf',    label: 'Max Processor State' },
@@ -330,8 +343,27 @@ export default {
   },
   async mounted() {
     await this.loadSettings()
+    this.toggleAutoRefresh()
+  },
+  beforeUnmount() {
+    this.stopAutoRefresh()
   },
   methods: {
+    toggleAutoRefresh() {
+      this.stopAutoRefresh()
+      if (this.autoRefresh) {
+        this.refreshTimer = setInterval(() => this.loadSettings(), this.refreshInterval * 1000)
+      }
+    },
+    updateRefreshInterval() {
+      if (this.autoRefresh) this.toggleAutoRefresh()
+    },
+    stopAutoRefresh() {
+      if (this.refreshTimer) {
+        clearInterval(this.refreshTimer)
+        this.refreshTimer = null
+      }
+    },
     async loadSettings() {
       this.loading = true
       try {
@@ -362,8 +394,10 @@ export default {
           const result = await window.go.main.App.SetPowerSettingRaw(guid, this.editAC, this.editDC)
           if (result === 'OK') {
             this.showStatus(`${this.settings[key].name} updated: AC=${this.editAC}, DC=${this.editDC}`, true)
+            // Update local display immediately (GUIDs may not be readable via powercfg)
+            this.settings[key].acValue = this.editAC
+            this.settings[key].dcValue = this.editDC
             this.editingKey = null
-            await this.loadSettings()
           } else {
             this.showStatus(result, false)
           }
@@ -665,6 +699,31 @@ export default {
 .refresh-time {
   font-size: 11px;
   color: var(--text-tertiary);
+}
+
+.auto-refresh-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-refresh-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.refresh-select {
+  padding: 2px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 .scheme-info-bar {

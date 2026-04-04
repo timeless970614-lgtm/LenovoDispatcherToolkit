@@ -4,10 +4,13 @@ package backend
 
 import (
 	"fmt"
-	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
+	"unsafe"
 )
 
 const (
@@ -41,9 +44,26 @@ type PPMSettings struct {
 	SchemeGUID string     `json:"schemeGUID"`
 }
 
-// queryPowerSetting reads AC and DC values for a specific power setting GUID
+// PPMInfo is defined in ipf.go (same package, no redeclaration needed).
+
+// ── powercfg (primary, works without MSR driver) ─────────────────────────
+
+func querySchemeInfo() (name string, guid string) {
+	cmd := hiddenCmd("powercfg", "/getactivescheme")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "Unknown", ""
+	}
+	reGUID := regexp.MustCompile(`Power Scheme GUID:\s+([0-9a-f-]+)\s+\(([^)]+)\)`)
+	m := reGUID.FindStringSubmatch(string(output))
+	if len(m) > 2 {
+		return strings.TrimSpace(m[2]), strings.TrimSpace(m[1])
+	}
+	return "Unknown", ""
+}
+
 func queryPowerSetting(subgroupGUID, settingGUID string) (acVal int, dcVal int, found bool) {
-	cmd := exec.Command("powercfg", "/query", "SCHEME_CURRENT", subgroupGUID, settingGUID)
+	cmd := hiddenCmd("powercfg", "/query", "SCHEME_CURRENT", subgroupGUID, settingGUID)
 	output, err := cmd.CombinedOutput()
 	if err != nil || len(output) == 0 {
 		return 0, 0, false
@@ -67,51 +87,110 @@ func queryPowerSetting(subgroupGUID, settingGUID string) (acVal int, dcVal int, 
 	return acVal, dcVal, true
 }
 
-// querySchemeInfo reads the current power scheme name
-func querySchemeInfo() (name string, guid string) {
-	cmd := exec.Command("powercfg", "/getactivescheme")
+func runPowercfg(args ...string) error {
+	cmd := hiddenCmd("powercfg", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "Unknown", ""
+		return fmt.Errorf("powercfg %v failed: %w\nOutput: %s", args, err, string(output))
 	}
-	text := string(output)
-	reGUID := regexp.MustCompile(`Power Scheme GUID:\s+([0-9a-f-]+)\s+\(([^)]+)\)`)
-	m := reGUID.FindStringSubmatch(text)
-	if len(m) > 2 {
-		return strings.TrimSpace(m[2]), strings.TrimSpace(m[1])
-	}
-	return "Unknown", ""
+	return nil
 }
 
-// GetPPMSettings reads all current PPM power settings
+// ── MSR access via ipf_wrapper.dll (WinMSRIO.dll + MSRIO.sys) ─────────────
+
+var (
+	msrDLL   *syscall.LazyDLL
+	msrFunc  struct {
+		readMsr          uintptr
+		getEPP           uintptr
+		getEPP1         uintptr
+		getFrequencyLimit uintptr
+		getHeteroInc     uintptr
+		getHeteroDec     uintptr
+		getSoftPark      uintptr
+	}
+	msrOnce sync.Once
+	msrErr  error
+)
+
+func initMSR() error {
+	msrOnce.Do(func() {
+		exeDir := getExeDir()
+		dllPath := filepath.Join(exeDir, "ipf_wrapper.dll")
+		msrDLL = syscall.NewLazyDLL(dllPath)
+
+		resolve := func(name string) uintptr {
+			p := msrDLL.NewProc(name)
+			if err := p.Find(); err != nil {
+				return 0
+			}
+			return p.Addr()
+		}
+
+		msrFunc.readMsr = resolve("IPF_ReadMSR")
+		msrFunc.getEPP = resolve("IPF_GetEPP")
+		msrFunc.getEPP1 = resolve("IPF_GetEPP1")
+		msrFunc.getFrequencyLimit = resolve("IPF_GetFrequencyLimit_MHz")
+		msrFunc.getHeteroInc = resolve("IPF_GetHeteroInc")
+		msrFunc.getHeteroDec = resolve("IPF_GetHeteroDec")
+		msrFunc.getSoftPark = resolve("IPF_GetSoftParkLatency")
+
+		// Try to connect via ipf_wrapper (initializes WinMSRIO)
+		if connectFn := resolve("IPF_Connect"); connectFn != 0 {
+			syscall.Syscall(connectFn, 0, 0, 0, 0)
+		}
+
+		// Test MSR access by reading a known-safe register (IA32_PLATFORM_ID, MSR 0x17)
+		if msrFunc.readMsr != 0 {
+			var eax, edx uint32
+			ok, _, _ := syscall.Syscall(
+				msrFunc.readMsr,
+				3,
+				uintptr(0x17),
+				uintptr(unsafe.Pointer(&eax)),
+				uintptr(unsafe.Pointer(&edx)),
+			)
+			if ok == 0 {
+				msrErr = fmt.Errorf("MSR access test failed; MSRIO driver may not be installed")
+			}
+		} else {
+			msrErr = fmt.Errorf("ipf_wrapper.dll does not export MSR functions")
+		}
+	})
+	return msrErr
+}
+
+// GetPPMSettings reads all PPM values via powercfg (primary, no driver needed).
+// NOTE: Some GUIDs (EPP, Hetero, Freq, SoftPark) are writable but not queryable
+// on certain Intel platforms. We treat them as Found=true so the UI allows editing.
 func GetPPMSettings() PPMSettings {
 	const sub = processorSubgroup
 	s := PPMSettings{}
 	s.SchemeName, s.SchemeGUID = querySchemeInfo()
 
 	ac, dc, found := queryPowerSetting(sub, "36687f9e-e3a5-4dbf-b1dc-15eb381c6863")
-	s.EPP = PPMSetting{Name: "EPP (P-Core)", GUID: "36687f9e-e3a5-4dbf-b1dc-15eb381c6863", ACValue: ac, DCValue: dc, Found: found}
+	s.EPP = PPMSetting{Name: "EPP (P-Core)", GUID: "36687f9e-e3a5-4dbf-b1dc-15eb381c6863", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "36687f9e-e3a5-4dbf-b1dc-15eb381c6864")
-	s.EPP1 = PPMSetting{Name: "EPP1 (E-Core)", GUID: "36687f9e-e3a5-4dbf-b1dc-15eb381c6864", ACValue: ac, DCValue: dc, Found: found}
+	s.EPP1 = PPMSetting{Name: "EPP1 (E-Core)", GUID: "36687f9e-e3a5-4dbf-b1dc-15eb381c6864", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "06cadf0e-64ed-448a-8927-ce7bf90eb35d")
-	s.HeteroInc = PPMSetting{Name: "Hetero Increase Threshold", GUID: "06cadf0e-64ed-448a-8927-ce7bf90eb35d", ACValue: ac, DCValue: dc, Found: found}
+	s.HeteroInc = PPMSetting{Name: "Hetero Increase Threshold", GUID: "06cadf0e-64ed-448a-8927-ce7bf90eb35d", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "12a0ab44-fe28-4fa9-b3bd-4b64f44960a6")
-	s.HeteroDec = PPMSetting{Name: "Hetero Decrease Threshold", GUID: "12a0ab44-fe28-4fa9-b3bd-4b64f44960a6", ACValue: ac, DCValue: dc, Found: found}
+	s.HeteroDec = PPMSetting{Name: "Hetero Decrease Threshold", GUID: "12a0ab44-fe28-4fa9-b3bd-4b64f44960a6", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "75b0ae3f-bce0-45a7-8c89-c9611c25e100")
-	s.MaxFreq = PPMSetting{Name: "Max Frequency (P-Core)", GUID: "75b0ae3f-bce0-45a7-8c89-c9611c25e100", ACValue: ac, DCValue: dc, Found: found}
+	s.MaxFreq = PPMSetting{Name: "Max Frequency (P-Core)", GUID: "75b0ae3f-bce0-45a7-8c89-c9611c25e100", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "75b0ae3f-bce0-45a7-8c89-c9611c25e101")
-	s.MaxFreq1 = PPMSetting{Name: "Max Frequency (E-Core)", GUID: "75b0ae3f-bce0-45a7-8c89-c9611c25e101", ACValue: ac, DCValue: dc, Found: found}
+	s.MaxFreq1 = PPMSetting{Name: "Max Frequency (E-Core)", GUID: "75b0ae3f-bce0-45a7-8c89-c9611c25e101", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "97cfac41-2217-47eb-992d-618b1977c907")
-	s.SoftPark = PPMSetting{Name: "Soft Park Latency", GUID: "97cfac41-2217-47eb-992d-618b1977c907", ACValue: ac, DCValue: dc, Found: found}
+	s.SoftPark = PPMSetting{Name: "Soft Park Latency", GUID: "97cfac41-2217-47eb-992d-618b1977c907", ACValue: ac, DCValue: dc, Found: true}
 
 	ac, dc, found = queryPowerSetting(sub, "893dee8e-2bef-41e0-89c6-b55d0929964c")
-	s.CPMinCores = PPMSetting{Name: "Min Processor State", GUID: "893dee8e-2bef-41e0-89c6-b55d0929964c", ACValue: ac, DCValue: dc, Found: found}
+	s.CPMinCores = PPMSetting{Name: "Min Processor Cores", GUID: "893dee8e-2bef-41e0-89c6-b55d0929964c", ACValue: ac, DCValue: dc, Found: found}
 
 	ac, dc, found = queryPowerSetting(sub, "bc5038f7-23e0-4960-96da-33abaf5935ec")
 	s.MaxPerf = PPMSetting{Name: "Max Processor State", GUID: "bc5038f7-23e0-4960-96da-33abaf5935ec", ACValue: ac, DCValue: dc, Found: found}
@@ -119,14 +198,56 @@ func GetPPMSettings() PPMSettings {
 	return s
 }
 
-// runPowercfg executes a powercfg command
-func runPowercfg(args ...string) error {
-	cmd := exec.Command("powercfg", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("powercfg %v failed: %w\nOutput: %s", args, err, string(output))
+// GetPPMInfo reads raw MSR-based PPM values (EPP, Freq, Hetero, SoftPark).
+// Falls back to powercfg values if MSR access is unavailable.
+func GetPPMInfo() PPMInfo {
+	info := PPMInfo{}
+
+	// Try MSR first (requires WinMSRIO driver)
+	if err := initMSR(); err == nil {
+		callU32 := func(fn uintptr) uint32 {
+			if fn == 0 {
+				return 0
+			}
+			v, _, _ := syscall.Syscall(fn, 0, 0, 0, 0)
+			return uint32(v)
+		}
+		info.EPP = callU32(msrFunc.getEPP)
+		info.EPP1 = callU32(msrFunc.getEPP1)
+		info.FrequencyLimit = callU32(msrFunc.getFrequencyLimit)
+		info.HeteroInc = callU32(msrFunc.getHeteroInc)
+		info.HeteroDec = callU32(msrFunc.getHeteroDec)
+		info.SoftParkLatency = callU32(msrFunc.getSoftPark)
+		return info
 	}
-	return nil
+
+	// Fallback: read from powercfg (no driver needed)
+	ac, _, found := queryPowerSetting(processorSubgroup, "36687f9e-e3a5-4dbf-b1dc-15eb381c6863")
+	if found {
+		info.EPP = uint32(ac)
+	}
+	ac, _, found = queryPowerSetting(processorSubgroup, "36687f9e-e3a5-4dbf-b1dc-15eb381c6864")
+	if found {
+		info.EPP1 = uint32(ac)
+	}
+	ac, _, found = queryPowerSetting(processorSubgroup, "75b0ae3f-bce0-45a7-8c89-c9611c25e100")
+	if found {
+		info.FrequencyLimit = uint32(ac)
+	}
+	ac, _, found = queryPowerSetting(processorSubgroup, "06cadf0e-64ed-448a-8927-ce7bf90eb35d")
+	if found {
+		info.HeteroInc = uint32(ac)
+	}
+	ac, _, found = queryPowerSetting(processorSubgroup, "12a0ab44-fe28-4fa9-b3bd-4b64f44960a6")
+	if found {
+		info.HeteroDec = uint32(ac)
+	}
+	ac, _, found = queryPowerSetting(processorSubgroup, "97cfac41-2217-47eb-992d-618b1977c907")
+	if found {
+		info.SoftParkLatency = uint32(ac)
+	}
+
+	return info
 }
 
 // SetPowerSettingRaw sets a power setting by GUID with raw AC/DC values

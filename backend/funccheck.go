@@ -4,7 +4,6 @@ package backend
 
 import (
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -51,6 +50,16 @@ type IGPUStatus struct {
 	Mode      uint32 `json:"mode"`
 }
 
+// GPUPrefStatus represents the real-time GPU mode status from multiple sources
+type GPUPrefStatus struct {
+	Available       bool   `json:"available"`
+	Value           uint32 `json:"value"`
+	Label           string `json:"label"`
+	PCMStatus       uint32 `json:"pcmStatus"`
+	PCMStatusAvail  bool   `json:"pcmStatusAvail"`
+	PCMLabel        string `json:"pcmLabel"`
+}
+
 // SetResult represents a set operation result
 type SetResult struct {
 	Success bool   `json:"success"`
@@ -86,7 +95,7 @@ foreach ($vid in $vids) {
     Write-Output "GPU|$name|$drvVer|$drvDate|$dedRam|$hwId|$pnpId"
 }
 `
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		return gpus
 	}
@@ -175,7 +184,7 @@ Get-Process | Where-Object { $_.WorkingSet64 -gt 104857600 } | ForEach-Object {
     Write-Output "$($_.Id)|$($_.ProcessName)|$([math]::Round($_.WorkingSet64/1MB, 1))"
 }
 `
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		return processes
 	}
@@ -219,7 +228,7 @@ func CheckNVIDIAStatus() NVIDIAStatus {
 	}
 
 	script := `Get-CimInstance Win32_VideoController | ForEach-Object { Write-Output $_.Name }`
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err == nil {
 		lower := strings.ToLower(string(out))
 		if strings.Contains(lower, "nvidia") || strings.Contains(lower, "geforce") ||
@@ -228,7 +237,7 @@ func CheckNVIDIAStatus() NVIDIAStatus {
 		}
 	}
 
-	cmd := exec.Command("sc", "query", "nvcontainer")
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", "sc query nvcontainer 2>$null")
 	output, err := cmd.Output()
 	if err == nil && strings.Contains(string(output), "RUNNING") {
 		status.ServiceRunning = true
@@ -256,7 +265,7 @@ try {
     Write-Host "NotAvailable"
 }
 `
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
 	output, err := cmd.Output()
 	if err != nil {
 		return false, 0xFFFFFFFF
@@ -301,7 +310,7 @@ try {
     Write-Output "Error:$_"
 }
 `
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
 	output, err := cmd.Output()
 	if err != nil {
 		return 0, false
@@ -333,7 +342,7 @@ try {
     Write-Host "Error:$_"
 }`, mode)
 
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
 	output, err := cmd.Output()
 	if err == nil && strings.Contains(string(output), "Success") {
 		return true, mode
@@ -341,6 +350,45 @@ try {
 
 	// Try registry write
 	return setIGPUModeRegistry(mode)
+}
+
+// GetGPUPrefStatus reads GPU mode from multiple registry sources
+// Uses cached value from registry watcher if available (instant, no PowerShell)
+func GetGPUPrefStatus() GPUPrefStatus {
+	// Try cached value first (from registry watcher)
+	cached := GetGPUStatusCached()
+	if cached.Available || cached.PCMStatusAvail {
+		return cached
+	}
+	
+	// Fallback to direct read (slower)
+	return readGPUStatusDirect()
+}
+
+func pcmStatusLabel(val uint32) string {
+	switch val {
+	case 0:
+		return "No Dispatcher"
+	case 1:
+		return "UMA (IGPU)"
+	case 2:
+		return "Smart Mode"
+	case 3:
+		return "DIS (Hybrid)"
+	default:
+		return fmt.Sprintf("Unknown (%d)", val)
+	}
+}
+
+func gpuPrefStatusLabel(val uint32) string {
+	switch val {
+	case 2:
+		return "UMA (IGPU)"
+	case 1:
+		return "DIS (Hybrid)"
+	default:
+		return fmt.Sprintf("Unknown (%d)", val)
+	}
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -393,7 +441,7 @@ $busNum = (Get-ItemProperty -Path $regPath -Name BusNumber -ErrorAction Silently
 if ($busNum -eq $null) { $busNum = 0 }
 Write-Output $busNum
 `, strings.ReplaceAll(pnpId, "'", "''"))
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		return 0
 	}
@@ -434,7 +482,7 @@ if ($vid) {
     Write-Output 0
 }
 `, strings.ReplaceAll(gpuName, "'", "''"))
-	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		return 0
 	}
@@ -460,7 +508,7 @@ foreach ($path in $paths) {
     }
 }
 `, mode)
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
 	output, err := cmd.Output()
 	if err == nil && strings.Contains(string(output), "Success") {
 		return true, mode

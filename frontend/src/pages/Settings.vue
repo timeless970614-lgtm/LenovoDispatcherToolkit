@@ -76,6 +76,7 @@
           </div>
           <div class="setting-control">
             <select class="select-input" v-model="refreshInterval">
+              <option value="1000">{{ t.sec1 }}</option>
               <option value="2000">{{ t.sec2 }}</option>
               <option value="5000">{{ t.sec5 }}</option>
               <option value="10000">{{ t.sec10 }}</option>
@@ -126,6 +127,7 @@ const i18n = {
     general: 'General Settings',
     refreshInterval: 'Auto Refresh Interval',
     refreshIntervalDesc: 'How often to refresh system data',
+    sec1: '1 second',
     sec2: '2 seconds',
     sec5: '5 seconds',
     sec10: '10 seconds',
@@ -146,6 +148,7 @@ const i18n = {
     general: '通用设置',
     refreshInterval: '自动刷新间隔',
     refreshIntervalDesc: '系统数据的刷新频率',
+    sec1: '1 秒',
     sec2: '2 秒',
     sec5: '5 秒',
     sec10: '10 秒',
@@ -172,7 +175,7 @@ export default {
   emits: ['update:theme', 'update:lang'],
   data() {
     return {
-      refreshInterval: '2000',
+      refreshInterval: '1000',
       autoStart: false,
       minimizeToTray: true
     }

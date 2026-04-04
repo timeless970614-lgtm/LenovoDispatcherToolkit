@@ -14,15 +14,31 @@ export function CheckDYTCCapabilities():Promise<Record<string, boolean>>;
 
 export function CheckNVIDIAStatus():Promise<backend.NVIDIAStatus>;
 
+export function CtlFrequencySetRange(arg1:number,arg2:number,arg3:number):Promise<backend.IntelGPUFreqTestResult>;
+
+export function EnableDynamicLog():Promise<backend.DynamicLogResult>;
+
 export function EnumerateGPUProcesses():Promise<Array<backend.GPUProcess>>;
 
 export function EnumerateGPUs():Promise<Array<backend.GPUInfo>>;
+
+export function GetCachedGPUStatus():Promise<number>;
 
 export function GetDYTCInfo():Promise<backend.DYTCInfo>;
 
 export function GetDispatcherInfo():Promise<backend.DispatcherInfo>;
 
+export function GetDynamicLogStatus():Promise<boolean>;
+
+export function GetGPUPrefStatus():Promise<backend.GPUPrefStatus>;
+
+export function GetGPUPrefStatusFromCache():Promise<backend.GPUPrefStatus>;
+
 export function GetIGPUMode():Promise<backend.IGPUStatus>;
+
+export function GetIntelDriverDownloadURL():Promise<string>;
+
+export function GetIntelGPUFrequency():Promise<backend.IntelGPUFrequency>;
 
 export function GetLogFiles():Promise<Array<backend.LogFileInfo>>;
 
@@ -42,6 +58,8 @@ export function GetServiceStatus():Promise<string>;
 
 export function GetSystemInfo():Promise<backend.SystemInfo>;
 
+export function OpenFolder(arg1:string):Promise<void>;
+
 export function PinDYTCMode(arg1:string):Promise<void>;
 
 export function ReadLogTail(arg1:number):Promise<string>;
@@ -56,18 +74,28 @@ export function SetGEEKMode(arg1:boolean):Promise<string>;
 
 export function SetIGPUMode(arg1:number):Promise<backend.SetResult>;
 
+export function SetIntelGPUFrequencyRange(arg1:number,arg2:number):Promise<backend.IntelGPUFreqTestResult>;
+
 export function SetODV(arg1:number,arg2:number):Promise<string>;
 
 export function SetPowerSettingRaw(arg1:string,arg2:number,arg3:number):Promise<string>;
 
 export function SetSSDMode(arg1:number,arg2:number):Promise<backend.SSDModeResult>;
 
+export function StartGPUStatusWatcher():Promise<void>;
+
 export function StartMLScenarioCapture():Promise<backend.MLLogStatus>;
 
 export function StartService():Promise<string>;
 
+export function StopGPUStatusWatcher():Promise<void>;
+
 export function StopMLScenarioCapture():Promise<backend.MLLogStatus>;
 
 export function StopService():Promise<string>;
+
+export function TestIntelGPUFrequency(arg1:string):Promise<backend.IntelGPUFreqTestResult>;
+
+export function UninstallDispatcher():Promise<backend.UninstallResult>;
 
 export function UnpinDYTCMode():Promise<void>;

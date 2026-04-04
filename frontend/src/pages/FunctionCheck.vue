@@ -28,22 +28,24 @@
         
         <div class="igpu-status">
           <div class="status-item">
-            <span class="status-label">Current Status</span>
-            <span :class="['status-value', 'status-' + (igpuStatus.available ? 'ok' : 'error')]">
-              {{ igpuStatus.available ? (igpuStatus.mode === 0 ? 'DGPU Plug In (DIS)' : 'DGPU Plug Out (UMA)') : 'Not Available' }}
+            <span class="status-label">Current Status <span class="live-dot"></span></span>
+            <span :class="['status-value', gpuPref.available ? (gpuPref.value === 2 ? 'status-uma' : gpuPref.value === 1 ? 'status-dis' : 'status-smart') : 'status-na']">
+              {{ gpuPref.label }}
             </span>
           </div>
           <div class="status-item">
-            <span class="status-label">Status Code</span>
-            <span class="status-value">{{ igpuStatus.mode }}</span>
+            <span class="status-label">PCM_GPUStatus</span>
+            <span :class="['status-value mono', gpuPref.pcmStatusAvail ? 'status-ok' : 'status-na']">
+              {{ gpuPref.pcmStatusAvail ? gpuPref.pcmStatus + ' - ' + gpuPref.pcmLabel : 'N/A' }}
+            </span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">PE_GPUPrefStatus</span>
+            <span class="status-value mono">{{ gpuPref.available ? gpuPref.value : (gpuPref.label === 'Dispatcher not Support' ? '0' : 'N/A') }}</span>
           </div>
         </div>
 
         <div class="igpu-control">
-          <div class="control-info">
-            <p><strong>Mode 0:</strong> DGPU Plug In (DIS) - Discrete GPU enabled</p>
-            <p><strong>Mode 1:</strong> DGPU Plug Out (UMA) - Integrated GPU only</p>
-          </div>
           <div class="btn-group">
             <button class="btn btn-primary" @click="setIGPUMode(0)" :disabled="settingMode || igpuStatus.mode === 0">
               Enable DGPU (Mode 0)
@@ -315,19 +317,117 @@
       </div>
     </div>
 
-    <!-- Tab C Content -->
+    <!-- Tab C Content - GPU Frequency -->
     <div v-if="activeTab === 'c'" class="func-content">
-      <div class="card placeholder-card">
-        <div class="placeholder-icon">WIP</div>
-        <div class="placeholder-title">Function C</div>
-        <div class="placeholder-desc">Coming soon - reserved for future functionality</div>
+      <!-- Intel GPU Frequency Control Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Intel GPU Frequency Control
+          </h3>
+          <span class="card-badge">IGC API</span>
+        </div>
+
+        <div class="igpu-freq-info">
+          <div class="freq-row">
+            <span class="freq-label">GPU:</span>
+            <span class="freq-value">{{ intelGPU.gpuName || 'Not Detected' }}</span>
+          </div>
+          <div class="freq-row" v-if="intelGPU.driverVersion">
+            <span class="freq-label">Driver Version:</span>
+            <span :class="['freq-value mono', intelGPU.driverOK ? 'driver-ok' : 'driver-old']">
+              {{ intelGPU.driverVersion }}
+              <span v-if="intelGPU.driverOK" class="driver-badge ok">✓</span>
+              <span v-else class="driver-badge old">!</span>
+            </span>
+          </div>
+          <div class="freq-row" v-if="intelGPU.driverDate">
+            <span class="freq-label">Driver Date:</span>
+            <span class="freq-value mono">{{ intelGPU.driverDate }}</span>
+          </div>
+          <div class="freq-row" v-if="intelGPU.minDriverVersion">
+            <span class="freq-label">Min Required:</span>
+            <span class="freq-value mono muted">{{ intelGPU.minDriverVersion }}</span>
+          </div>
+          <div class="freq-row" v-if="intelGPU.available">
+            <span class="freq-label">Frequency Range:</span>
+            <span class="freq-value">{{ intelGPU.minFreq }} - {{ intelGPU.maxFreq }} MHz</span>
+          </div>
+        </div>
+
+        <!-- Driver upgrade warning -->
+        <div v-if="intelGPU.available && !intelGPU.driverOK" class="driver-warning">
+          <div class="warning-icon">⚠️</div>
+          <div class="warning-content">
+            <p><strong>Driver version too old!</strong></p>
+            <p>Current: {{ intelGPU.driverVersion }} | Required: {{ intelGPU.minDriverVersion }}</p>
+            <button class="btn btn-primary btn-sm" @click="openDriverDownload">
+              Upgrade Driver
+            </button>
+          </div>
+        </div>
+
+        <div class="freq-control" v-if="intelGPU.available">
+          <div class="freq-slider-group">
+            <label>Min Frequency (MHz)</label>
+            <div class="slider-row">
+              <input type="range" :min="intelGPU.minFreq" :max="intelGPU.maxFreq" :step="intelGPU.step" v-model.number="freqMin" class="freq-slider">
+              <span class="slider-val">{{ freqMin }}</span>
+            </div>
+          </div>
+          <div class="freq-slider-group">
+            <label>Max Frequency (MHz)</label>
+            <div class="slider-row">
+              <input type="range" :min="intelGPU.minFreq" :max="intelGPU.maxFreq" :step="intelGPU.step" v-model.number="freqMax" class="freq-slider">
+              <span class="slider-val">{{ freqMax }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="freq-actions" v-if="intelGPU.available">
+          <button class="btn btn-primary" @click="applyFreqRange" :disabled="freqTesting">
+            Apply Range
+          </button>
+          <button class="btn btn-outline" @click="testFreq('min')" :disabled="freqTesting">
+            Test Min
+          </button>
+          <button class="btn btn-outline" @click="testFreq('max')" :disabled="freqTesting">
+            Test Max
+          </button>
+          <button class="btn btn-outline" @click="testFreq('stress')" :disabled="freqTesting">
+            Stress Test
+          </button>
+        </div>
+
+        <div v-if="freqTestResult" :class="['result-message', freqTestResult.success ? 'success' : 'error']">
+          {{ freqTestResult.message }}
+        </div>
+
+        <div v-if="!intelGPU.available && !intelGPU.error" class="empty-state">
+          <p>Checking Intel GPU...</p>
+        </div>
+        <div v-if="intelGPU.error" class="error-state">
+          <p>{{ intelGPU.error }}</p>
+          <a href="https://www.intel.cn/content/www/cn/zh/download-center/home.html" target="_blank" class="download-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            下载 Intel 显卡驱动
+          </a>
+        </div>
       </div>
     </div>
 
   </div>
 </template>
 <script>
-import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode } from '../../wailsjs/go/main/App'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'FunctionCheck',
@@ -346,6 +446,26 @@ export default {
         available: false,
         mode: -1
       },
+      gpuPref: {
+        available: false,
+        value: -1,
+        label: 'Not Available'
+      },
+      intelGPU: {
+        available: false,
+        minFreq: 300,
+        maxFreq: 1500,
+        currentMin: 300,
+        currentMax: 1500,
+        step: 50,
+        gpuName: '',
+        driverVersion: '',
+        error: ''
+      },
+      freqMin: 300,
+      freqMax: 1500,
+      freqTesting: false,
+      freqTestResult: null,
       nvidiaStatus: {
         detected: false,
         nvmlLoaded: false,
@@ -378,6 +498,11 @@ export default {
   },
   async mounted() {
     await this.refreshAll()
+    // Start registry watcher for GPU status (real-time, no polling)
+    await this.startGPUStatusWatcher()
+  },
+  beforeUnmount() {
+    this.stopGPUStatusWatcher()
   },
   methods: {
     formatMemory(bytes) {
@@ -466,9 +591,95 @@ export default {
         this.refreshProcesses(),
         this.getIGPUMode(),
         this.checkNvidia(),
-        this.refreshSSD()
+        this.refreshSSD(),
+        this.loadIntelGPU()
       ])
+      // Initial GPU status read (only once at startup)
+      await this.pollGPUPref()
     },
+    
+    async startGPUStatusWatcher() {
+      try {
+        // Start backend watcher (uses WaitForMultipleObjects, no polling)
+        await StartGPUStatusWatcher()
+        
+        // Listen for GPU status change events from backend
+        EventsOn('gpu:status-change', (status) => {
+          this.gpuPref = status
+        })
+        
+        // No polling interval needed - purely event-driven
+      } catch (e) {
+        console.error('Failed to start GPU status watcher:', e)
+      }
+    },
+    
+    async stopGPUStatusWatcher() {
+      // Remove event listener
+      EventsOff('gpu:status-change')
+      // Don't stop the backend watcher - keep it running for other components
+    },
+
+    async pollGPUPref() {
+      try {
+        // Read from Go-side cache (instant, no process spawn)
+        const result = await GetGPUPrefStatusFromCache()
+        this.gpuPref = result
+      } catch (e) { /* silent */ }
+    },
+
+    async loadIntelGPU() {
+      try {
+        const result = await GetIntelGPUFrequency()
+        this.intelGPU = result
+        this.freqMin = result.currentMin || result.minFreq
+        this.freqMax = result.currentMax || result.maxFreq
+      } catch (e) {
+        this.intelGPU.error = 'Failed to query Intel GPU'
+      }
+    },
+
+    async applyFreqRange() {
+      if (this.freqMin > this.freqMax) {
+        this.freqTestResult = { success: false, message: 'Min cannot exceed Max' }
+        return
+      }
+      this.freqTesting = true
+      this.freqTestResult = null
+      try {
+        const result = await SetIntelGPUFrequencyRange(this.freqMin, this.freqMax)
+        this.freqTestResult = result
+      } catch (e) {
+        this.freqTestResult = { success: false, message: 'Failed: ' + e }
+      }
+      this.freqTesting = false
+    },
+
+    async testFreq(type) {
+      this.freqTesting = true
+      this.freqTestResult = null
+      try {
+        const result = await TestIntelGPUFrequency(type)
+        this.freqTestResult = result
+        if (result.success) {
+          this.freqMin = result.minFreq
+          this.freqMax = result.maxFreq
+        }
+      } catch (e) {
+        this.freqTestResult = { success: false, message: 'Test failed: ' + e }
+      }
+      this.freqTesting = false
+    },
+
+    async openDriverDownload() {
+      try {
+        const url = await GetIntelDriverDownloadURL()
+        window.open(url, '_blank')
+      } catch (e) {
+        window.open('https://www.intel.cn/content/www/cn/zh/download-center/home.html', '_blank')
+      }
+    },
+
     async getIGPUMode() {
       try {
         const result = await GetIGPUMode()
@@ -774,12 +985,50 @@ export default {
   font-weight: 600;
 }
 
+.status-dis {
+  color: var(--success-color);
+}
+
+.status-uma {
+  color: var(--warning-color);
+}
+
+.status-smart {
+  color: var(--accent-blue);
+}
+
+.status-na {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
 .status-ok {
   color: var(--success-color);
 }
 
 .status-error {
   color: var(--error-color);
+}
+
+.mono {
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-color);
+  margin-left: 8px;
+  vertical-align: middle;
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(74, 222, 128, 0); }
 }
 
 .igpu-control {
@@ -804,6 +1053,204 @@ export default {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.igpu-freq-info {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.freq-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.freq-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-width: 120px;
+}
+
+.freq-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.freq-control {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.freq-slider-group {
+  margin-bottom: 16px;
+}
+
+.freq-slider-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.freq-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  outline: none;
+}
+
+.freq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--lenovo-red);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.freq-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.slider-val {
+  min-width: 60px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--lenovo-red);
+  background: rgba(230, 63, 50, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.freq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.freq-actions .btn {
+  flex: 1;
+  min-width: 100px;
+}
+
+.error-state {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--error-color);
+  font-size: 13px;
+}
+
+.error-state p {
+  margin: 0 0 10px 0;
+}
+
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-blue);
+  font-size: 12px;
+  text-decoration: none;
+  padding: 6px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.download-link:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.driver-ok {
+  color: var(--success-color);
+}
+
+.driver-old {
+  color: var(--warning-color);
+}
+
+.driver-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  margin-left: 6px;
+}
+
+.driver-badge.ok {
+  background: rgba(74, 222, 128, 0.2);
+  color: var(--success-color);
+}
+
+.driver-badge.old {
+  background: rgba(250, 204, 21, 0.2);
+  color: var(--warning-color);
+}
+
+.muted {
+  opacity: 0.6;
+}
+
+.driver-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.warning-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.warning-content p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.warning-content p:last-child {
+  margin-bottom: 0;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.card-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: rgba(230, 63, 50, 0.15);
+  color: var(--lenovo-red);
+  border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
 .loading-overlay {
