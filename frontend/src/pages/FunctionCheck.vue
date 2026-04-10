@@ -191,43 +191,36 @@
         <div class="epot-grid">
           <div class="epot-row">
             <span class="epot-label">EPP</span>
-            <span class="epot-index">Col 47</span>
             <span class="epot-desc">P-Core Energy Performance Preference</span>
             <span class="epot-value">{{ epotStatus.epp }}</span>
           </div>
           <div class="epot-row">
             <span class="epot-label">EPP_1</span>
-            <span class="epot-index">Col 48</span>
             <span class="epot-desc">E-Core Energy Performance Preference</span>
             <span class="epot-value">{{ epotStatus.epp1 }}</span>
           </div>
           <div class="epot-row">
             <span class="epot-label">PPM_FREQUENCY_LIMIT</span>
-            <span class="epot-index">Col 49</span>
             <span class="epot-desc">P-Core Frequency Limit</span>
             <span class="epot-value">{{ epotStatus.ppmFrequencyLimit }}</span>
           </div>
           <div class="epot-row">
             <span class="epot-label">PPM_FREQUENCY_LIMIT_1</span>
-            <span class="epot-index">Col 50</span>
             <span class="epot-desc">E-Core Frequency Limit</span>
             <span class="epot-value">{{ epotStatus.ppmFrequencyLimit1 }}</span>
           </div>
           <div class="epot-row">
             <span class="epot-label">PPM_CPMIN</span>
-            <span class="epot-index">Col 51</span>
             <span class="epot-desc">Min Active Cores</span>
             <span class="epot-value">{{ epotStatus.ppmCpMin }}</span>
           </div>
           <div class="epot-row">
             <span class="epot-label">PPM_CPMAX</span>
-            <span class="epot-index">Col 52</span>
             <span class="epot-desc">Max Active Cores</span>
             <span class="epot-value">{{ epotStatus.ppmCpMax }}</span>
           </div>
           <div class="epot-row">
             <span class="epot-label">SoftParking</span>
-            <span class="epot-index">Col 53</span>
             <span class="epot-desc">Soft Parking Delay</span>
             <span class="epot-value">{{ epotStatus.softParking }}</span>
           </div>
@@ -1892,7 +1885,6 @@ export default {
 .epot-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; }
 .epot-row:last-child { border-bottom: none; }
 .epot-label { width: 180px; font-weight: 500; color: var(--text-primary); font-family: 'Consolas', monospace; }
-.epot-index { width: 60px; color: var(--text-secondary); font-size: 11px; }
 .epot-desc { flex: 1; color: var(--text-secondary); }
 .epot-value { width: 80px; text-align: right; font-family: 'Consolas', monospace; font-weight: 600; color: var(--lenovo-red); }
 .live-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
