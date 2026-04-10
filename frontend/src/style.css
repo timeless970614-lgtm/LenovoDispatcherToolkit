@@ -358,8 +358,6 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--lenovo-red);
-  text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 .card-content {
