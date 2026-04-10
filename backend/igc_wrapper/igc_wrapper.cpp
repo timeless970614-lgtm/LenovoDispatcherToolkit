@@ -89,6 +89,7 @@ typedef ctl_result_t (WINAPI *PFN_ctlFrequencyGetProperties)(ctl_freq_handle_t, 
 typedef ctl_result_t (WINAPI *PFN_ctlFrequencyGetRange)(ctl_freq_handle_t, ctl_freq_range_t*);
 typedef ctl_result_t (WINAPI *PFN_ctlFrequencySetRange)(ctl_freq_handle_t, const ctl_freq_range_t*);
 typedef ctl_result_t (WINAPI *PFN_ctlFrequencyGetState)(ctl_freq_handle_t, ctl_freq_state_t*);
+typedef ctl_result_t (WINAPI *PFN_ctlSetRuntimePath)(const wchar_t*);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module state
@@ -107,6 +108,7 @@ static PFN_ctlFrequencyGetProperties pfn_ctlFrequencyGetProperties = NULL;
 static PFN_ctlFrequencyGetRange     pfn_ctlFrequencyGetRange     = NULL;
 static PFN_ctlFrequencySetRange     pfn_ctlFrequencySetRange     = NULL;
 static PFN_ctlFrequencyGetState     pfn_ctlFrequencyGetState     = NULL;
+static PFN_ctlSetRuntimePath        pfn_ctlSetRuntimePath        = NULL;  // optional
 
 // Cached adapter handles
 static std::vector<ctl_device_adapter_handle_t> g_adapters;
@@ -136,24 +138,32 @@ static int loadDll() {
     LOAD_PROC(g_hDll, ctlFrequencyGetRange)
     LOAD_PROC(g_hDll, ctlFrequencySetRange)
     LOAD_PROC(g_hDll, ctlFrequencyGetState)
+    // ctlSetRuntimePath is optional (not present in all versions)
+    pfn_ctlSetRuntimePath = (PFN_ctlSetRuntimePath)GetProcAddress(g_hDll, "ctlSetRuntimePath");
     return IGC_OK;
+}
+
+// IGC returns warnings (high bit 0x40000000) on some systems.
+// A result is a real error only if it's negative (high bit 0x80000000).
+static inline bool igcFailed(ctl_result_t r) {
+    return (r & 0x80000000u) != 0;
 }
 
 // Find the first GPU-type frequency domain handle for an adapter.
 // Returns NULL if none found.
 static ctl_freq_handle_t findGPUFreqDomain(ctl_device_adapter_handle_t hAdapter) {
     uint32_t count = 0;
-    if (pfn_ctlEnumFrequencyDomains(hAdapter, &count, NULL) != CTL_RESULT_SUCCESS || count == 0)
+    if (igcFailed(pfn_ctlEnumFrequencyDomains(hAdapter, &count, NULL)) || count == 0)
         return NULL;
 
     std::vector<ctl_freq_handle_t> handles(count);
-    if (pfn_ctlEnumFrequencyDomains(hAdapter, &count, handles.data()) != CTL_RESULT_SUCCESS)
+    if (igcFailed(pfn_ctlEnumFrequencyDomains(hAdapter, &count, handles.data())))
         return NULL;
 
     for (uint32_t i = 0; i < count; i++) {
         ctl_freq_properties_t props = {};
         props.Size = sizeof(props);
-        if (pfn_ctlFrequencyGetProperties(handles[i], &props) == CTL_RESULT_SUCCESS) {
+        if (!igcFailed(pfn_ctlFrequencyGetProperties(handles[i], &props))) {
             if (props.type == 0) // GPU domain
                 return handles[i];
         }
@@ -174,12 +184,51 @@ int IGC_Init(void) {
     int rc = loadDll();
     if (rc != IGC_OK) return rc;
 
+    // ctlSetRuntimePath: tell ControlLib where the Intel GPU driver files are.
+    // Without this, ctlEnumerateDevices returns 0 adapters.
+    // Dynamically search DriverStore for iigd_dch.inf directory.
+    if (pfn_ctlSetRuntimePath) {
+        wchar_t driverStorePath[MAX_PATH];
+        ExpandEnvironmentStringsW(
+            L"%SystemRoot%\\System32\\DriverStore\\FileRepository",
+            driverStorePath, MAX_PATH);
+
+        wchar_t searchPattern[MAX_PATH];
+        swprintf_s(searchPattern, L"%s\\iigd_dch.inf_amd64_*", driverStorePath);
+
+        WIN32_FIND_DATAW fd;
+        HANDLE hFind = FindFirstFileW(searchPattern, &fd);
+        if (hFind != INVALID_HANDLE_VALUE) {
+            wchar_t bestPath[MAX_PATH] = {};
+            do {
+                if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                    wchar_t candidate[MAX_PATH];
+                    swprintf_s(candidate, L"%s\\%s", driverStorePath, fd.cFileName);
+                    wchar_t testDll[MAX_PATH];
+                    swprintf_s(testDll, L"%s\\ControlLib.dll", candidate);
+                    if (GetFileAttributesW(testDll) != INVALID_FILE_ATTRIBUTES) {
+                        // Pick the lexicographically last (newest hash suffix)
+                        if (wcscmp(candidate, bestPath) > 0)
+                            wcscpy_s(bestPath, candidate);
+                    }
+                }
+            } while (FindNextFileW(hFind, &fd));
+            FindClose(hFind);
+
+            if (bestPath[0] != L'\0') {
+                pfn_ctlSetRuntimePath(bestPath);
+            }
+        }
+    }
+
     ctl_init_args_t args = {};
     args.Size       = sizeof(args);
     args.AppVersion = 0x00010000; // 1.0
 
     ctl_result_t res = pfn_ctlInit(&args, &g_hApi);
-    if (res != CTL_RESULT_SUCCESS) {
+    // IGC returns warnings (0x4xxxxxxx) on some systems even when init succeeds.
+    // Accept any result where hApi is non-NULL (warnings are OK, only NULL handle = real failure).
+    if (g_hApi == NULL) {
         FreeLibrary(g_hDll);
         g_hDll = NULL;
         return IGC_ERR_API_FAIL;
@@ -230,7 +279,7 @@ int IGC_GetAdapterInfo(int adapterIndex, IGC_AdapterInfo* info) {
     ctl_device_adapter_properties_t props = {};
     props.Size = sizeof(props);
     ctl_result_t res = pfn_ctlGetDeviceProperties(g_adapters[adapterIndex], &props);
-    if (res != CTL_RESULT_SUCCESS) return IGC_ERR_API_FAIL;
+    if (igcFailed(res)) return IGC_ERR_API_FAIL;
 
     memset(info, 0, sizeof(*info));
     strncpy_s(info->name, sizeof(info->name), props.name, _TRUNCATE);
@@ -252,14 +301,14 @@ int IGC_GetFreqInfo(int adapterIndex, IGC_FreqInfo* info) {
     // Hardware capability range
     ctl_freq_properties_t props = {};
     props.Size = sizeof(props);
-    if (pfn_ctlFrequencyGetProperties(hFreq, &props) == CTL_RESULT_SUCCESS) {
+    if (!igcFailed(pfn_ctlFrequencyGetProperties(hFreq, &props))) {
         info->minFreqMHz = props.min;
         info->maxFreqMHz = props.max;
     }
 
     // Current software limits
     ctl_freq_range_t range = {};
-    if (pfn_ctlFrequencyGetRange(hFreq, &range) == CTL_RESULT_SUCCESS) {
+    if (!igcFailed(pfn_ctlFrequencyGetRange(hFreq, &range))) {
         info->currentMinMHz = range.min;
         info->currentMaxMHz = range.max;
     }
@@ -267,7 +316,7 @@ int IGC_GetFreqInfo(int adapterIndex, IGC_FreqInfo* info) {
     // Actual state
     ctl_freq_state_t state = {};
     state.Size = sizeof(state);
-    if (pfn_ctlFrequencyGetState(hFreq, &state) == CTL_RESULT_SUCCESS) {
+    if (!igcFailed(pfn_ctlFrequencyGetState(hFreq, &state))) {
         info->requestedMHz  = state.request;
         info->tdpMHz        = state.tdp;
         info->efficientMHz  = state.efficient;
@@ -286,7 +335,7 @@ int IGC_SetFreqRange(int adapterIndex, double minMHz, double maxMHz) {
 
     ctl_freq_range_t range = { minMHz, maxMHz };
     ctl_result_t res = pfn_ctlFrequencySetRange(hFreq, &range);
-    return (res == CTL_RESULT_SUCCESS) ? IGC_OK : IGC_ERR_API_FAIL;
+    return igcFailed(res) ? IGC_ERR_API_FAIL : IGC_OK;
 }
 
 const char* IGC_ErrorString(int code) {

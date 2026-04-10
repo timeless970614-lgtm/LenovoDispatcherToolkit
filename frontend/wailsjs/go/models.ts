@@ -283,6 +283,7 @@ export namespace backend {
 	    minDriverVersion: string;
 	    driverOK: boolean;
 	    adapterIndex: number;
+	    regKeyPath: string;
 	    error: string;
 	
 	    static createFrom(source: any = {}) {
@@ -306,6 +307,7 @@ export namespace backend {
 	        this.minDriverVersion = source["minDriverVersion"];
 	        this.driverOK = source["driverOK"];
 	        this.adapterIndex = source["adapterIndex"];
+	        this.regKeyPath = source["regKeyPath"];
 	        this.error = source["error"];
 	    }
 	}

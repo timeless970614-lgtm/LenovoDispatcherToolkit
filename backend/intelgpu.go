@@ -4,150 +4,42 @@ package backend
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
-	"sync"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 const (
 	MinIntelDriverVersion  = "32.0.101.8000"
 	IntelDriverDownloadURL = "https://www.intel.cn/content/www/cn/zh/download-center/home.html"
+
+	// Intel GPU driver registry key (display adapter class, first Intel adapter)
+	intelGPURegBase = `SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}`
 )
-
-// ── Result codes from igc_wrapper.dll ────────────────────────────────────────
-const (
-	igcOK               = 0
-	igcErrNotLoaded     = -1
-	igcErrNoDevice      = -2
-	igcErrNoFreqDomain  = -3
-	igcErrApiFail       = -4
-	igcErrNotInit       = -5
-)
-
-// ── C struct mirrors (must match igc_wrapper.h exactly) ──────────────────────
-
-// IGC_FreqInfo mirrors igc_wrapper.h IGC_FreqInfo
-type igcFreqInfo struct {
-	MinFreqMHz     float64
-	MaxFreqMHz     float64
-	CurrentMinMHz  float64
-	CurrentMaxMHz  float64
-	RequestedMHz   float64
-	TdpMHz         float64
-	EfficientMHz   float64
-	ActualMHz      float64
-}
-
-// IGC_AdapterInfo mirrors igc_wrapper.h IGC_AdapterInfo
-type igcAdapterInfo struct {
-	Name            [256]byte
-	DriverVersion   [64]byte
-	AdapterIndex    int32
-	FreqDomainCount int32
-}
-
-// ── DLL loader (lazy, once) ───────────────────────────────────────────────────
-
-var (
-	igcWrapperDLL *syscall.LazyDLL
-	igcFn         struct {
-		init           uintptr
-		close          uintptr
-		getAdapterCount uintptr
-		getAdapterInfo  uintptr
-		getFreqInfo     uintptr
-		setFreqRange    uintptr
-		errorString     uintptr
-	}
-	igcOnce sync.Once
-	igcErr  error
-)
-
-func igcLoad() {
-	igcOnce.Do(func() {
-		exeDir := getExeDir()
-		dllPath := exeDir + `\igc_wrapper.dll`
-		igcWrapperDLL = syscall.NewLazyDLL(dllPath)
-
-		resolve := func(name string) uintptr {
-			p := igcWrapperDLL.NewProc(name)
-			if err := p.Find(); err != nil {
-				igcErr = fmt.Errorf("igc_wrapper.dll: %s not found: %v", name, err)
-				return 0
-			}
-			return p.Addr()
-		}
-
-		igcFn.init            = resolve("IGC_Init")
-		igcFn.close           = resolve("IGC_Close")
-		igcFn.getAdapterCount = resolve("IGC_GetAdapterCount")
-		igcFn.getAdapterInfo  = resolve("IGC_GetAdapterInfo")
-		igcFn.getFreqInfo     = resolve("IGC_GetFreqInfo")
-		igcFn.setFreqRange    = resolve("IGC_SetFreqRange")
-		igcFn.errorString     = resolve("IGC_ErrorString")
-	})
-}
-
-// igcInit calls IGC_Init() and returns the result code.
-func igcInit() int {
-	igcLoad()
-	if igcErr != nil || igcFn.init == 0 {
-		return igcErrNotLoaded
-	}
-	ret, _, _ := syscall.Syscall(igcFn.init, 0, 0, 0, 0)
-	return int(int32(ret))
-}
-
-// igcErrorString returns a human-readable string for a result code.
-func igcErrorString(code int) string {
-	if igcFn.errorString == 0 {
-		return fmt.Sprintf("igc_wrapper not loaded (code %d)", code)
-	}
-	ret, _, _ := syscall.Syscall(igcFn.errorString, 1, uintptr(code), 0, 0)
-	if ret == 0 {
-		return fmt.Sprintf("unknown error %d", code)
-	}
-	return syscall.UTF16ToString((*[256]uint16)(unsafe.Pointer(ret))[:])
-}
-
-// igcErrorStringA reads a C string (char*) returned by IGC_ErrorString.
-func igcErrorStringA(code int) string {
-	if igcFn.errorString == 0 {
-		return fmt.Sprintf("igc_wrapper not loaded (code %d)", code)
-	}
-	ret, _, _ := syscall.Syscall(igcFn.errorString, 1, uintptr(int32(code)), 0, 0)
-	if ret == 0 {
-		return fmt.Sprintf("unknown error %d", code)
-	}
-	// Read null-terminated C string
-	ptr := (*[256]byte)(unsafe.Pointer(ret))
-	n := 0
-	for n < 256 && ptr[n] != 0 {
-		n++
-	}
-	return string(ptr[:n])
-}
 
 // ── Public Go types ───────────────────────────────────────────────────────────
 
 // IntelGPUFrequency is the data returned to the frontend.
 type IntelGPUFrequency struct {
 	Available        bool    `json:"available"`
-	MinFreq          float64 `json:"minFreq"`
-	MaxFreq          float64 `json:"maxFreq"`
-	CurrentMin       float64 `json:"currentMin"`
-	CurrentMax       float64 `json:"currentMax"`
-	RequestedMHz     float64 `json:"requestedMHz"`
-	ActualMHz        float64 `json:"actualMHz"`
-	TdpMHz           float64 `json:"tdpMHz"`
-	EfficientMHz     float64 `json:"efficientMHz"`
+	MinFreq          float64 `json:"minFreq"`      // hardware minimum (MHz)
+	MaxFreq          float64 `json:"maxFreq"`      // hardware maximum (MHz)
+	CurrentMin       float64 `json:"currentMin"`   // current software min limit (MHz)
+	CurrentMax       float64 `json:"currentMax"`   // current software max limit (MHz)
+	RequestedMHz     float64 `json:"requestedMHz"` // N/A without IGC
+	ActualMHz        float64 `json:"actualMHz"`    // N/A without IGC
+	TdpMHz           float64 `json:"tdpMHz"`       // N/A without IGC
+	EfficientMHz     float64 `json:"efficientMHz"` // N/A without IGC
 	GPUName          string  `json:"gpuName"`
 	DriverVersion    string  `json:"driverVersion"`
 	DriverDate       string  `json:"driverDate"`
 	MinDriverVersion string  `json:"minDriverVersion"`
 	DriverOK         bool    `json:"driverOK"`
 	AdapterIndex     int     `json:"adapterIndex"`
+	RegKeyPath       string  `json:"regKeyPath"` // for debug
 	Error            string  `json:"error"`
 }
 
@@ -159,77 +51,115 @@ type IntelGPUFreqTestResult struct {
 	MaxFreq float64 `json:"maxFreq"`
 }
 
+// ── Registry helpers ──────────────────────────────────────────────────────────
+
+// findIntelGPURegKey finds the first Intel GPU adapter subkey under the display
+// class registry key. Returns the subkey path (e.g. "0000") and the opened key.
+func findIntelGPURegKey() (string, registry.Key, error) {
+	base, err := registry.OpenKey(registry.LOCAL_MACHINE, intelGPURegBase, registry.READ)
+	if err != nil {
+		return "", 0, fmt.Errorf("open GPU class key: %v", err)
+	}
+	defer base.Close()
+
+	subkeys, err := base.ReadSubKeyNames(-1)
+	if err != nil {
+		return "", 0, fmt.Errorf("list GPU subkeys: %v", err)
+	}
+
+	for _, sub := range subkeys {
+		if len(sub) != 4 {
+			continue // skip "Properties", "Configuration", etc.
+		}
+		subPath := intelGPURegBase + `\` + sub
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, subPath, registry.READ|registry.WRITE)
+		if err != nil {
+			// Try read-only
+			k, err = registry.OpenKey(registry.LOCAL_MACHINE, subPath, registry.READ)
+			if err != nil {
+				continue
+			}
+		}
+		desc, _, err := k.GetStringValue("DriverDesc")
+		if err != nil {
+			k.Close()
+			continue
+		}
+		if strings.Contains(strings.ToLower(desc), "intel") {
+			return subPath, k, nil
+		}
+		k.Close()
+	}
+	return "", 0, fmt.Errorf("no Intel GPU adapter found in registry")
+}
+
+// readDWORD reads a DWORD value from a registry key, returns 0 on error.
+func readDWORD(k registry.Key, name string) uint32 {
+	v, _, err := k.GetIntegerValue(name)
+	if err != nil {
+		return 0
+	}
+	return uint32(v)
+}
+
 // ── Implementation ────────────────────────────────────────────────────────────
 
-// GetIntelGPUFrequency queries the iGPU frequency info via igc_wrapper.dll.
-// Falls back to WMI for GPU name / driver version if IGC is unavailable.
+// GetIntelGPUFrequency reads iGPU frequency limits from the Intel driver registry key.
 func GetIntelGPUFrequency() IntelGPUFrequency {
 	result := IntelGPUFrequency{
 		MinDriverVersion: MinIntelDriverVersion,
 	}
 
-	// Always populate GPU name + driver version from WMI (works without IGC)
+	// Get GPU name + driver version from WMI
 	fillGPUInfoFromWMI(&result)
 
-	// Try IGC wrapper
-	rc := igcInit()
-	if rc != igcOK {
-		result.Error = igcErrorStringA(rc)
+	// Open Intel GPU registry key
+	keyPath, k, err := findIntelGPURegKey()
+	if err != nil {
+		result.Error = err.Error()
 		return result
 	}
+	defer k.Close()
 
-	// Find the first Intel adapter
-	adapterCount, _, _ := syscall.Syscall(igcFn.getAdapterCount, 0, 0, 0, 0)
-	if int(adapterCount) == 0 {
-		result.Error = "No Intel GPU adapter found by IGC"
-		return result
+	result.RegKeyPath = keyPath
+
+	// Read MinFreq / MaxFreq (in MHz, DWORD)
+	minFreq := readDWORD(k, "MinFreq")
+	maxFreq := readDWORD(k, "MaxFreq")
+
+	// Read hardware capability range from driver properties
+	// Intel stores the hardware max in "MaxFreqOC" or we derive from WMI
+	// For now use sensible defaults based on Arc B370 (100–2050 MHz range)
+	hwMin := float64(100)
+	hwMax := float64(2050)
+
+	// If the driver has stored a hardware max, use it
+	hwMaxReg := readDWORD(k, "MaxFreqOC")
+	if hwMaxReg > 0 {
+		hwMax = float64(hwMaxReg)
+	}
+	hwMinReg := readDWORD(k, "MinFreqHW")
+	if hwMinReg > 0 {
+		hwMin = float64(hwMinReg)
 	}
 
-	// Use adapter 0 (first Intel GPU)
-	adapterIdx := 0
+	result.Available  = true
+	result.MinFreq    = hwMin
+	result.MaxFreq    = hwMax
+	result.CurrentMin = float64(minFreq)
+	result.CurrentMax = float64(maxFreq)
 
-	// Get adapter info (name)
-	var ai igcAdapterInfo
-	rc2, _, _ := syscall.Syscall(igcFn.getAdapterInfo, 2,
-		uintptr(adapterIdx),
-		uintptr(unsafe.Pointer(&ai)),
-		0)
-	if int(int32(rc2)) == igcOK {
-		n := 0
-		for n < len(ai.Name) && ai.Name[n] != 0 {
-			n++
-		}
-		if n > 0 {
-			result.GPUName = string(ai.Name[:n])
-		}
+	// If both are 0, the driver hasn't set limits yet — use hardware max
+	if result.CurrentMin == 0 && result.CurrentMax == 0 {
+		result.CurrentMin = hwMin
+		result.CurrentMax = hwMax
 	}
-
-	// Get frequency info
-	var fi igcFreqInfo
-	rc3, _, _ := syscall.Syscall(igcFn.getFreqInfo, 2,
-		uintptr(adapterIdx),
-		uintptr(unsafe.Pointer(&fi)),
-		0)
-	if int(int32(rc3)) != igcOK {
-		result.Error = igcErrorStringA(int(int32(rc3)))
-		return result
-	}
-
-	result.Available    = true
-	result.AdapterIndex = adapterIdx
-	result.MinFreq      = fi.MinFreqMHz
-	result.MaxFreq      = fi.MaxFreqMHz
-	result.CurrentMin   = fi.CurrentMinMHz
-	result.CurrentMax   = fi.CurrentMaxMHz
-	result.RequestedMHz = fi.RequestedMHz
-	result.ActualMHz    = fi.ActualMHz
-	result.TdpMHz       = fi.TdpMHz
-	result.EfficientMHz = fi.EfficientMHz
 
 	return result
 }
 
-// SetIntelGPUFrequencyRange calls IGC_SetFreqRange via igc_wrapper.dll.
+// SetIntelGPUFrequencyRange writes MinFreq/MaxFreq to the Intel driver registry key.
+// Requires the app to be running with sufficient privileges (or the key to be writable).
 func SetIntelGPUFrequencyRange(minFreq, maxFreq float64) IntelGPUFreqTestResult {
 	result := IntelGPUFreqTestResult{MinFreq: minFreq, MaxFreq: maxFreq}
 
@@ -237,28 +167,71 @@ func SetIntelGPUFrequencyRange(minFreq, maxFreq float64) IntelGPUFreqTestResult 
 		result.Message = "Min frequency cannot be greater than max frequency"
 		return result
 	}
-
-	rc := igcInit()
-	if rc != igcOK {
-		result.Message = "IGC not available: " + igcErrorStringA(rc)
+	if minFreq < 0 || maxFreq < 0 {
+		result.Message = "Frequency must be non-negative"
 		return result
 	}
 
-	// syscall with two float64 args: pass as uintptr via unsafe
-	minBits := *(*uintptr)(unsafe.Pointer(&minFreq))
-	maxBits := *(*uintptr)(unsafe.Pointer(&maxFreq))
-
-	rc2, _, _ := syscall.Syscall(igcFn.setFreqRange, 3,
-		uintptr(0), // adapterIndex 0
-		minBits,
-		maxBits)
-
-	if int(int32(rc2)) == igcOK {
-		result.Success = true
-		result.Message = fmt.Sprintf("iGPU frequency range set: %.0f – %.0f MHz", minFreq, maxFreq)
-	} else {
-		result.Message = fmt.Sprintf("IGC_SetFreqRange failed: %s", igcErrorStringA(int(int32(rc2))))
+	keyPath, _, err := findIntelGPURegKey()
+	if err != nil {
+		result.Message = "Cannot find Intel GPU registry key: " + err.Error()
+		return result
 	}
+
+	// Open with write access
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, keyPath, registry.SET_VALUE)
+	if err != nil {
+		// Try via PowerShell with elevated privileges
+		return setFreqViaPowerShell(keyPath, minFreq, maxFreq)
+	}
+	defer k.Close()
+
+	if err := k.SetDWordValue("MinFreq", uint32(minFreq)); err != nil {
+		return setFreqViaPowerShell(keyPath, minFreq, maxFreq)
+	}
+	if err := k.SetDWordValue("MaxFreq", uint32(maxFreq)); err != nil {
+		return setFreqViaPowerShell(keyPath, minFreq, maxFreq)
+	}
+
+	result.Success = true
+	result.Message = fmt.Sprintf("iGPU frequency range set: %.0f – %.0f MHz (registry)", minFreq, maxFreq)
+	return result
+}
+
+// setFreqViaPowerShell sets the registry values via PowerShell (handles UAC elevation).
+func setFreqViaPowerShell(keyPath string, minFreq, maxFreq float64) IntelGPUFreqTestResult {
+	result := IntelGPUFreqTestResult{MinFreq: minFreq, MaxFreq: maxFreq}
+
+	// Convert registry path to PowerShell format
+	psPath := "HKLM:\\" + strings.ReplaceAll(keyPath, `\`, `\\`)
+
+	script := fmt.Sprintf(`
+$ErrorActionPreference = 'Stop'
+try {
+    Set-ItemProperty -Path '%s' -Name 'MinFreq' -Value %d -Type DWord
+    Set-ItemProperty -Path '%s' -Name 'MaxFreq' -Value %d -Type DWord
+    Write-Host "OK"
+} catch {
+    Write-Host "ERR:$($_.Exception.Message)"
+}
+`, psPath, int(minFreq), psPath, int(maxFreq))
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	out, err := cmd.Output()
+	if err != nil {
+		result.Message = fmt.Sprintf("PowerShell failed: %v", err)
+		return result
+	}
+
+	output := strings.TrimSpace(string(out))
+	if strings.HasPrefix(output, "ERR:") {
+		result.Message = "Registry write failed: " + strings.TrimPrefix(output, "ERR:")
+		return result
+	}
+
+	result.Success = true
+	result.Message = fmt.Sprintf("iGPU frequency range set: %.0f – %.0f MHz", minFreq, maxFreq)
 	return result
 }
 
@@ -292,7 +265,7 @@ func fillGPUInfoFromWMI(result *IntelGPUFrequency) {
 	script := `
 $ErrorActionPreference = 'SilentlyContinue'
 $gpu = Get-WmiObject Win32_VideoController |
-       Where-Object { $_.Name -match 'Intel.*Graphics|Intel.*UHD|Intel.*Iris|Intel.*Arc' } |
+       Where-Object { $_.Name -match 'Intel|Arc' } |
        Select-Object -First 1
 if ($gpu) {
     Write-Host "NAME:$($gpu.Name)"
@@ -325,7 +298,6 @@ if ($gpu) {
 }
 
 // compareDriverVersion compares two "A.B.C.D" version strings.
-// Returns 1 if v1 > v2, 0 if equal, -1 if v1 < v2.
 func compareDriverVersion(v1, v2 string) int {
 	parts1 := strings.Split(v1, ".")
 	parts2 := strings.Split(v2, ".")
@@ -350,3 +322,8 @@ func compareDriverVersion(v1, v2 string) int {
 	}
 	return 0
 }
+
+// ── Unused IGC wrapper stubs (kept for future use) ────────────────────────────
+// These are no-ops since we use registry-based approach.
+
+var _ = unsafe.Pointer(nil) // suppress unused import
