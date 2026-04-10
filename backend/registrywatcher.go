@@ -360,6 +360,12 @@ func readGPUStatusDirect() GPUPrefStatus {
 		result.PCMStatusAvail = pcmAvail
 		result.PCMLabel = pcmStatusLabel(pcmStatus)
 		return result
+	} else if !pcmAvail {
+		// PCM_GPUStatus N/A (SmartEngine/电脑管家 uninstalled), but Dispatcher is running.
+		// GPU is in default Hybrid (DIS) mode — no SmartEngine to report iGPUStatus.
+		result.Label = "DIS (Hybrid)"
+		result.Value = 1
+		result.Available = true
 	} else if pcmAvail && pcmStatus == 1 {
 		result.Label = "UMA (IGPU)"
 		result.Value = 2
