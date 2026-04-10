@@ -183,3 +183,77 @@ func UninstallDispatcherSimple() UninstallResult {
 	result.Message = fmt.Sprintf("Successfully removed %d dispatcher driver(s).", result.DriversRemoved)
 	return result
 }
+
+// UninstallDTT removes DTT (Dynamic Tuning Technology) drivers
+// Matches: esif, dptf, ipf, dtt, ipfui, dttui, icss
+func UninstallDTT() string {
+	script := `
+$ErrorActionPreference = 'SilentlyContinue'
+$dptfDrivers = Get-WindowsDriver -Online | Where-Object { $_.OriginalFileName -match '\\(esif|dptf|ipf|dtt|ipfui|dttui|icss)_.*.inf$' }
+$count = 0
+$errors = @()
+ForEach ($d in $dptfDrivers) {
+    $originalName = $d.OriginalFileName.Substring($d.OriginalFileName.LastIndexOf('\') + 1)
+    $oemName = $d.Driver
+    $version = $d.Version
+    Write-Host "Removing driver: $oemName ($originalName => $version)"
+    $output = pnputil.exe /delete-driver $oemName /uninstall /force 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $count++
+    } else {
+        $errors += "$oemName failed"
+    }
+}
+if ($count -gt 0) {
+    Write-Output "Successfully removed $count DTT driver(s)"
+} else {
+    if ($errors.Count -gt 0) {
+        Write-Output "Failed: $($errors -join ', ')"
+    } else {
+        Write-Output "No DTT drivers found"
+    }
+}
+`
+	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	if err != nil {
+		return fmt.Sprintf("Error: %v - %s", err, string(out))
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// UninstallDTTUI removes DTT UI (Dynamic Tuning Technology UI) drivers
+// Matches: esif, ipfui, dttui
+func UninstallDTTUI() string {
+	script := `
+$ErrorActionPreference = 'SilentlyContinue'
+$dptfDrivers = Get-WindowsDriver -Online | Where-Object { $_.OriginalFileName -match '\\(esif|ipfui|dttui)_.*.inf$' }
+$count = 0
+$errors = @()
+ForEach ($d in $dptfDrivers) {
+    $originalName = $d.OriginalFileName.Substring($d.OriginalFileName.LastIndexOf('\') + 1)
+    $oemName = $d.Driver
+    $version = $d.Version
+    Write-Host "Removing driver: $oemName ($originalName => $version)"
+    $output = pnputil.exe /delete-driver $oemName /uninstall /force 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $count++
+    } else {
+        $errors += "$oemName failed"
+    }
+}
+if ($count -gt 0) {
+    Write-Output "Successfully removed $count DTT UI driver(s)"
+} else {
+    if ($errors.Count -gt 0) {
+        Write-Output "Failed: $($errors -join ', ')"
+    } else {
+        Write-Output "No DTT UI drivers found"
+    }
+}
+`
+	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	if err != nil {
+		return fmt.Sprintf("Error: %v - %s", err, string(out))
+	}
+	return strings.TrimSpace(string(out))
+}

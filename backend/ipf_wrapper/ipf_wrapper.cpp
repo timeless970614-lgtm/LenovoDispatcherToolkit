@@ -25,6 +25,7 @@ typedef unsigned int(WINAPI* PFN_IPFV2_GET_SYSTEM_POWER)(void);
 typedef unsigned int(WINAPI* PFN_IPFV2_GET_CPU_TEMP)(void);
 typedef void(WINAPI* PFN_IPFV2_GET_DEFAULT_PLX)(unsigned int* pl, int len);
 typedef unsigned int(WINAPI* PFN_IPFV2_GET_OEMV)(int id);
+typedef int(WINAPI* PFN_IPFV2_CurrentGear)(void);
 
 // V1 types (LenovoIPF.dll)
 typedef int(WINAPI* PFN_V1_INITIAL)(const char* name);
@@ -53,6 +54,7 @@ static PFN_IPFV2_GET_SYSTEM_POWER fpV2_GetSystemPower = nullptr;
 static PFN_IPFV2_GET_CPU_TEMP  fpV2_GetCpuTemp     = nullptr;
 static PFN_IPFV2_GET_DEFAULT_PLX fpV2_GetDefaultPLX = nullptr;
 static PFN_IPFV2_GET_OEMV      fpV2_GetOEMV        = nullptr;
+static PFN_IPFV2_CurrentGear   fpV2_CurrentGear    = nullptr;
 
 // V1 function pointers
 static PFN_V1_INITIAL        fpV1_Initial        = nullptr;
@@ -156,8 +158,11 @@ static bool loadV2() {
         LOAD_PROC(g_hV2, PFN_IPFV2_GET_CPU_TEMP,    "_IPFV2_GetCpuTempValue", fpV2_GetCpuTemp);
         LOAD_PROC(g_hV2, PFN_IPFV2_GET_DEFAULT_PLX, "_IPFV2_GetDefaultPLX",   fpV2_GetDefaultPLX);
         LOAD_PROC(g_hV2, PFN_IPFV2_GET_OEMV,        "_IPFV2_GETOEMV",          fpV2_GetOEMV);
+        LOAD_PROC(g_hV2, PFN_IPFV2_CurrentGear,     "_IPFV2_CurrentGear",     fpV2_CurrentGear);
 
         if (fpV2_Connect && fpV2_GetSystemPower && fpV2_GetDefaultPLX) {
+            // Optional: CurrentGear function (may not exist on all versions)
+            // Just load it if available, don't fail on missing
             g_Version = 2;
             return true;
         }
@@ -383,4 +388,18 @@ unsigned int IPF_GetHeteroDec(void) {
 unsigned int IPF_GetSoftParkLatency(void) {
     // MSR 0x1A0 bits 0-11 = Soft Park Latency (platform-specific)
     return callReadMsr(0x1A0) & 0xFFF;
+}
+
+int IPF_GetCurrentGear(void) {
+    // Read current EPOT/Gear level (0-9) from LenovoIPFV2.dll
+    // This is the same API used by ML_Scenario: _IPFV2_CurrentGear()
+    if (!g_Connected) return -1;
+    
+    if (g_Version == 2 && fpV2_CurrentGear) {
+        int gear = fpV2_CurrentGear();
+        return gear;
+    }
+    
+    // V1 DLL does not have this function, return -1
+    return -1;
 }

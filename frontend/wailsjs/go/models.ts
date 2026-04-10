@@ -101,6 +101,32 @@ export namespace backend {
 	        this.message = source["message"];
 	    }
 	}
+	export class EPOTStatus {
+	    epot: number;
+	    epp: number;
+	    epp1: number;
+	    ppmFrequencyLimit: number;
+	    ppmFrequencyLimit1: number;
+	    ppmCpMin: number;
+	    ppmCpMax: number;
+	    softParking: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new EPOTStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.epot = source["epot"];
+	        this.epp = source["epp"];
+	        this.epp1 = source["epp1"];
+	        this.ppmFrequencyLimit = source["ppmFrequencyLimit"];
+	        this.ppmFrequencyLimit1 = source["ppmFrequencyLimit1"];
+	        this.ppmCpMin = source["ppmCpMin"];
+	        this.ppmCpMax = source["ppmCpMax"];
+	        this.softParking = source["softParking"];
+	    }
+	}
 	export class EnableFuncPolicy {
 	    bit: number;
 	    name: string;
@@ -117,6 +143,20 @@ export namespace backend {
 	        this.name = source["name"];
 	        this.desc = source["desc"];
 	        this.enabled = source["enabled"];
+	    }
+	}
+	export class GPUAutoGear {
+	    available: boolean;
+	    value: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new GPUAutoGear(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.value = source["value"];
 	    }
 	}
 	export class GPUInfo {
@@ -523,6 +563,7 @@ export namespace backend {
 	}
 	export class SystemInfo {
 	    CPUName: string;
+	    CodeName: string;
 	    BIOSVersion: string;
 	    OSCaption: string;
 	    OSVersion: string;
@@ -536,6 +577,7 @@ export namespace backend {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.CPUName = source["CPUName"];
+	        this.CodeName = source["CodeName"];
 	        this.BIOSVersion = source["BIOSVersion"];
 	        this.OSCaption = source["OSCaption"];
 	        this.OSVersion = source["OSVersion"];

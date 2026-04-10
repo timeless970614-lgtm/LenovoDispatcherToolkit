@@ -68,6 +68,12 @@ unsigned int IPF_GetHeteroDec(void);
 // Soft Park Latency from MSR, returns raw value in 100ns units.
 unsigned int IPF_GetSoftParkLatency(void);
 
+// ── IPFV2 Current Gear (EPOT) ─────────────────────────────────────────────
+// Returns the current EPOT/Gear level (0-9) from LenovoIPFV2.dll.
+// This reads directly from the firmware/IPF layer, same as ML_Scenario.
+// Returns -1 if not available or on error.
+int IPF_GetCurrentGear(void);
+
 // ── DLL path configuration ───────────────────────────────────────────────
 // Sets the directory where LenovoIPFV2.dll / LenovoIPF.dll / WinMSRIO.dll are located.
 // Call before IPF_Connect(). Pass empty string to use default search.

@@ -58,6 +58,14 @@ export function GetDynamicLogStatus() {
   return window['go']['main']['App']['GetDynamicLogStatus']();
 }
 
+export function GetEPOTStatus() {
+  return window['go']['main']['App']['GetEPOTStatus']();
+}
+
+export function GetGPUAutoGear() {
+  return window['go']['main']['App']['GetGPUAutoGear']();
+}
+
 export function GetGPUPrefStatus() {
   return window['go']['main']['App']['GetGPUPrefStatus']();
 }
@@ -142,6 +150,10 @@ export function SetGEEKMode(arg1) {
   return window['go']['main']['App']['SetGEEKMode'](arg1);
 }
 
+export function SetGPUAutoGear(arg1) {
+  return window['go']['main']['App']['SetGPUAutoGear'](arg1);
+}
+
 export function SetIGPUMode(arg1) {
   return window['go']['main']['App']['SetIGPUMode'](arg1);
 }
@@ -188,6 +200,14 @@ export function StopService() {
 
 export function TestIntelGPUFrequency(arg1) {
   return window['go']['main']['App']['TestIntelGPUFrequency'](arg1);
+}
+
+export function UninstallDTT() {
+  return window['go']['main']['App']['UninstallDTT']();
+}
+
+export function UninstallDTTUI() {
+  return window['go']['main']['App']['UninstallDTTUI']();
 }
 
 export function UninstallDispatcher() {

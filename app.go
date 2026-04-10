@@ -413,3 +413,30 @@ func (a *App) GetDynamicLogStatus() bool {
 func (a *App) EnableDynamicLog() backend.DynamicLogResult {
 	return backend.EnableDynamicLog()
 }
+
+// ============ Auto Gear & EPOT ============
+
+// GetEPOTStatus returns ML_Scenario EPOT parameters
+func (a *App) GetEPOTStatus() backend.EPOTStatus {
+	return backend.GetEPOTStatus()
+}
+
+// GetGPUAutoGear returns the current Auto Gear setting
+func (a *App) GetGPUAutoGear() backend.GPUAutoGear {
+	return backend.GetGPUAutoGear()
+}
+
+// SetGPUAutoGear sets the Auto Gear value
+func (a *App) SetGPUAutoGear(value uint32) backend.SetResult {
+	return backend.SetGPUAutoGear(value)
+}
+
+// UninstallDTT runs the DTT uninstall script
+func (a *App) UninstallDTT() string {
+	return backend.UninstallDTT()
+}
+
+// UninstallDTTUI runs the DTT UI uninstall script
+func (a *App) UninstallDTTUI() string {
+	return backend.UninstallDTTUI()
+}

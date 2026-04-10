@@ -35,8 +35,8 @@
             <span class="info-value">{{ sysInfo.OSCaption || 'N/A' }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">OS Version</span>
-            <span class="info-value">{{ sysInfo.OSVersion || 'N/A' }}</span>
+            <span class="info-label">Code Name</span>
+            <span class="info-value">{{ sysInfo.CodeName || 'N/A' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Total Memory</span>

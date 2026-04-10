@@ -60,6 +60,12 @@ type GPUPrefStatus struct {
 	PCMLabel        string `json:"pcmLabel"`
 }
 
+// GPUAutoGear represents the auto gear setting for GPU hybrid mode
+type GPUAutoGear struct {
+	Available bool   `json:"available"`
+	Value     uint32 `json:"value"`
+}
+
 // SetResult represents a set operation result
 type SetResult struct {
 	Success bool   `json:"success"`
@@ -368,26 +374,28 @@ func GetGPUPrefStatus() GPUPrefStatus {
 func pcmStatusLabel(val uint32) string {
 	switch val {
 	case 0:
-		return "No Dispatcher"
+		return "无驱动"
 	case 1:
-		return "UMA (IGPU)"
+		return "集显模式"
 	case 2:
-		return "Smart Mode"
+		return "智能模式"
 	case 3:
-		return "DIS (Hybrid)"
+		return "双显模式"
 	default:
-		return fmt.Sprintf("Unknown (%d)", val)
+		return fmt.Sprintf("未知 (%d)", val)
 	}
 }
 
 func gpuPrefStatusLabel(val uint32) string {
 	switch val {
 	case 2:
-		return "UMA (IGPU)"
+		return "智能模式"
 	case 1:
-		return "DIS (Hybrid)"
+		return "集显模式"
+	case 3:
+		return "双显模式"
 	default:
-		return fmt.Sprintf("Unknown (%d)", val)
+		return fmt.Sprintf("未知 (%d)", val)
 	}
 }
 
@@ -514,4 +522,81 @@ foreach ($path in $paths) {
 		return true, mode
 	}
 	return false, 0xFFFFFFFF
+}
+
+// GetGPUAutoGear reads the ITS_GPUHybridModeSetting value from registry
+func GetGPUAutoGear() GPUAutoGear {
+	result := GPUAutoGear{}
+	script := `
+$ErrorActionPreference = 'SilentlyContinue'
+try {
+    $key = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider' -Name ITS_GPUHybridModeSetting -ErrorAction Stop
+    Write-Host "Value:$($key.ITS_GPUHybridModeSetting)"
+} catch {
+    Write-Host "NotFound"
+}
+`
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	output, err := cmd.Output()
+	if err != nil {
+		return result
+	}
+	outputStr := string(output)
+	if strings.Contains(outputStr, "NotFound") || outputStr == "" {
+		return result
+	}
+	for _, line := range strings.Split(outputStr, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Value:") {
+			var v uint32
+			_, scanErr := fmt.Sscanf(line, "Value:%d", &v)
+			if scanErr == nil {
+				result.Available = true
+				result.Value = v
+				return result
+			}
+		}
+	}
+	return result
+}
+
+// SetGPUAutoGear sets the ITS_GPUHybridModeSetting value
+func SetGPUAutoGear(value uint32) SetResult {
+	result := SetResult{Success: false}
+	script := fmt.Sprintf(`
+$ErrorActionPreference = 'SilentlyContinue'
+$paths = @(
+    'HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider',
+    'HKLM:\SOFTWARE\Lenovo\GameZone',
+    'HKLM:\SOFTWARE\Lenovo\PowerManagement'
+)
+$success = $false
+foreach ($path in $paths) {
+    if (Test-Path $path) {
+        try {
+            Set-ItemProperty -Path $path -Name ITS_GPUHybridModeSetting -Value %d -Type DWord -Force
+            $success = $true
+            break
+        } catch {}
+    }
+}
+if ($success) {
+    Write-Host "Success"
+} else {
+    Write-Host "Failed"
+}
+`, value)
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	output, err := cmd.Output()
+	if err != nil {
+		result.Message = "Failed to execute PowerShell command"
+		return result
+	}
+	if strings.Contains(string(output), "Success") {
+		result.Success = true
+		result.Message = "Auto Gear setting applied successfully"
+	} else {
+		result.Message = "Failed to set Auto Gear"
+	}
+	return result
 }

@@ -323,3 +323,132 @@ func RestoreDefaults() error {
 	runPowercfg("-restoredefaultschemes")
 	return runPowercfg("/setactive", balancedScheme)
 }
+
+// EPOTStatus holds ML_Scenario EPOT parameters (columns 46-53)
+type EPOTStatus struct {
+	EPOT                  uint32 `json:"epot"`
+	EPP                   uint32 `json:"epp"`
+	EPP1                  uint32 `json:"epp1"`
+	PPMFrequencyLimit     uint32 `json:"ppmFrequencyLimit"`
+	PPMFrequencyLimit1    uint32 `json:"ppmFrequencyLimit1"`
+	PPMCpMin              uint32 `json:"ppmCpMin"`
+	PPMCpMax              uint32 `json:"ppmCpMax"`
+	SoftParking           uint32 `json:"softParking"`
+}
+
+// GetEPOTStatus reads ML_Scenario EPOT parameters from multiple sources:
+// - EPOT: IPF DLL _IPFV2_CurrentGear() (same as ML_Scenario reads)
+// - EPP, EPP1, FrequencyLimit, SoftParking: IPF DLL (MSR-based)
+// - PPMCpMin, PPMCpMax: powercfg (Windows power settings)
+func GetEPOTStatus() EPOTStatus {
+	status := EPOTStatus{}
+	
+	// Read EPOT/Gear from IPF DLL using _IPFV2_CurrentGear()
+	// This is the same API used by ML_Scenario GPUCounter.cpp:5282
+	// _CurrentGear = _IPFV2_CurrentGear();
+	InitIPF() // Ensure IPF is connected
+	gear := GetCurrentGear()
+	if gear >= 0 && gear <= 255 {
+		status.EPOT = uint32(gear)
+	} else {
+		// Fallback: try reading from registry
+		readRegistryDWord := func(name string) uint32 {
+			script := fmt.Sprintf(`
+$ErrorActionPreference='SilentlyContinue'
+$v = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider' -Name '%s' -ErrorAction SilentlyContinue).'%s'
+if ($null -eq $v) { $v = 0 }
+Write-Output $v
+`, name, name)
+			cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+			out, err := cmd.Output()
+			if err != nil {
+				return 0
+			}
+			var v uint32
+			fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &v)
+			return v
+		}
+		status.EPOT = readRegistryDWord("EPOT")
+	}
+	
+	// Read EPP, EPP1, FrequencyLimit, SoftParking from IPF DLL
+	ppmInfo := ReadPPM()
+	status.EPP = ppmInfo.EPP
+	status.EPP1 = ppmInfo.EPP1
+	status.PPMFrequencyLimit = ppmInfo.FrequencyLimit
+	status.SoftParking = ppmInfo.SoftParkLatency
+	
+	// Read PPMFrequencyLimit1 from IPF DLL (if available, otherwise use same as P-Core)
+	// Note: IPF DLL may not have separate E-Core frequency limit, use P-Core value as fallback
+	status.PPMFrequencyLimit1 = ppmInfo.FrequencyLimit
+	
+	// Read PPMCpMin and PPMCpMax from powercfg
+	// These are Windows power settings for core parking
+	readPowercfgValue := func(subgroup string, setting string, ac bool) uint32 {
+		acdc := "/SETACVALUEINDEX"
+		if !ac {
+			acdc = "/SETDCVALUEINDEX"
+		}
+		_ = acdc // suppress unused warning for now
+		
+		// First get the active scheme
+		schemeCmd := hiddenCmd("powercfg", "/getactivescheme")
+		schemeOut, err := schemeCmd.Output()
+		if err != nil {
+			return 0
+		}
+		schemeLine := strings.TrimSpace(string(schemeOut))
+		// Parse scheme GUID from output like "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)"
+		var schemeGUID string
+		if idx := strings.Index(schemeLine, "GUID: "); idx != -1 {
+			start := idx + 6
+			end := strings.Index(schemeLine[start:], " ")
+			if end != -1 {
+				schemeGUID = schemeLine[start : start+end]
+			}
+		}
+		if schemeGUID == "" {
+			return 0
+		}
+		
+		// Query the setting value
+		queryCmd := hiddenCmd("powercfg", "/query", schemeGUID, subgroup, setting)
+		queryOut, err := queryCmd.Output()
+		if err != nil {
+			return 0
+		}
+		
+		// Parse the value from output
+		var value uint32
+		lines := strings.Split(string(queryOut), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "Current AC Power Setting Index: ") {
+				if ac {
+					fmt.Sscanf(strings.TrimPrefix(line, "Current AC Power Setting Index: "), "%x", &value)
+					break
+				}
+			}
+			if strings.HasPrefix(line, "Current DC Power Setting Index: ") {
+				if !ac {
+					fmt.Sscanf(strings.TrimPrefix(line, "Current DC Power Setting Index: "), "%x", &value)
+					break
+				}
+			}
+		}
+		return value
+	}
+	
+	// GUIDs for processor settings
+	const (
+		processorSubgroup   = "54533251-82be-4824-96c1-47b60b740d00"
+		cpMinCoresSetting   = "0cc5b647-c1df-4637-891a-dec35c318583" // Core parking min cores
+		cpMaxCoresSetting   = "ea062031-0e34-4ff1-9b6d-eb1059334028" // Core parking max cores
+	)
+	
+	// Read AC values (you may want to check if on battery and read DC instead)
+	status.PPMCpMin = readPowercfgValue(processorSubgroup, cpMinCoresSetting, true)
+	status.PPMCpMax = readPowercfgValue(processorSubgroup, cpMaxCoresSetting, true)
+	
+	return status
+}

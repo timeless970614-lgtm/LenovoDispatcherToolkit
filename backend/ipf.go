@@ -32,6 +32,7 @@ type ipfFuncs struct {
 	getHeteroInc         uintptr
 	getHeteroDec         uintptr
 	getSoftParkLatency   uintptr
+	getCurrentGear       uintptr
 }
 
 var (
@@ -86,6 +87,7 @@ func ipfLoad() error {
 	ipfFunc.getHeteroInc = resolve("IPF_GetHeteroInc")
 	ipfFunc.getHeteroDec = resolve("IPF_GetHeteroDec")
 	ipfFunc.getSoftParkLatency = resolve("IPF_GetSoftParkLatency")
+	ipfFunc.getCurrentGear = resolve("IPF_GetCurrentGear")
 
 	// Check critical functions
 	if ipfFunc.connect == 0 || ipfFunc.getSystemPower == 0 || ipfFunc.getAllPL == 0 {
@@ -248,4 +250,17 @@ func CloseIPF() {
 // GetIPFVersion returns the detected IPF version (1=V1, 2=V2, 0=not connected).
 func GetIPFVersion() int {
 	return ipfVersion
+}
+
+// GetCurrentGear returns the current EPOT/Gear level (0-9) from LenovoIPFV2.dll.
+// This is the same API used by ML_Scenario: _IPFV2_CurrentGear().
+// Returns -1 if not available (V1 DLL or not connected).
+func GetCurrentGear() int32 {
+	ipfMutex.Lock()
+	defer ipfMutex.Unlock()
+	if ipfFunc.getCurrentGear == 0 {
+		return -1
+	}
+	gear, _, _ := syscall.Syscall(ipfFunc.getCurrentGear, 0, 0, 0, 0)
+	return int32(gear)
 }

@@ -21,14 +21,30 @@
             <div class="setting-desc">{{ t.themeDesc }}</div>
           </div>
           <div class="setting-control">
-            <div class="toggle-group">
-              <button :class="['toggle-btn', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                {{ t.dark }}
+            <div class="theme-grid">
+              <button :class="['theme-btn', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')">
+                <span class="theme-preview dark"></span>
+                <span class="theme-name">{{ t.dark }}</span>
               </button>
-              <button :class="['toggle-btn', theme === 'light' ? 'active' : '']" @click="setTheme('light')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                {{ t.light }}
+              <button :class="['theme-btn', theme === 'light' ? 'active' : '']" @click="setTheme('light')">
+                <span class="theme-preview light"></span>
+                <span class="theme-name">{{ t.light }}</span>
+              </button>
+              <button :class="['theme-btn', theme === 'blue' ? 'active' : '']" @click="setTheme('blue')">
+                <span class="theme-preview blue"></span>
+                <span class="theme-name">Blue</span>
+              </button>
+              <button :class="['theme-btn', theme === 'green' ? 'active' : '']" @click="setTheme('green')">
+                <span class="theme-preview green"></span>
+                <span class="theme-name">Green</span>
+              </button>
+              <button :class="['theme-btn', theme === 'purple' ? 'active' : '']" @click="setTheme('purple')">
+                <span class="theme-preview purple"></span>
+                <span class="theme-name">Purple</span>
+              </button>
+              <button :class="['theme-btn', theme === 'orange' ? 'active' : '']" @click="setTheme('orange')">
+                <span class="theme-preview orange"></span>
+                <span class="theme-name">Orange</span>
               </button>
             </div>
           </div>
@@ -324,5 +340,63 @@ export default {
 
 .switch.on .switch-thumb {
   left: 26px;
+}
+
+/* Theme Grid */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.theme-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.theme-btn:hover {
+  border-color: var(--border-light);
+}
+
+.theme-btn.active {
+  border-color: var(--lenovo-red);
+  background: rgba(230, 63, 50, 0.1);
+}
+
+.theme-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color);
+}
+
+.theme-preview.dark {
+  background: linear-gradient(135deg, #0D0D0D 0%, #232323 100%);
+}
+
+.theme-preview.light {
+  background: linear-gradient(135deg, #F5F5F5 0%, #FFFFFF 100%);
+}
+
+.theme-preview.orange {
+  background: linear-gradient(135deg, #1f140a 0%, #3d2616 100%);
+}
+
+.theme-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.theme-btn.active .theme-name {
+  color: var(--lenovo-red);
 }
 </style>

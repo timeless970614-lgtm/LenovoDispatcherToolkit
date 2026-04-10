@@ -66,33 +66,6 @@
         </div>
       </div>
 
-      <!-- NVIDIA Status Card -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            </svg>
-            NVIDIA GPU Status
-          </h3>
-          <button class="btn btn-secondary btn-sm" @click="checkNvidia" :disabled="checkingNvidia">
-            <span v-if="checkingNvidia" class="spinner-small"></span>
-            <span v-else>Check</span>
-          </button>
-        </div>
-        
-        <div class="nvidia-status">
-          <div :class="['nvidia-badge', nvidiaStatus.detected ? 'detected' : 'not-detected']">
-            <span v-if="nvidiaStatus.detected">NVIDIA GPU Detected</span>
-            <span v-else>NVIDIA GPU Not Detected</span>
-          </div>
-          <div v-if="nvidiaStatus.detected" class="nvidia-details">
-            <p><strong>NVML Status:</strong> {{ nvidiaStatus.nvmlLoaded ? 'Loaded' : 'Not Loaded' }}</p>
-            <p><strong>Service Status:</strong> {{ nvidiaStatus.serviceRunning ? 'Running' : 'Not Running' }}</p>
-          </div>
-        </div>
-      </div>
-
       <!-- System Diagnostic -->
       <div class="card">
         <div class="card-header">
@@ -163,6 +136,178 @@
         </div>
         <div v-else class="empty-state">
           <p>No GPU-using processes found</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto Gear Content -->
+    <div v-if="activeTab === 'd'" class="func-content">
+      <!-- Auto Gear Control -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Auto Gear Control
+          </h3>
+        </div>
+        <div class="auto-gear-info">
+          <div class="gear-status-row">
+            <span class="status-label">Current Gear <span class="live-dot"></span></span>
+            <span class="status-value mono">
+              <span :class="['gear-badge', 'gear-epot']">
+                Gear {{ epotStatus.epot }}
+              </span>
+              <span class="epot-badge">EPOT</span>
+            </span>
+          </div>
+        </div>
+
+        <div v-if="settingGear" class="loading-overlay">
+          <div class="spinner"></div>
+          <p>Setting Gear mode...</p>
+        </div>
+
+        <div v-if="gearResult" :class="['result-message', gearResult.success ? 'success' : 'error']">
+          {{ gearResult.message }}
+        </div>
+      </div>
+
+      <!-- EPOT Status -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+            </svg>
+            EPOT Status (ML_Scenario)
+          </h3>
+          <div class="live-indicator" v-if="epotRefreshing">
+            <span class="live-dot"></span> Refreshing...
+          </div>
+          <button class="btn btn-secondary btn-sm" @click="loadEPOTStatus" :disabled="epotRefreshing">Refresh</button>
+        </div>
+        <div class="epot-grid">
+          <div class="epot-row">
+            <span class="epot-label">EPP</span>
+            <span class="epot-index">Col 47</span>
+            <span class="epot-desc">P-Core Energy Performance Preference</span>
+            <span class="epot-value">{{ epotStatus.epp }}</span>
+          </div>
+          <div class="epot-row">
+            <span class="epot-label">EPP_1</span>
+            <span class="epot-index">Col 48</span>
+            <span class="epot-desc">E-Core Energy Performance Preference</span>
+            <span class="epot-value">{{ epotStatus.epp1 }}</span>
+          </div>
+          <div class="epot-row">
+            <span class="epot-label">PPM_FREQUENCY_LIMIT</span>
+            <span class="epot-index">Col 49</span>
+            <span class="epot-desc">P-Core Frequency Limit</span>
+            <span class="epot-value">{{ epotStatus.ppmFrequencyLimit }}</span>
+          </div>
+          <div class="epot-row">
+            <span class="epot-label">PPM_FREQUENCY_LIMIT_1</span>
+            <span class="epot-index">Col 50</span>
+            <span class="epot-desc">E-Core Frequency Limit</span>
+            <span class="epot-value">{{ epotStatus.ppmFrequencyLimit1 }}</span>
+          </div>
+          <div class="epot-row">
+            <span class="epot-label">PPM_CPMIN</span>
+            <span class="epot-index">Col 51</span>
+            <span class="epot-desc">Min Active Cores</span>
+            <span class="epot-value">{{ epotStatus.ppmCpMin }}</span>
+          </div>
+          <div class="epot-row">
+            <span class="epot-label">PPM_CPMAX</span>
+            <span class="epot-index">Col 52</span>
+            <span class="epot-desc">Max Active Cores</span>
+            <span class="epot-value">{{ epotStatus.ppmCpMax }}</span>
+          </div>
+          <div class="epot-row">
+            <span class="epot-label">SoftParking</span>
+            <span class="epot-index">Col 53</span>
+            <span class="epot-desc">Soft Parking Delay</span>
+            <span class="epot-value">{{ epotStatus.softParking }}</span>
+          </div>
+        </div>
+      </div>
+
+            <!-- Setting Gear Status -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title card-title-normal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+            </svg>
+            Set Auto Gear Status
+          </h3>
+          <div class="live-indicator" v-if="epotRefreshing">
+            <span class="live-dot"></span> Refreshing...
+          </div>
+          <button class="btn btn-secondary btn-sm" @click="loadEPOTStatus" :disabled="epotRefreshing">Refresh</button>
+        </div>
+        
+        <div class="gear-control">
+          <div class="btn-group gear-btn-group">
+            <button 
+              class="btn btn-gear btn-gear-auto" 
+              @click="setGear(0)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 0)"
+              :class="{ active: gearStatus.available && gearStatus.value === 0 }"
+            >
+              <span class="gear-icon">⚡</span> Gear1
+            </button>
+            <button 
+              class="btn btn-gear btn-gear-dgpu" 
+              @click="setGear(1)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 1)"
+              :class="{ active: gearStatus.available && gearStatus.value === 1 }"
+            >
+              <span class="gear-icon">🎮</span> Gear2
+            </button>
+            <button 
+              class="btn btn-gear btn-gear-igpu" 
+              @click="setGear(2)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 2)"
+              :class="{ active: gearStatus.available && gearStatus.value === 2 }"
+            >
+              <span class="gear-icon">🔋</span> Gear3
+            </button>
+                        <button 
+              class="btn btn-gear btn-gear-auto" 
+              @click="setGear(0)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 0)"
+              :class="{ active: gearStatus.available && gearStatus.value === 0 }"
+            >
+              <span class="gear-icon">⚡</span> Gear4
+            </button>
+            <button 
+              class="btn btn-gear btn-gear-dgpu" 
+              @click="setGear(1)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 1)"
+              :class="{ active: gearStatus.available && gearStatus.value === 1 }"
+            >
+              <span class="gear-icon">🎮</span> Gear5
+            </button>
+            <button 
+              class="btn btn-gear btn-gear-igpu" 
+              @click="setGear(2)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 2)"
+              :class="{ active: gearStatus.available && gearStatus.value === 2 }"
+            >
+              <span class="gear-icon">🔋</span> Gear6
+            </button>
+                        <button 
+              class="btn btn-gear btn-gear-igpu" 
+              @click="setGear(2)" 
+              :disabled="settingGear || (gearStatus.available && gearStatus.value === 2)"
+              :class="{ active: gearStatus.available && gearStatus.value === 2 }"
+            >
+              <span class="gear-icon">🔋</span> Gear7
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -306,6 +451,58 @@
         </div>
       </div>
 
+      <!-- DTT Uninstall -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title card-title-normal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            DTT Uninstall
+          </h3>
+        </div>
+        <div class="dtt-uninstall-content">
+          <div class="dtt-desc">
+            <p>Uninstall Intel Dynamic Tuning Technology (DTT) components</p>
+          </div>
+          <div class="dtt-buttons">
+            <button 
+              class="btn btn-dtt btn-dtt-main" 
+              @click="uninstallDTT" 
+              :disabled="uninstallingDTT"
+            >
+              <span v-if="uninstallingDTT" class="spinner-small"></span>
+              <span v-else>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Uninstall DTT
+              </span>
+            </button>
+            <button 
+              class="btn btn-dtt btn-dtt-ui" 
+              @click="uninstallDTTUI" 
+              :disabled="uninstallingDTTUI"
+            >
+              <span v-if="uninstallingDTTUI" class="spinner-small"></span>
+              <span v-else>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                Uninstall DTT UI
+              </span>
+            </button>
+          </div>
+          <div v-if="dttResult" :class="['result-message', dttResult.success ? 'success' : 'error']">
+            {{ dttResult.message }}
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Tab B Content -->
@@ -427,7 +624,7 @@
 </template>
 <script>
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
-import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache } from '../../wailsjs/go/main/App'
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'FunctionCheck',
@@ -435,10 +632,11 @@ export default {
     return {
       activeTab: 'gpu',
       functionTabs: [
-        { id: 'gpu', label: 'GPU Function', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
-        { id: 'a', label: 'SSD', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h2"/></svg>' },
-        { id: 'b', label: 'DNPU', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M9 9h6v6H9z"/></svg>' },
-        { id: 'c', label: 'GPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
+        { id: 'gpu', label: 'DGPU Function', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
+        { id: 'd', label: 'Auto Gear', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
+        { id: 'a', label: 'SSD Turbo', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h2"/></svg>' },
+        { id: 'b', label: 'Dynamic NPU', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M9 9h6v6H9z"/></svg>' },
+        { id: 'c', label: 'IGPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' }
       ],
       gpuList: [],
       processList: [],
@@ -485,7 +683,15 @@ export default {
       modeResult: null,
       loadingProcesses: false,
       settingMode: false,
-      checkingNvidia: false
+      checkingNvidia: false,
+      gearStatus: { available: false, value: 0 },
+      settingGear: false,
+      gearResult: null,
+      epotStatus: { epot: 0, epp: 0, epp1: 0, ppmFrequencyLimit: 0, ppmFrequencyLimit1: 0, ppmCpMin: 0, ppmCpMax: 0, softParking: 0 },
+      epotRefreshing: false,
+      uninstallingDTT: false,
+      uninstallingDTTUI: false,
+      dttResult: null
     }
   },
   computed: {
@@ -592,7 +798,9 @@ export default {
         this.getIGPUMode(),
         this.checkNvidia(),
         this.refreshSSD(),
-        this.loadIntelGPU()
+        this.loadIntelGPU(),
+        this.loadGearStatus(),
+        this.loadEPOTStatus()
       ])
       // Initial GPU status read (only once at startup)
       await this.pollGPUPref()
@@ -703,6 +911,72 @@ export default {
         this.settingResult = { success: false, message: 'Error: ' + e }
       }
       this.settingMode = false
+    },
+
+    gearModeLabel(val) {
+      switch(val) {
+        case 0: return 'Auto'
+        case 1: return 'DGPU'
+        case 2: return 'iGPU'
+        default: return 'Unknown (' + val + ')'
+      }
+    },
+
+    async loadGearStatus() {
+      try {
+        this.gearStatus = await GetGPUAutoGear()
+      } catch(e) {
+        this.gearStatus = { available: false, value: 0 }
+      }
+    },
+
+    async setGear(value) {
+      this.settingGear = true
+      this.gearResult = null
+      try {
+        const result = await SetGPUAutoGear(value)
+        this.gearResult = result
+        if (result.success) {
+          this.gearStatus = { available: true, value: value }
+        }
+      } catch(e) {
+        this.gearResult = { success: false, message: 'Error: ' + e }
+      }
+      this.settingGear = false
+    },
+
+    async loadEPOTStatus() {
+      this.epotRefreshing = true
+      try {
+        this.epotStatus = await GetEPOTStatus()
+      } catch(e) {
+        console.error('Error loading EPOT status:', e)
+      }
+      this.epotRefreshing = false
+    },
+
+    async uninstallDTT() {
+      this.uninstallingDTT = true
+      this.dttResult = null
+      try {
+        const message = await UninstallDTT()
+        this.dttResult = { success: !message.includes('Error') && !message.includes('Failed'), message: message }
+      } catch(e) {
+        this.dttResult = { success: false, message: 'Error: ' + e }
+      }
+      this.uninstallingDTT = false
+    },
+
+    async uninstallDTTUI() {
+      this.uninstallingDTTUI = true
+      this.dttResult = null
+      try {
+        const message = await UninstallDTTUI()
+        this.dttResult = { success: !message.includes('Error') && !message.includes('Failed'), message: message }
+      } catch(e) {
+        this.dttResult = { success: false, message: 'Error: ' + e }
+      }
+      this.uninstallingDTTUI = false
     }
   }
 }
@@ -1414,10 +1688,91 @@ export default {
   border-radius: var(--radius-sm); color: #EF4444; font-size: 12px; display: flex; align-items: center; gap: 6px;
 }
 .mode-badge.mode-active { color: var(--lenovo-red); font-weight: 700; }
+.card-title-normal { text-transform: none !important; letter-spacing: normal !important; }
 .placeholder-card { text-align: center; padding: 60px 40px; }
 .placeholder-icon { font-size: 40px; margin-bottom: 16px; }
 .placeholder-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
 .placeholder-desc { font-size: 14px; color: var(--text-secondary); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Auto Gear & EPOT */
+.auto-gear-info { padding: 16px; }
+.gear-status-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.gear-desc-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; color: var(--text-secondary); font-size: 13px; }
+.gear-control { padding: 16px; border-top: 1px solid var(--border-color); }
+.gear-buttons { display: flex; gap: 12px; }
+.epot-grid { padding: 16px; }
+.epot-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+.epot-row:last-child { border-bottom: none; }
+.epot-label { width: 180px; font-weight: 500; color: var(--text-primary); font-family: 'Consolas', monospace; }
+.epot-index { width: 60px; color: var(--text-secondary); font-size: 11px; }
+.epot-desc { flex: 1; color: var(--text-secondary); }
+.epot-value { width: 80px; text-align: right; font-family: 'Consolas', monospace; font-weight: 600; color: var(--lenovo-red); }
+.live-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.epot-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; background: rgba(230,63,50,0.15); border: 1px solid rgba(230,63,50,0.3); border-radius: 12px; color: var(--lenovo-red); font-size: 11px; font-weight: 600; font-family: 'Consolas', monospace; }
+
+/* Gear Control Buttons */
+.gear-btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-gear {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  font-weight: 600;
+}
+.btn-gear:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.btn-gear:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-gear.active { box-shadow: 0 0 16px rgba(0,0,0,0.2); }
+.btn-gear-auto { border-color: #10B981; color: #10B981; }
+.btn-gear-auto:hover:not(:disabled) { background: rgba(16,185,129,0.1); }
+.btn-gear-auto.active { background: rgba(16,185,129,0.2); box-shadow: 0 0 16px rgba(16,185,129,0.4); }
+.btn-gear-dgpu { border-color: #3B82F6; color: #3B82F6; }
+.btn-gear-dgpu:hover:not(:disabled) { background: rgba(59,130,246,0.1); }
+.btn-gear-dgpu.active { background: rgba(59,130,246,0.2); box-shadow: 0 0 16px rgba(59,130,246,0.4); }
+.btn-gear-igpu { border-color: #F59E0B; color: #F59E0B; }
+.btn-gear-igpu:hover:not(:disabled) { background: rgba(245,158,11,0.1); }
+.btn-gear-igpu.active { background: rgba(245,158,11,0.2); box-shadow: 0 0 16px rgba(245,158,11,0.4); }
+.gear-icon { font-size: 16px; }
+.gear-badge {
+  display: inline-flex; align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+.gear-badge.gear-auto { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3); }
+.gear-badge.gear-dgpu { background: rgba(59,130,246,0.15); color: #3B82F6; border: 1px solid rgba(59,130,246,0.3); }
+.gear-badge.gear-igpu { background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); }
+.gear-badge.gear-na { background: rgba(107,114,128,0.1); color: var(--text-secondary); border: 1px solid rgba(107,114,128,0.2); }
+.gear-badge.gear-epot { background: rgba(230,63,50,0.15); color: var(--lenovo-red); border: 1px solid rgba(230,63,50,0.3); }
+
+/* DTT Uninstall */
+.dtt-uninstall-content { padding: 16px; }
+.dtt-desc { margin-bottom: 16px; color: var(--text-secondary); font-size: 13px; }
+.dtt-desc p { margin: 0; }
+.dtt-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-dtt {
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 140px;
+}
+.btn-dtt:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.btn-dtt:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-dtt-main { border-color: #EF4444; color: #EF4444; }
+.btn-dtt-main:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+.btn-dtt-ui { border-color: #F59E0B; color: #F59E0B; }
+.btn-dtt-ui:hover:not(:disabled) { background: rgba(245,158,11,0.1); }
 </style>

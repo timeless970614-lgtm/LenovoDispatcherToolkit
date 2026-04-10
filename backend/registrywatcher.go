@@ -315,6 +315,17 @@ func readGPUStatusDirect() GPUPrefStatus {
 		Available: false,
 	}
 
+	// First check if Dispatcher service is running
+	if !isDispatcherServiceRunning() {
+		result.Available = false
+		result.Label = "Dispatcher Service Stopped"
+		result.Value = 0
+		result.PCMStatus = 0
+		result.PCMStatusAvail = false
+		result.PCMLabel = "N/A"
+		return result
+	}
+
 	// Read iGPUStatus from SmartEngine (PCM_GPUStatus)
 	pcmStatus, pcmAvail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
 		"SOFTWARE\\Lenovo\\SmartEngine\\ModuleSettings\\GPU", "iGPUStatus")
@@ -333,17 +344,18 @@ func readGPUStatusDirect() GPUPrefStatus {
 			"SOFTWARE\\Lenovo\\PowerManagement", "ITS_GPUHybridModeSetting")
 	}
 
-	// Determine final label - check PE_GPUPrefStatus first (value 0 = no dispatcher)
+	// Determine final label - check PE_GPUPrefStatus first
+	// PE_GPUPrefStatus not existing (=0) means no Dispatcher service controlling GPU
+	// Even if PE_GPUPrefStatus is missing from registry, treat as Dispatcher not active
 	if !pcmAvail && !peAvail {
 		result.Available = false
 		result.Label = "Not Available"
 		result.Value = 0
-	} else if peAvail && peStatus == 0 {
-		// PE_GPUPrefStatus = 0 means no Dispatcher service controlling GPU
+	} else if !peAvail || peStatus == 0 {
+		// PE_GPUPrefStatus missing or = 0: Dispatcher not controlling GPU
 		result.Available = false
-		result.Label = "Dispatcher not Support"
+		result.Label = "Dispatcher Service Stopped"
 		result.Value = 0
-		// Keep PCM status as-is (don't override it)
 		result.PCMStatus = pcmStatus
 		result.PCMStatusAvail = pcmAvail
 		result.PCMLabel = pcmStatusLabel(pcmStatus)
@@ -366,9 +378,10 @@ func readGPUStatusDirect() GPUPrefStatus {
 			result.Value = 2
 			result.Available = true
 		} else {
-			result.Label = "Smart Mode"
+			// peStatus missing or 0: Dispatcher not controlling GPU
+			result.Label = "Dispatcher Service Stopped"
 			result.Value = 0
-			result.Available = true
+			result.Available = false
 		}
 	} else if peAvail {
 		result.Value = peStatus
@@ -384,6 +397,31 @@ func readGPUStatusDirect() GPUPrefStatus {
 	result.PCMLabel = pcmStatusLabel(pcmStatus)
 
 	return result
+}
+
+// isDispatcherServiceRunning checks if LenovoProcessManagement service is running
+func isDispatcherServiceRunning() bool {
+	// Use syscall to check service status directly (faster than PowerShell)
+	scm, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
+	if err != nil {
+		return false
+	}
+	defer windows.CloseServiceHandle(scm)
+
+	serviceName, _ := windows.UTF16PtrFromString("LenovoProcessManagement")
+	hService, err := windows.OpenService(scm, serviceName, windows.SERVICE_QUERY_STATUS)
+	if err != nil {
+		return false
+	}
+	defer windows.CloseServiceHandle(hService)
+
+	var status windows.SERVICE_STATUS
+	err = windows.QueryServiceStatus(hService, &status)
+	if err != nil {
+		return false
+	}
+
+	return status.CurrentState == windows.SERVICE_RUNNING
 }
 
 // readDWordFromRegistry reads a DWORD value from registry

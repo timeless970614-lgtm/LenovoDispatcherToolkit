@@ -51,7 +51,7 @@
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
             </svg>
           </div>
-          <div class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+          <div class="theme-toggle" @click="cycleTheme" :title="'Theme: ' + themeLabel">
             <svg v-if="theme === 'dark'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"/>
               <line x1="12" y1="1" x2="12" y2="3"/>
@@ -63,12 +63,16 @@
               <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg v-else-if="theme === 'light'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
             </svg>
           </div>
         </div>
-        <div class="version-tag">v1.0.14</div>
+        <div class="version-tag">v1.0.15</div>
       </div>
     </aside>
 
@@ -174,16 +178,16 @@ export default {
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'
         },
         { 
-          id: 'funccheck', 
-          label: 'Function Check', 
-          subtitle: 'GPU & system diagnostics',
-          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
-        },
-        { 
           id: 'modecheck', 
           label: 'Mode Check', 
           subtitle: 'Dispatcher status & features',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'
+        },
+        { 
+          id: 'funccheck', 
+          label: 'Function Check', 
+          subtitle: 'GPU & system diagnostics',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
         },
         {
           id: 'aianalysis',
@@ -224,6 +228,10 @@ export default {
       const allItems = [...this.mainNavItems, ...this.bottomNavItems]
       const item = allItems.find(i => i.id === this.currentPage)
       return item ? item.subtitle : ''
+    },
+    themeLabel() {
+      const labels = { dark: 'Dark', light: 'Light', warm: 'Warm' }
+      return labels[this.theme] || 'Dark'
     }
   },
   mounted() {
@@ -282,8 +290,11 @@ export default {
         // silent
       }
     },
-    toggleTheme() {
-      this.theme = this.theme === 'dark' ? 'light' : 'dark'
+    cycleTheme() {
+      const themes = ['dark', 'light', 'warm']
+      const currentIndex = themes.indexOf(this.theme)
+      const nextIndex = (currentIndex + 1) % themes.length
+      this.theme = themes[nextIndex]
       localStorage.setItem('lenovo-toolkit-theme', this.theme)
     },
     setTheme(newTheme) {
@@ -396,6 +407,19 @@ export default {
   --text-tertiary: #999999;
   --border-color: #E0E0E0;
   --border-light: #CCCCCC;
+}
+
+#app.warm {
+  --bg-primary: #FDF6E3;
+  --bg-secondary: #F5E6C8;
+  --bg-tertiary: #EDE0C0;
+  --bg-card: #FAF0D7;
+  --bg-card-hover: #F5E8CC;
+  --text-primary: #5C4B37;
+  --text-secondary: #8B7355;
+  --text-tertiary: #A89080;
+  --border-color: #E8D5B5;
+  --border-light: #D4C4A8;
 }
 
 #app {

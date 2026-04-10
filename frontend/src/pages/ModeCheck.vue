@@ -96,6 +96,28 @@
         </div>
       </div>
 
+      <!-- Features Card -->
+      <div class="card" v-if="info.features && info.features.length">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            Supported Features
+          </span>
+        </div>
+
+        <div class="features-list">
+          <div v-for="feature in info.features" :key="feature.name" class="feature-row">
+            <div class="feature-name">{{ feature.name }}</div>
+            <div class="feature-support" :class="feature.value === 'Y' ? 'support-yes' : 'support-na'">
+              {{ feature.value === 'Y' ? 'Supported' : 'N/A' }}
+            </div>
+            <div class="feature-desc">{{ feature.support }}</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Policy Enable Function Card -->
       <div class="card">
         <div class="card-header">
@@ -145,24 +167,34 @@
         </div>
       </div>
 
-      <!-- Features Card -->
-      <div class="card" v-if="info.features && info.features.length">
+      <!-- DTT Uninstall Card -->
+      <div class="card">
         <div class="card-header">
           <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
-            Supported Features
+            DTT Uninstall
           </span>
         </div>
 
-        <div class="features-list">
-          <div v-for="feature in info.features" :key="feature.name" class="feature-row">
-            <div class="feature-name">{{ feature.name }}</div>
-            <div class="feature-support" :class="feature.value === 'Y' ? 'support-yes' : 'support-na'">
-              {{ feature.value === 'Y' ? 'Supported' : 'N/A' }}
-            </div>
-            <div class="feature-desc">{{ feature.support }}</div>
+        <div class="dtt-uninstall-content">
+          <div class="dtt-desc">
+            <p>Uninstall Intel Dynamic Tuning Technology (DTT) components</p>
+          </div>
+          <div class="dtt-buttons">
+            <button class="btn-dtt btn-dtt-main" @click="uninstallDTT" :disabled="uninstallingDTT">
+              <span v-if="uninstallingDTT">Uninstalling...</span>
+              <span v-else>Uninstall DTT</span>
+            </button>
+            <button class="btn-dtt btn-dtt-ui" @click="uninstallDTTUI" :disabled="uninstallingDTTUI">
+              <span v-if="uninstallingDTTUI">Uninstalling UI...</span>
+              <span v-else>Uninstall DTT UI</span>
+            </button>
+          </div>
+          <div v-if="dttResult" :class="['dtt-result', dttResult.success ? 'success' : 'error']">
+            {{ dttResult.message }}
           </div>
         </div>
       </div>
@@ -177,7 +209,7 @@
 </template>
 
 <script>
-import { GetModeCheckInfo, GetServiceStatus, GetPinnedDYTCMode, PinDYTCMode, UnpinDYTCMode, GetDispatcherInfo, StartService, StopService } from '../../wailsjs/go/main/App'
+import { GetModeCheckInfo, GetServiceStatus, GetPinnedDYTCMode, PinDYTCMode, UnpinDYTCMode, GetDispatcherInfo, StartService, StopService, UninstallDTT, UninstallDTTUI } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'ModeCheck',
@@ -206,7 +238,10 @@ export default {
       modeGroups: [
         { key: 'basic', name: 'Standard Modes' },
         { key: 'intelligent', name: 'Intelligent Mode' },
-      ]
+      ],
+      uninstallingDTT: false,
+      uninstallingDTTUI: false,
+      dttResult: null
     }
   },
   async mounted() {
@@ -392,6 +427,30 @@ export default {
         clearInterval(this.serviceInterval)
         this.serviceInterval = null
       }
+    },
+
+    async uninstallDTT() {
+      this.uninstallingDTT = true
+      this.dttResult = null
+      try {
+        const message = await UninstallDTT()
+        this.dttResult = { success: !message.includes('Error') && !message.includes('Failed'), message: message }
+      } catch(e) {
+        this.dttResult = { success: false, message: 'Error: ' + e }
+      }
+      this.uninstallingDTT = false
+    },
+
+    async uninstallDTTUI() {
+      this.uninstallingDTTUI = true
+      this.dttResult = null
+      try {
+        const message = await UninstallDTTUI()
+        this.dttResult = { success: !message.includes('Error') && !message.includes('Failed'), message: message }
+      } catch(e) {
+        this.dttResult = { success: false, message: 'Error: ' + e }
+      }
+      this.uninstallingDTTUI = false
     }
   }
 }
@@ -865,6 +924,33 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* DTT Uninstall */
+.dtt-uninstall-content { padding: 16px; }
+.dtt-desc { margin-bottom: 16px; color: var(--text-secondary); font-size: 13px; }
+.dtt-desc p { margin: 0; }
+.dtt-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-dtt {
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 140px;
+}
+.btn-dtt:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.btn-dtt:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-dtt-main { border-color: #EF4444; color: #EF4444; }
+.btn-dtt-main:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+.btn-dtt-ui { border-color: #F59E0B; color: #F59E0B; }
+.btn-dtt-ui:hover:not(:disabled) { background: rgba(245,158,11,0.1); }
+.dtt-result { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; }
+.dtt-result.success { background: rgba(76,175,80,0.1); color: #4CAF50; }
+.dtt-result.error { background: rgba(239,68,68,0.1); color: #EF4444; }
 
 /* Responsive */
 @media (max-width: 900px) {

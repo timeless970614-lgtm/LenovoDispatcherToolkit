@@ -17,3 +17,4 @@ EXPORTS
     IPF_GetHeteroInc
     IPF_GetHeteroDec
     IPF_GetSoftParkLatency
+    IPF_GetCurrentGear

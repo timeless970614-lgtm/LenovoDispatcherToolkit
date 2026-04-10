@@ -30,6 +30,10 @@ export function GetDispatcherInfo():Promise<backend.DispatcherInfo>;
 
 export function GetDynamicLogStatus():Promise<boolean>;
 
+export function GetEPOTStatus():Promise<backend.EPOTStatus>;
+
+export function GetGPUAutoGear():Promise<backend.GPUAutoGear>;
+
 export function GetGPUPrefStatus():Promise<backend.GPUPrefStatus>;
 
 export function GetGPUPrefStatusFromCache():Promise<backend.GPUPrefStatus>;
@@ -72,6 +76,8 @@ export function SetDYTCMode(arg1:string):Promise<string>;
 
 export function SetGEEKMode(arg1:boolean):Promise<string>;
 
+export function SetGPUAutoGear(arg1:number):Promise<backend.SetResult>;
+
 export function SetIGPUMode(arg1:number):Promise<backend.SetResult>;
 
 export function SetIntelGPUFrequencyRange(arg1:number,arg2:number):Promise<backend.IntelGPUFreqTestResult>;
@@ -95,6 +101,10 @@ export function StopMLScenarioCapture():Promise<backend.MLLogStatus>;
 export function StopService():Promise<string>;
 
 export function TestIntelGPUFrequency(arg1:string):Promise<backend.IntelGPUFreqTestResult>;
+
+export function UninstallDTT():Promise<string>;
+
+export function UninstallDTTUI():Promise<string>;
 
 export function UninstallDispatcher():Promise<backend.UninstallResult>;
 

@@ -13,7 +13,7 @@
         <div class="hero-text">
           <h2 class="hero-title">Lenovo Dispatcher Toolkit</h2>
           <p class="hero-subtitle">Power Management & Dispatcher Control</p>
-          <div class="version-chip">v1.0.14</div>
+          <div class="version-chip">v1.0.15</div>
         </div>
       </div>
     </div>
@@ -27,7 +27,7 @@
         <div class="info-list">
           <div class="info-row">
             <span class="info-key">Version</span>
-            <span class="info-val">1.0.14</span>
+            <span class="info-val">1.0.15</span>
           </div>
           <div class="info-row">
             <span class="info-key">Framework</span>
@@ -201,7 +201,7 @@ export default {
 }
 
 .dev-name {
-  color: var(--lenovo-red);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
