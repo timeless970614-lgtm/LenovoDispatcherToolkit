@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
-	"unsafe"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -33,6 +32,7 @@ type IntelGPUFrequency struct {
 	ActualMHz        float64 `json:"actualMHz"`    // N/A without IGC
 	TdpMHz           float64 `json:"tdpMHz"`       // N/A without IGC
 	EfficientMHz     float64 `json:"efficientMHz"` // N/A without IGC
+	GPUUtilization   float64 `json:"gpuUtilization"` // 0-100%, from perf counter
 	GPUName          string  `json:"gpuName"`
 	DriverVersion    string  `json:"driverVersion"`
 	DriverDate       string  `json:"driverDate"`
@@ -155,7 +155,41 @@ func GetIntelGPUFrequency() IntelGPUFrequency {
 		result.CurrentMax = hwMax
 	}
 
+	// GPU utilization from Windows Performance Counter (3D engine, same LUID as Intel GPU)
+	result.GPUUtilization = readGPUUtilization()
+
 	return result
+}
+
+// GetIntelGPUUtilization returns the current GPU utilization (0-100%) for lightweight polling.
+func GetIntelGPUUtilization() float64 {
+	return readGPUUtilization()
+}
+
+// readGPUUtilization reads the GPU 3D engine utilization via PowerShell performance counter.
+// Returns -1 if unavailable.
+func readGPUUtilization() float64 {
+	script := `
+$ErrorActionPreference = 'SilentlyContinue'
+try {
+    $samples = (Get-Counter '\GPU Engine(*engtype_3D)\Utilization Percentage' -ErrorAction Stop).CounterSamples
+    $total = ($samples | Measure-Object -Property CookedValue -Sum).Sum
+    Write-Host ([math]::Round($total, 1))
+} catch {
+    Write-Host "-1"
+}
+`
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	out, err := cmd.Output()
+	if err != nil {
+		return -1
+	}
+	line := strings.TrimSpace(string(out))
+	var v float64
+	if _, err := fmt.Sscanf(line, "%f", &v); err != nil {
+		return -1
+	}
+	return v
 }
 
 // SetIntelGPUFrequencyRange writes MinFreq/MaxFreq to the Intel driver registry key.
@@ -322,8 +356,3 @@ func compareDriverVersion(v1, v2 string) int {
 	}
 	return 0
 }
-
-// ── Unused IGC wrapper stubs (kept for future use) ────────────────────────────
-// These are no-ops since we use registry-based approach.
-
-var _ = unsafe.Pointer(nil) // suppress unused import

@@ -277,6 +277,7 @@ export namespace backend {
 	    actualMHz: number;
 	    tdpMHz: number;
 	    efficientMHz: number;
+	    gpuUtilization: number;
 	    gpuName: string;
 	    driverVersion: string;
 	    driverDate: string;
@@ -301,6 +302,7 @@ export namespace backend {
 	        this.actualMHz = source["actualMHz"];
 	        this.tdpMHz = source["tdpMHz"];
 	        this.efficientMHz = source["efficientMHz"];
+	        this.gpuUtilization = source["gpuUtilization"];
 	        this.gpuName = source["gpuName"];
 	        this.driverVersion = source["driverVersion"];
 	        this.driverDate = source["driverDate"];

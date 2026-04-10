@@ -82,6 +82,10 @@ export function GetIntelGPUFrequency() {
   return window['go']['main']['App']['GetIntelGPUFrequency']();
 }
 
+export function GetIntelGPUUtilization() {
+  return window['go']['main']['App']['GetIntelGPUUtilization']();
+}
+
 export function GetLogFiles() {
   return window['go']['main']['App']['GetLogFiles']();
 }

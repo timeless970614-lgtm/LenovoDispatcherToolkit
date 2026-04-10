@@ -267,6 +267,12 @@ func (a *App) GetIntelDriverDownloadURL() string {
 	return backend.GetIntelDriverDownloadURL()
 }
 
+// GetIntelGPUUtilization returns current GPU 3D engine utilization (0-100%).
+// Lightweight call for periodic polling from the frontend.
+func (a *App) GetIntelGPUUtilization() float64 {
+	return backend.GetIntelGPUUtilization()
+}
+
 func (a *App) StartGPUStatusWatcher() error {
 	err := backend.StartGPUStatusWatcher()
 	if err != nil {

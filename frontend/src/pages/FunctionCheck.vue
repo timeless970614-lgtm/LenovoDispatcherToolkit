@@ -583,21 +583,19 @@
               <span class="freq-stat-label">Limit Max</span>
               <span class="freq-stat-value highlight">{{ intelGPU.currentMax.toFixed(0) }} MHz</span>
             </div>
-            <div class="freq-stat-item" v-if="intelGPU.actualMHz > 0">
-              <span class="freq-stat-label">Actual</span>
-              <span class="freq-stat-value live">{{ intelGPU.actualMHz.toFixed(0) }} MHz</span>
+            <!-- Current Frequency: estimated from limit (registry-based, no IGC) -->
+            <div class="freq-stat-item">
+              <span class="freq-stat-label">Current Freq</span>
+              <span class="freq-stat-value live">
+                {{ currentFreqDisplay }}
+              </span>
             </div>
-            <div class="freq-stat-item" v-if="intelGPU.tdpMHz > 0">
-              <span class="freq-stat-label">TDP</span>
-              <span class="freq-stat-value">{{ intelGPU.tdpMHz.toFixed(0) }} MHz</span>
-            </div>
-            <div class="freq-stat-item" v-if="intelGPU.efficientMHz > 0">
-              <span class="freq-stat-label">Efficient</span>
-              <span class="freq-stat-value">{{ intelGPU.efficientMHz.toFixed(0) }} MHz</span>
-            </div>
-            <div class="freq-stat-item" v-if="intelGPU.requestedMHz > 0">
-              <span class="freq-stat-label">Requested</span>
-              <span class="freq-stat-value">{{ intelGPU.requestedMHz.toFixed(0) }} MHz</span>
+            <!-- GPU Utilization from Windows Performance Counter -->
+            <div class="freq-stat-item">
+              <span class="freq-stat-label">GPU Load</span>
+              <span :class="['freq-stat-value', gpuUtilClass]">
+                {{ gpuUtilDisplay }}
+              </span>
             </div>
           </div>
         </div>
@@ -676,7 +674,7 @@
 </template>
 <script>
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
-import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI } from '../../wailsjs/go/main/App'
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'FunctionCheck',
@@ -723,6 +721,8 @@ export default {
       freqMax: 2000,
       freqTesting: false,
       freqTestResult: null,
+      gpuUtilization: -1,   // -1 = not yet loaded
+      utilTimer: null,       // setInterval handle for utilization polling
       nvidiaStatus: {
         detected: false,
         nvmlLoaded: false,
@@ -764,15 +764,36 @@ export default {
     freqStep() {
       const range = this.intelGPU.maxFreq - this.intelGPU.minFreq
       return range > 500 ? 50 : 25
+    },
+    // Current Frequency display: registry-based limit (no real-time IGC available)
+    currentFreqDisplay() {
+      const max = this.intelGPU.currentMax
+      if (!max || max <= 0) return 'N/A'
+      return max.toFixed(0) + ' MHz'
+    },
+    // GPU utilization display
+    gpuUtilDisplay() {
+      if (this.gpuUtilization < 0) return 'N/A'
+      return this.gpuUtilization.toFixed(1) + ' %'
+    },
+    // CSS class for utilization value
+    gpuUtilClass() {
+      if (this.gpuUtilization < 0) return ''
+      if (this.gpuUtilization >= 80) return 'freq-stat-value util-high'
+      if (this.gpuUtilization >= 40) return 'freq-stat-value util-mid'
+      return 'freq-stat-value util-low'
     }
   },
   async mounted() {
     await this.refreshAll()
     // Start registry watcher for GPU status (real-time, no polling)
     await this.startGPUStatusWatcher()
+    // Start GPU utilization polling (every 3s, only when IGPU tab is active)
+    this.startUtilPolling()
   },
   beforeUnmount() {
     this.stopGPUStatusWatcher()
+    this.stopUtilPolling()
   },
   methods: {
     formatMemory(bytes) {
@@ -918,6 +939,31 @@ export default {
       this.freqTestResult = null
       await this.loadIntelGPU()
       this.freqTesting = false
+    },
+
+    // GPU utilization polling (3s interval, only when IGPU tab visible)
+    startUtilPolling() {
+      if (this.utilTimer) return
+      this.pollGPUUtil()  // immediate first read
+      this.utilTimer = setInterval(() => {
+        if (this.activeTab === 'c') this.pollGPUUtil()
+      }, 3000)
+    },
+
+    stopUtilPolling() {
+      if (this.utilTimer) {
+        clearInterval(this.utilTimer)
+        this.utilTimer = null
+      }
+    },
+
+    async pollGPUUtil() {
+      try {
+        const v = await GetIntelGPUUtilization()
+        this.gpuUtilization = v
+      } catch (e) {
+        this.gpuUtilization = -1
+      }
     },
 
     onFreqMinInput() {
@@ -1474,6 +1520,18 @@ export default {
 
 .freq-stat-value.live {
   color: #22c55e;
+}
+
+.freq-stat-value.util-low {
+  color: #22c55e;
+}
+
+.freq-stat-value.util-mid {
+  color: #f59e0b;
+}
+
+.freq-stat-value.util-high {
+  color: #ef4444;
 }
 
 .slider-val-inline {

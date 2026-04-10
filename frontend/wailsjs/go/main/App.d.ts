@@ -42,6 +42,8 @@ export function GetIntelDriverDownloadURL():Promise<string>;
 
 export function GetIntelGPUFrequency():Promise<backend.IntelGPUFrequency>;
 
+export function GetIntelGPUUtilization():Promise<number>;
+
 export function GetLogFiles():Promise<Array<backend.LogFileInfo>>;
 
 export function GetLogSummary():Promise<Record<string, any>>;
