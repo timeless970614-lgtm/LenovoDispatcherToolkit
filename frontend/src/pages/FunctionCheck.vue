@@ -523,18 +523,19 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
-            Intel GPU Frequency Control
+            IGPU Frequency
           </h3>
           <span class="card-badge">IGC API</span>
         </div>
 
+        <!-- GPU Info rows -->
         <div class="igpu-freq-info">
           <div class="freq-row">
-            <span class="freq-label">GPU:</span>
+            <span class="freq-label">GPU</span>
             <span class="freq-value">{{ intelGPU.gpuName || 'Not Detected' }}</span>
           </div>
           <div class="freq-row" v-if="intelGPU.driverVersion">
-            <span class="freq-label">Driver Version:</span>
+            <span class="freq-label">Driver</span>
             <span :class="['freq-value mono', intelGPU.driverOK ? 'driver-ok' : 'driver-old']">
               {{ intelGPU.driverVersion }}
               <span v-if="intelGPU.driverOK" class="driver-badge ok">✓</span>
@@ -542,16 +543,12 @@
             </span>
           </div>
           <div class="freq-row" v-if="intelGPU.driverDate">
-            <span class="freq-label">Driver Date:</span>
+            <span class="freq-label">Driver Date</span>
             <span class="freq-value mono">{{ intelGPU.driverDate }}</span>
           </div>
           <div class="freq-row" v-if="intelGPU.minDriverVersion">
-            <span class="freq-label">Min Required:</span>
+            <span class="freq-label">Min Required</span>
             <span class="freq-value mono muted">{{ intelGPU.minDriverVersion }}</span>
-          </div>
-          <div class="freq-row" v-if="intelGPU.available">
-            <span class="freq-label">Frequency Range:</span>
-            <span class="freq-value">{{ intelGPU.minFreq }} - {{ intelGPU.maxFreq }} MHz</span>
           </div>
         </div>
 
@@ -567,35 +564,90 @@
           </div>
         </div>
 
-        <div class="freq-control" v-if="intelGPU.available">
-          <div class="freq-slider-group">
-            <label>Min Frequency (MHz)</label>
-            <div class="slider-row">
-              <input type="range" :min="intelGPU.minFreq" :max="intelGPU.maxFreq" :step="intelGPU.step" v-model.number="freqMin" class="freq-slider">
-              <span class="slider-val">{{ freqMin }}</span>
+        <!-- Live frequency status grid (IGC available) -->
+        <div v-if="intelGPU.available" class="igpu-freq-status">
+          <div class="freq-stat-grid">
+            <div class="freq-stat-item">
+              <span class="freq-stat-label">HW Min</span>
+              <span class="freq-stat-value">{{ intelGPU.minFreq.toFixed(0) }} MHz</span>
             </div>
-          </div>
-          <div class="freq-slider-group">
-            <label>Max Frequency (MHz)</label>
-            <div class="slider-row">
-              <input type="range" :min="intelGPU.minFreq" :max="intelGPU.maxFreq" :step="intelGPU.step" v-model.number="freqMax" class="freq-slider">
-              <span class="slider-val">{{ freqMax }}</span>
+            <div class="freq-stat-item">
+              <span class="freq-stat-label">HW Max</span>
+              <span class="freq-stat-value">{{ intelGPU.maxFreq.toFixed(0) }} MHz</span>
+            </div>
+            <div class="freq-stat-item">
+              <span class="freq-stat-label">Limit Min</span>
+              <span class="freq-stat-value">{{ intelGPU.currentMin.toFixed(0) }} MHz</span>
+            </div>
+            <div class="freq-stat-item">
+              <span class="freq-stat-label">Limit Max</span>
+              <span class="freq-stat-value highlight">{{ intelGPU.currentMax.toFixed(0) }} MHz</span>
+            </div>
+            <div class="freq-stat-item" v-if="intelGPU.actualMHz > 0">
+              <span class="freq-stat-label">Actual</span>
+              <span class="freq-stat-value live">{{ intelGPU.actualMHz.toFixed(0) }} MHz</span>
+            </div>
+            <div class="freq-stat-item" v-if="intelGPU.tdpMHz > 0">
+              <span class="freq-stat-label">TDP</span>
+              <span class="freq-stat-value">{{ intelGPU.tdpMHz.toFixed(0) }} MHz</span>
+            </div>
+            <div class="freq-stat-item" v-if="intelGPU.efficientMHz > 0">
+              <span class="freq-stat-label">Efficient</span>
+              <span class="freq-stat-value">{{ intelGPU.efficientMHz.toFixed(0) }} MHz</span>
+            </div>
+            <div class="freq-stat-item" v-if="intelGPU.requestedMHz > 0">
+              <span class="freq-stat-label">Requested</span>
+              <span class="freq-stat-value">{{ intelGPU.requestedMHz.toFixed(0) }} MHz</span>
             </div>
           </div>
         </div>
 
+        <!-- Frequency range control sliders -->
+        <div class="freq-control" v-if="intelGPU.available">
+          <div class="freq-slider-group">
+            <label>Min Frequency (MHz) &nbsp;<span class="slider-val-inline">{{ freqMin.toFixed(0) }}</span></label>
+            <div class="slider-row">
+              <input type="range"
+                :min="intelGPU.minFreq"
+                :max="intelGPU.maxFreq"
+                :step="freqStep"
+                v-model.number="freqMin"
+                class="freq-slider"
+                @input="onFreqMinInput">
+              <span class="slider-val">{{ freqMin.toFixed(0) }}</span>
+            </div>
+          </div>
+          <div class="freq-slider-group">
+            <label>Max Frequency (MHz) &nbsp;<span class="slider-val-inline">{{ freqMax.toFixed(0) }}</span></label>
+            <div class="slider-row">
+              <input type="range"
+                :min="intelGPU.minFreq"
+                :max="intelGPU.maxFreq"
+                :step="freqStep"
+                v-model.number="freqMax"
+                class="freq-slider"
+                @input="onFreqMaxInput">
+              <span class="slider-val">{{ freqMax.toFixed(0) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
         <div class="freq-actions" v-if="intelGPU.available">
           <button class="btn btn-primary" @click="applyFreqRange" :disabled="freqTesting">
             Apply Range
           </button>
           <button class="btn btn-outline" @click="testFreq('min')" :disabled="freqTesting">
-            Test Min
+            Lock Min
           </button>
           <button class="btn btn-outline" @click="testFreq('max')" :disabled="freqTesting">
-            Test Max
+            Lock Max
           </button>
-          <button class="btn btn-outline" @click="testFreq('stress')" :disabled="freqTesting">
-            Stress Test
+          <button class="btn btn-outline" @click="testFreq('dynamic')" :disabled="freqTesting">
+            Restore Dynamic
+          </button>
+          <button class="btn btn-outline" @click="refreshIGPUFreq" :disabled="freqTesting">
+            ↻ Refresh
           </button>
         </div>
 
@@ -651,17 +703,24 @@ export default {
       },
       intelGPU: {
         available: false,
-        minFreq: 300,
-        maxFreq: 1500,
-        currentMin: 300,
-        currentMax: 1500,
-        step: 50,
+        minFreq: 100,
+        maxFreq: 2000,
+        currentMin: 100,
+        currentMax: 2000,
+        requestedMHz: 0,
+        actualMHz: 0,
+        tdpMHz: 0,
+        efficientMHz: 0,
         gpuName: '',
         driverVersion: '',
+        driverDate: '',
+        minDriverVersion: '',
+        driverOK: false,
+        adapterIndex: 0,
         error: ''
       },
-      freqMin: 300,
-      freqMax: 1500,
+      freqMin: 100,
+      freqMax: 2000,
       freqTesting: false,
       freqTestResult: null,
       nvidiaStatus: {
@@ -700,6 +759,11 @@ export default {
     },
     igpuCount() {
       return this.gpuList.filter(g => !g.isDiscrete).length
+    },
+    // Slider step: 50 MHz for ranges > 500 MHz, else 25 MHz
+    freqStep() {
+      const range = this.intelGPU.maxFreq - this.intelGPU.minFreq
+      return range > 500 ? 50 : 25
     }
   },
   async mounted() {
@@ -840,11 +904,28 @@ export default {
       try {
         const result = await GetIntelGPUFrequency()
         this.intelGPU = result
-        this.freqMin = result.currentMin || result.minFreq
-        this.freqMax = result.currentMax || result.maxFreq
+        if (result.available) {
+          this.freqMin = result.currentMin > 0 ? result.currentMin : result.minFreq
+          this.freqMax = result.currentMax > 0 ? result.currentMax : result.maxFreq
+        }
       } catch (e) {
         this.intelGPU.error = 'Failed to query Intel GPU'
       }
+    },
+
+    async refreshIGPUFreq() {
+      this.freqTesting = true
+      this.freqTestResult = null
+      await this.loadIntelGPU()
+      this.freqTesting = false
+    },
+
+    onFreqMinInput() {
+      if (this.freqMin > this.freqMax) this.freqMax = this.freqMin
+    },
+
+    onFreqMaxInput() {
+      if (this.freqMax < this.freqMin) this.freqMin = this.freqMax
     },
 
     async applyFreqRange() {
@@ -1344,13 +1425,60 @@ export default {
 .freq-label {
   font-size: 13px;
   color: var(--text-secondary);
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .freq-value {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* Live frequency status grid */
+.igpu-freq-status {
+  margin-bottom: 16px;
+}
+
+.freq-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.freq-stat-item {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.freq-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.freq-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.freq-stat-value.highlight {
+  color: var(--lenovo-red);
+}
+
+.freq-stat-value.live {
+  color: #22c55e;
+}
+
+.slider-val-inline {
+  font-weight: 700;
+  color: var(--lenovo-red);
 }
 
 .freq-control {

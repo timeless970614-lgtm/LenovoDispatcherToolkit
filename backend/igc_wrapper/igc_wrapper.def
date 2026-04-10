@@ -1,0 +1,9 @@
+LIBRARY igc_wrapper
+EXPORTS
+    IGC_Init
+    IGC_Close
+    IGC_GetAdapterCount
+    IGC_GetAdapterInfo
+    IGC_GetFreqInfo
+    IGC_SetFreqRange
+    IGC_ErrorString

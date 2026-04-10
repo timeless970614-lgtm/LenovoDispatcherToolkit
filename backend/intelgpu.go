@@ -5,327 +5,334 @@ package backend
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"syscall"
+	"unsafe"
 )
 
 const (
-	// Minimum required Intel GPU driver version for IGC API
-	// Format: XX.X.XXX.XXXX (e.g., 32.0.101.8626)
-	MinIntelDriverVersion = "32.0.101.8000"
+	MinIntelDriverVersion  = "32.0.101.8000"
 	IntelDriverDownloadURL = "https://www.intel.cn/content/www/cn/zh/download-center/home.html"
 )
 
-// IntelGPUFrequency represents iGPU frequency control capabilities
-type IntelGPUFrequency struct {
-	Available       bool   `json:"available"`
-	MinFreq         uint32 `json:"minFreq"`
-	MaxFreq         uint32 `json:"maxFreq"`
-	CurrentMin      uint32 `json:"currentMin"`
-	CurrentMax      uint32 `json:"currentMax"`
-	Step            uint32 `json:"step"`
-	GPUName         string `json:"gpuName"`
-	DriverVersion   string `json:"driverVersion"`
-	DriverDate      string `json:"driverDate"`
-	MinDriverVersion string `json:"minDriverVersion"`
-	DriverOK        bool   `json:"driverOK"`
-	Error           string `json:"error"`
+// ── Result codes from igc_wrapper.dll ────────────────────────────────────────
+const (
+	igcOK               = 0
+	igcErrNotLoaded     = -1
+	igcErrNoDevice      = -2
+	igcErrNoFreqDomain  = -3
+	igcErrApiFail       = -4
+	igcErrNotInit       = -5
+)
+
+// ── C struct mirrors (must match igc_wrapper.h exactly) ──────────────────────
+
+// IGC_FreqInfo mirrors igc_wrapper.h IGC_FreqInfo
+type igcFreqInfo struct {
+	MinFreqMHz     float64
+	MaxFreqMHz     float64
+	CurrentMinMHz  float64
+	CurrentMaxMHz  float64
+	RequestedMHz   float64
+	TdpMHz         float64
+	EfficientMHz   float64
+	ActualMHz      float64
 }
 
-// IntelGPUFreqTestResult represents a test result
-type IntelGPUFreqTestResult struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	MinFreq uint32 `json:"minFreq"`
-	MaxFreq uint32 `json:"maxFreq"`
+// IGC_AdapterInfo mirrors igc_wrapper.h IGC_AdapterInfo
+type igcAdapterInfo struct {
+	Name            [256]byte
+	DriverVersion   [64]byte
+	AdapterIndex    int32
+	FreqDomainCount int32
 }
 
-var igcDll uintptr
+// ── DLL loader (lazy, once) ───────────────────────────────────────────────────
 
-// InitIGCLibrary initializes Intel GPU Control Library
-func InitIGCLibrary() error {
-	dll, err := syscall.LoadLibrary("igc.dll")
-	if err != nil {
-		dll, err = syscall.LoadLibrary("ControlLib.dll")
-		if err != nil {
-			return fmt.Errorf("Intel GPU Control Library not found: %v", err)
-		}
+var (
+	igcWrapperDLL *syscall.LazyDLL
+	igcFn         struct {
+		init           uintptr
+		close          uintptr
+		getAdapterCount uintptr
+		getAdapterInfo  uintptr
+		getFreqInfo     uintptr
+		setFreqRange    uintptr
+		errorString     uintptr
 	}
-	igcDll = uintptr(dll)
-	return nil
+	igcOnce sync.Once
+	igcErr  error
+)
+
+func igcLoad() {
+	igcOnce.Do(func() {
+		exeDir := getExeDir()
+		dllPath := exeDir + `\igc_wrapper.dll`
+		igcWrapperDLL = syscall.NewLazyDLL(dllPath)
+
+		resolve := func(name string) uintptr {
+			p := igcWrapperDLL.NewProc(name)
+			if err := p.Find(); err != nil {
+				igcErr = fmt.Errorf("igc_wrapper.dll: %s not found: %v", name, err)
+				return 0
+			}
+			return p.Addr()
+		}
+
+		igcFn.init            = resolve("IGC_Init")
+		igcFn.close           = resolve("IGC_Close")
+		igcFn.getAdapterCount = resolve("IGC_GetAdapterCount")
+		igcFn.getAdapterInfo  = resolve("IGC_GetAdapterInfo")
+		igcFn.getFreqInfo     = resolve("IGC_GetFreqInfo")
+		igcFn.setFreqRange    = resolve("IGC_SetFreqRange")
+		igcFn.errorString     = resolve("IGC_ErrorString")
+	})
 }
 
-// GetIntelGPUFrequency gets current iGPU frequency range
+// igcInit calls IGC_Init() and returns the result code.
+func igcInit() int {
+	igcLoad()
+	if igcErr != nil || igcFn.init == 0 {
+		return igcErrNotLoaded
+	}
+	ret, _, _ := syscall.Syscall(igcFn.init, 0, 0, 0, 0)
+	return int(int32(ret))
+}
+
+// igcErrorString returns a human-readable string for a result code.
+func igcErrorString(code int) string {
+	if igcFn.errorString == 0 {
+		return fmt.Sprintf("igc_wrapper not loaded (code %d)", code)
+	}
+	ret, _, _ := syscall.Syscall(igcFn.errorString, 1, uintptr(code), 0, 0)
+	if ret == 0 {
+		return fmt.Sprintf("unknown error %d", code)
+	}
+	return syscall.UTF16ToString((*[256]uint16)(unsafe.Pointer(ret))[:])
+}
+
+// igcErrorStringA reads a C string (char*) returned by IGC_ErrorString.
+func igcErrorStringA(code int) string {
+	if igcFn.errorString == 0 {
+		return fmt.Sprintf("igc_wrapper not loaded (code %d)", code)
+	}
+	ret, _, _ := syscall.Syscall(igcFn.errorString, 1, uintptr(int32(code)), 0, 0)
+	if ret == 0 {
+		return fmt.Sprintf("unknown error %d", code)
+	}
+	// Read null-terminated C string
+	ptr := (*[256]byte)(unsafe.Pointer(ret))
+	n := 0
+	for n < 256 && ptr[n] != 0 {
+		n++
+	}
+	return string(ptr[:n])
+}
+
+// ── Public Go types ───────────────────────────────────────────────────────────
+
+// IntelGPUFrequency is the data returned to the frontend.
+type IntelGPUFrequency struct {
+	Available        bool    `json:"available"`
+	MinFreq          float64 `json:"minFreq"`
+	MaxFreq          float64 `json:"maxFreq"`
+	CurrentMin       float64 `json:"currentMin"`
+	CurrentMax       float64 `json:"currentMax"`
+	RequestedMHz     float64 `json:"requestedMHz"`
+	ActualMHz        float64 `json:"actualMHz"`
+	TdpMHz           float64 `json:"tdpMHz"`
+	EfficientMHz     float64 `json:"efficientMHz"`
+	GPUName          string  `json:"gpuName"`
+	DriverVersion    string  `json:"driverVersion"`
+	DriverDate       string  `json:"driverDate"`
+	MinDriverVersion string  `json:"minDriverVersion"`
+	DriverOK         bool    `json:"driverOK"`
+	AdapterIndex     int     `json:"adapterIndex"`
+	Error            string  `json:"error"`
+}
+
+// IntelGPUFreqTestResult is returned by set/test operations.
+type IntelGPUFreqTestResult struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	MinFreq float64 `json:"minFreq"`
+	MaxFreq float64 `json:"maxFreq"`
+}
+
+// ── Implementation ────────────────────────────────────────────────────────────
+
+// GetIntelGPUFrequency queries the iGPU frequency info via igc_wrapper.dll.
+// Falls back to WMI for GPU name / driver version if IGC is unavailable.
 func GetIntelGPUFrequency() IntelGPUFrequency {
 	result := IntelGPUFrequency{
-		Available:        false,
 		MinDriverVersion: MinIntelDriverVersion,
 	}
 
-	// Try to load IGC library
-	if igcDll == 0 {
-		if err := InitIGCLibrary(); err != nil {
-			result.Error = err.Error()
-			return result
-		}
-	}
+	// Always populate GPU name + driver version from WMI (works without IGC)
+	fillGPUInfoFromWMI(&result)
 
-	// Use PowerShell to query GPU info via WMI as fallback
-	script := `
-$ErrorActionPreference = 'SilentlyContinue'
-try {
-    $gpu = Get-WmiObject Win32_VideoController | Where-Object { $_.Name -match 'Intel.*Graphics|Intel.*UHD|Intel.*Iris|Intel.*Arc' } | Select-Object -First 1
-    if ($gpu) {
-        $name = $gpu.Name
-        $driver = $gpu.DriverVersion
-        $date = $gpu.DriverDate
-        Write-Host "NAME:$name"
-        Write-Host "DRIVER:$driver"
-        Write-Host "DATE:$date"
-    } else {
-        Write-Host "NA:No Intel GPU found"
-    }
-} catch {
-    Write-Host "NA:$($_.Exception.Message)"
-}
-`
-	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
-	out, err := cmd.Output()
-	if err != nil {
-		result.Error = "Failed to query GPU: " + err.Error()
+	// Try IGC wrapper
+	rc := igcInit()
+	if rc != igcOK {
+		result.Error = igcErrorStringA(rc)
 		return result
 	}
 
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "NAME:") {
-			result.GPUName = strings.TrimPrefix(line, "NAME:")
-			result.Available = true
+	// Find the first Intel adapter
+	adapterCount, _, _ := syscall.Syscall(igcFn.getAdapterCount, 0, 0, 0, 0)
+	if int(adapterCount) == 0 {
+		result.Error = "No Intel GPU adapter found by IGC"
+		return result
+	}
+
+	// Use adapter 0 (first Intel GPU)
+	adapterIdx := 0
+
+	// Get adapter info (name)
+	var ai igcAdapterInfo
+	rc2, _, _ := syscall.Syscall(igcFn.getAdapterInfo, 2,
+		uintptr(adapterIdx),
+		uintptr(unsafe.Pointer(&ai)),
+		0)
+	if int(int32(rc2)) == igcOK {
+		n := 0
+		for n < len(ai.Name) && ai.Name[n] != 0 {
+			n++
 		}
-		if strings.HasPrefix(line, "DRIVER:") {
-			result.DriverVersion = strings.TrimPrefix(line, "DRIVER:")
-		}
-		if strings.HasPrefix(line, "DATE:") {
-			dateStr := strings.TrimPrefix(line, "DATE:")
-			// Parse date like "20260311000000.000000-000"
-			if len(dateStr) >= 8 {
-				result.DriverDate = dateStr[0:4] + "-" + dateStr[4:6] + "-" + dateStr[6:8]
-			}
-		}
-		if strings.HasPrefix(line, "NA:") {
-			result.Error = strings.TrimPrefix(line, "NA:")
-			return result
+		if n > 0 {
+			result.GPUName = string(ai.Name[:n])
 		}
 	}
 
-	// Check driver version
-	result.DriverOK = compareDriverVersion(result.DriverVersion, MinIntelDriverVersion) >= 0
-
-	// Read frequency from registry (Intel GPU stores freq settings here)
-	freqScript := `
-$ErrorActionPreference = 'SilentlyContinue'
-# Try to read from Intel GPU registry
-$keys = @(
-    'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}',
-    'HKLM:\SOFTWARE\Intel\Display'
-)
-foreach ($k in $keys) {
-    $subkeys = Get-ChildItem $k -ErrorAction SilentlyContinue
-    foreach ($sk in $subkeys) {
-        $props = Get-ItemProperty $sk.PSPath -ErrorAction SilentlyContinue
-        if ($props.MinFreq -or $props.MaxFreq) {
-            Write-Host "MIN:$($props.MinFreq)"
-            Write-Host "MAX:$($props.MaxFreq)"
-            return
-        }
-    }
-}
-# Default frequency range for Intel iGPU (typical values)
-Write-Host "MIN:300"
-Write-Host "MAX:1500"
-Write-Host "STEP:50"
-`
-	cmd = hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", freqScript)
-	out, _ = cmd.Output()
-	lines = strings.Split(strings.TrimSpace(string(out)), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "MIN:") {
-			fmt.Sscanf(line, "MIN:%d", &result.MinFreq)
-			result.CurrentMin = result.MinFreq
-		}
-		if strings.HasPrefix(line, "MAX:") {
-			fmt.Sscanf(line, "MAX:%d", &result.MaxFreq)
-			result.CurrentMax = result.MaxFreq
-		}
-		if strings.HasPrefix(line, "STEP:") {
-			fmt.Sscanf(line, "STEP:%d", &result.Step)
-		}
+	// Get frequency info
+	var fi igcFreqInfo
+	rc3, _, _ := syscall.Syscall(igcFn.getFreqInfo, 2,
+		uintptr(adapterIdx),
+		uintptr(unsafe.Pointer(&fi)),
+		0)
+	if int(int32(rc3)) != igcOK {
+		result.Error = igcErrorStringA(int(int32(rc3)))
+		return result
 	}
 
-	if result.Step == 0 {
-		result.Step = 50 // Default step
-	}
+	result.Available    = true
+	result.AdapterIndex = adapterIdx
+	result.MinFreq      = fi.MinFreqMHz
+	result.MaxFreq      = fi.MaxFreqMHz
+	result.CurrentMin   = fi.CurrentMinMHz
+	result.CurrentMax   = fi.CurrentMaxMHz
+	result.RequestedMHz = fi.RequestedMHz
+	result.ActualMHz    = fi.ActualMHz
+	result.TdpMHz       = fi.TdpMHz
+	result.EfficientMHz = fi.EfficientMHz
 
 	return result
 }
 
-// SetIntelGPUFrequencyRange sets the GPU frequency range
-func SetIntelGPUFrequencyRange(minFreq, maxFreq uint32) IntelGPUFreqTestResult {
-	result := IntelGPUFreqTestResult{
-		Success:  false,
-		MinFreq:  minFreq,
-		MaxFreq:  maxFreq,
-	}
+// SetIntelGPUFrequencyRange calls IGC_SetFreqRange via igc_wrapper.dll.
+func SetIntelGPUFrequencyRange(minFreq, maxFreq float64) IntelGPUFreqTestResult {
+	result := IntelGPUFreqTestResult{MinFreq: minFreq, MaxFreq: maxFreq}
 
-	// Validate
 	if minFreq > maxFreq {
 		result.Message = "Min frequency cannot be greater than max frequency"
 		return result
 	}
 
-	// Try to set via registry (Intel GPU control)
-	script := fmt.Sprintf(`
-$ErrorActionPreference = 'SilentlyContinue'
-try {
-    # Write to Intel GPU registry
-    $keys = Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue
-    foreach ($k in $keys) {
-        $props = Get-ItemProperty $k.PSPath -ErrorAction SilentlyContinue
-        if ($props.DriverDesc -match 'Intel') {
-            Set-ItemProperty -Path $k.PSPath -Name 'MinFreq' -Value %d -Type DWord -Force -ErrorAction SilentlyContinue
-            Set-ItemProperty -Path $k.PSPath -Name 'MaxFreq' -Value %d -Type DWord -Force -ErrorAction SilentlyContinue
-            Write-Host "OK"
-            return
-        }
-    }
-    Write-Host "NA:No Intel GPU registry key found"
-} catch {
-    Write-Host "NA:$($_.Exception.Message)"
-}
-`, minFreq, maxFreq)
-
-	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
-	out, err := cmd.Output()
-	if err != nil {
-		result.Message = "Failed to set frequency: " + err.Error()
+	rc := igcInit()
+	if rc != igcOK {
+		result.Message = "IGC not available: " + igcErrorStringA(rc)
 		return result
 	}
 
-	s := strings.TrimSpace(string(out))
-	if s == "OK" {
-		result.Success = true
-		result.Message = fmt.Sprintf("Frequency range set to %d-%d MHz", minFreq, maxFreq)
-	} else {
-		result.Message = s
-	}
+	// syscall with two float64 args: pass as uintptr via unsafe
+	minBits := *(*uintptr)(unsafe.Pointer(&minFreq))
+	maxBits := *(*uintptr)(unsafe.Pointer(&maxFreq))
 
+	rc2, _, _ := syscall.Syscall(igcFn.setFreqRange, 3,
+		uintptr(0), // adapterIndex 0
+		minBits,
+		maxBits)
+
+	if int(int32(rc2)) == igcOK {
+		result.Success = true
+		result.Message = fmt.Sprintf("iGPU frequency range set: %.0f – %.0f MHz", minFreq, maxFreq)
+	} else {
+		result.Message = fmt.Sprintf("IGC_SetFreqRange failed: %s", igcErrorStringA(int(int32(rc2))))
+	}
 	return result
 }
 
-// TestIntelGPUFrequency tests frequency control functionality
+// TestIntelGPUFrequency runs a named test scenario.
 func TestIntelGPUFrequency(testType string) IntelGPUFreqTestResult {
 	freq := GetIntelGPUFrequency()
 	if !freq.Available {
 		return IntelGPUFreqTestResult{
-			Success:  false,
-			Message:  "Intel GPU not available: " + freq.Error,
+			Success: false,
+			Message: "Intel GPU not available: " + freq.Error,
 		}
 	}
-
 	switch testType {
 	case "min":
-		// Set to minimum frequency
 		return SetIntelGPUFrequencyRange(freq.MinFreq, freq.MinFreq)
 	case "max":
-		// Set to maximum frequency
 		return SetIntelGPUFrequencyRange(freq.MaxFreq, freq.MaxFreq)
 	case "dynamic":
-		// Restore dynamic range
 		return SetIntelGPUFrequencyRange(freq.MinFreq, freq.MaxFreq)
-	case "stress":
-		// Stress test: rapidly switch between min and max
-		for i := 0; i < 5; i++ {
-			SetIntelGPUFrequencyRange(freq.MaxFreq, freq.MaxFreq)
-			SetIntelGPUFrequencyRange(freq.MinFreq, freq.MinFreq)
-		}
-		// Restore
-		final := SetIntelGPUFrequencyRange(freq.MinFreq, freq.MaxFreq)
-		final.Message = "Stress test completed (5 cycles). " + final.Message
-		return final
 	default:
-		return IntelGPUFreqTestResult{
-			Success:  false,
-			Message:  "Unknown test type: " + testType,
-		}
+		return IntelGPUFreqTestResult{Success: false, Message: "Unknown test type: " + testType}
 	}
 }
 
-// CallIGCAPI calls Intel GPU Control Library API (placeholder for actual DLL call)
-func CallIGCAPI(apiName string, params ...uintptr) (uintptr, error) {
-	if igcDll == 0 {
-		return 0, fmt.Errorf("IGC library not initialized")
-	}
+// GetIntelDriverDownloadURL returns the Intel driver download URL.
+func GetIntelDriverDownloadURL() string { return IntelDriverDownloadURL }
 
-	proc, err := syscall.GetProcAddress(syscall.Handle(igcDll), apiName)
+// ── WMI fallback ──────────────────────────────────────────────────────────────
+
+func fillGPUInfoFromWMI(result *IntelGPUFrequency) {
+	script := `
+$ErrorActionPreference = 'SilentlyContinue'
+$gpu = Get-WmiObject Win32_VideoController |
+       Where-Object { $_.Name -match 'Intel.*Graphics|Intel.*UHD|Intel.*Iris|Intel.*Arc' } |
+       Select-Object -First 1
+if ($gpu) {
+    Write-Host "NAME:$($gpu.Name)"
+    Write-Host "DRIVER:$($gpu.DriverVersion)"
+    $d = $gpu.DriverDate
+    if ($d -and $d.Length -ge 8) {
+        Write-Host "DATE:$($d.Substring(0,4))-$($d.Substring(4,2))-$($d.Substring(6,2))"
+    }
+} else {
+    Write-Host "NA:No Intel GPU found"
+}
+`
+	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	out, err := cmd.Output()
 	if err != nil {
-		return 0, fmt.Errorf("API %s not found: %v", apiName, err)
+		return
 	}
-
-	// Call the procedure (simplified - actual implementation would need proper parameter handling)
-	switch len(params) {
-	case 0:
-		ret, _, _ := syscall.Syscall(proc, 0, 0, 0, 0)
-		return ret, nil
-	case 1:
-		ret, _, _ := syscall.Syscall(proc, 1, params[0], 0, 0)
-		return ret, nil
-	case 2:
-		ret, _, _ := syscall.Syscall(proc, 2, params[0], params[1], 0)
-		return ret, nil
-	case 3:
-		ret, _, _ := syscall.Syscall(proc, 3, params[0], params[1], params[2])
-		return ret, nil
-	default:
-		ret, _, _ := syscall.Syscall6(proc, uintptr(len(params)), params[0], params[1], params[2], params[3], params[4], params[5])
-		return ret, nil
-	}
-}
-
-// CtlFrequencySetRange wraps the Intel GPU Control Library CtlFrequencySetRange API
-func CtlFrequencySetRange(adapterIndex uint32, minFreq, maxFreq uint32) IntelGPUFreqTestResult {
-	// Try actual IGC DLL call first
-	ret, err := CallIGCAPI("CtlFrequencySetRange", uintptr(adapterIndex), uintptr(minFreq), uintptr(maxFreq))
-	if err == nil && ret == 0 {
-		return IntelGPUFreqTestResult{
-			Success:  true,
-			Message:  fmt.Sprintf("CtlFrequencySetRange(%d, %d, %d) = 0", adapterIndex, minFreq, maxFreq),
-			MinFreq:  minFreq,
-			MaxFreq:  maxFreq,
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		line = strings.TrimRight(line, "\r")
+		switch {
+		case strings.HasPrefix(line, "NAME:"):
+			result.GPUName = strings.TrimPrefix(line, "NAME:")
+		case strings.HasPrefix(line, "DRIVER:"):
+			result.DriverVersion = strings.TrimPrefix(line, "DRIVER:")
+			result.DriverOK = compareDriverVersion(result.DriverVersion, MinIntelDriverVersion) >= 0
+		case strings.HasPrefix(line, "DATE:"):
+			result.DriverDate = strings.TrimPrefix(line, "DATE:")
 		}
 	}
-
-	// Fallback to registry method
-	return SetIntelGPUFrequencyRange(minFreq, maxFreq)
 }
 
-// CloseIGCLibrary releases the IGC library
-func CloseIGCLibrary() {
-	if igcDll != 0 {
-		syscall.FreeLibrary(syscall.Handle(igcDll))
-		igcDll = 0
-	}
-}
-
-// compareDriverVersion compares two driver version strings
-// Returns: 1 if v1 > v2, 0 if v1 == v2, -1 if v1 < v2
+// compareDriverVersion compares two "A.B.C.D" version strings.
+// Returns 1 if v1 > v2, 0 if equal, -1 if v1 < v2.
 func compareDriverVersion(v1, v2 string) int {
 	parts1 := strings.Split(v1, ".")
 	parts2 := strings.Split(v2, ".")
-	
 	maxLen := len(parts1)
 	if len(parts2) > maxLen {
 		maxLen = len(parts2)
 	}
-	
 	for i := 0; i < maxLen; i++ {
 		var n1, n2 int
 		if i < len(parts1) {
@@ -342,9 +349,4 @@ func compareDriverVersion(v1, v2 string) int {
 		}
 	}
 	return 0
-}
-
-// GetIntelDriverDownloadURL returns the Intel driver download URL
-func GetIntelDriverDownloadURL() string {
-	return IntelDriverDownloadURL
 }

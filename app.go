@@ -254,16 +254,13 @@ func (a *App) GetIntelGPUFrequency() backend.IntelGPUFrequency {
 	return backend.GetIntelGPUFrequency()
 }
 
-func (a *App) SetIntelGPUFrequencyRange(minFreq, maxFreq uint32) backend.IntelGPUFreqTestResult {
+// SetIntelGPUFrequencyRange sets iGPU frequency range via IGC API (float64 MHz).
+func (a *App) SetIntelGPUFrequencyRange(minFreq, maxFreq float64) backend.IntelGPUFreqTestResult {
 	return backend.SetIntelGPUFrequencyRange(minFreq, maxFreq)
 }
 
 func (a *App) TestIntelGPUFrequency(testType string) backend.IntelGPUFreqTestResult {
 	return backend.TestIntelGPUFrequency(testType)
-}
-
-func (a *App) CtlFrequencySetRange(adapterIndex, minFreq, maxFreq uint32) backend.IntelGPUFreqTestResult {
-	return backend.CtlFrequencySetRange(adapterIndex, minFreq, maxFreq)
 }
 
 func (a *App) GetIntelDriverDownloadURL() string {

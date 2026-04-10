@@ -26,10 +26,6 @@ export function CheckNVIDIAStatus() {
   return window['go']['main']['App']['CheckNVIDIAStatus']();
 }
 
-export function CtlFrequencySetRange(arg1, arg2, arg3) {
-  return window['go']['main']['App']['CtlFrequencySetRange'](arg1, arg2, arg3);
-}
-
 export function EnableDynamicLog() {
   return window['go']['main']['App']['EnableDynamicLog']();
 }

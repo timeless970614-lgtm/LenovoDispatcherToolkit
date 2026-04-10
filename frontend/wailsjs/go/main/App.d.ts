@@ -14,8 +14,6 @@ export function CheckDYTCCapabilities():Promise<Record<string, boolean>>;
 
 export function CheckNVIDIAStatus():Promise<backend.NVIDIAStatus>;
 
-export function CtlFrequencySetRange(arg1:number,arg2:number,arg3:number):Promise<backend.IntelGPUFreqTestResult>;
-
 export function EnableDynamicLog():Promise<backend.DynamicLogResult>;
 
 export function EnumerateGPUProcesses():Promise<Array<backend.GPUProcess>>;

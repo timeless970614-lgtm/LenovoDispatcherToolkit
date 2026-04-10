@@ -273,12 +273,16 @@ export namespace backend {
 	    maxFreq: number;
 	    currentMin: number;
 	    currentMax: number;
-	    step: number;
+	    requestedMHz: number;
+	    actualMHz: number;
+	    tdpMHz: number;
+	    efficientMHz: number;
 	    gpuName: string;
 	    driverVersion: string;
 	    driverDate: string;
 	    minDriverVersion: string;
 	    driverOK: boolean;
+	    adapterIndex: number;
 	    error: string;
 	
 	    static createFrom(source: any = {}) {
@@ -292,12 +296,16 @@ export namespace backend {
 	        this.maxFreq = source["maxFreq"];
 	        this.currentMin = source["currentMin"];
 	        this.currentMax = source["currentMax"];
-	        this.step = source["step"];
+	        this.requestedMHz = source["requestedMHz"];
+	        this.actualMHz = source["actualMHz"];
+	        this.tdpMHz = source["tdpMHz"];
+	        this.efficientMHz = source["efficientMHz"];
 	        this.gpuName = source["gpuName"];
 	        this.driverVersion = source["driverVersion"];
 	        this.driverDate = source["driverDate"];
 	        this.minDriverVersion = source["minDriverVersion"];
 	        this.driverOK = source["driverOK"];
+	        this.adapterIndex = source["adapterIndex"];
 	        this.error = source["error"];
 	    }
 	}
