@@ -443,3 +443,102 @@ func (a *App) UninstallDTT() string {
 func (a *App) UninstallDTTUI() string {
 	return backend.UninstallDTTUI()
 }
+
+// ============ Dynamic NPU (Houmo AI M50 NPU HAL) ============
+
+// GetNPUFullReport returns a full NPU status report for all detected Houmo NPU devices.
+// This consolidates device enumeration, properties, metrics, DVFS mode, and CTC PHY info.
+func (a *App) GetNPUFullReport() backend.NPUFullReport {
+	report, err := backend.GetNPUFullReport()
+	if err != nil {
+		return backend.NPUFullReport{}
+	}
+	return report
+}
+
+// GetNPUDeviceInfo enumerates all Houmo NPU devices and returns their IDs.
+func (a *App) GetNPUDeviceInfo() backend.NPUDeviceInfo {
+	info, err := backend.GetNPUDeviceInfo()
+	if err != nil {
+		return backend.NPUDeviceInfo{}
+	}
+	return info
+}
+
+// GetNPUDeviceProperties reads static properties for a given device index.
+func (a *App) GetNPUDeviceProperties(devIndex int) backend.NPUDeviceProperties {
+	prop, err := backend.GetNPUDeviceProperties(devIndex)
+	if err != nil {
+		return backend.NPUDeviceProperties{}
+	}
+	return prop
+}
+
+// GetNPUDeviceMetrics reads real-time runtime metrics for a given device index.
+func (a *App) GetNPUDeviceMetrics(devIndex int) backend.NPUDeviceMetrics {
+	m, err := backend.GetNPUDeviceMetrics(devIndex)
+	if err != nil {
+		return backend.NPUDeviceMetrics{}
+	}
+	return m
+}
+
+// NPUGetDVFSMode reads the current DVFS mode for a device (PERFORMANCE or ONDEMAND).
+func (a *App) NPUGetDVFSMode(devIndex int) string {
+	mode, err := backend.NPUGetDVFSMode(devIndex)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return mode
+}
+
+// NPUSetDVFSMode sets the DVFS mode for a device.
+// Valid modes: "PERFORMANCE", "ONDEMAND".
+func (a *App) NPUSetDVFSMode(devIndex int, mode string) string {
+	err := backend.NPUSetDVFSMode(devIndex, mode)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return "DVFS mode set to " + mode + " successfully"
+}
+
+// GetNPUSDKInfo reads Houmo HAL SDK and driver version info.
+func (a *App) GetNPUSDKInfo() backend.NPUSDKInfo {
+	info, err := backend.GetNPUSDKInfo()
+	if err != nil {
+		return backend.NPUSDKInfo{}
+	}
+	return info
+}
+
+func (a *App) GetNPUPowerStatus(devIndex int) backend.NPUPowerStatus {
+	status, err := backend.GetNPUPowerStatus(devIndex)
+	if err != nil {
+		return backend.NPUPowerStatus{}
+	}
+	return status
+}
+
+func (a *App) SetNPUMode(devIndex int, mode string) backend.NPUPowerAction {
+	result, err := backend.SetNPUMode(devIndex, mode)
+	if err != nil {
+		return backend.NPUPowerAction{Success: false, Message: err.Error()}
+	}
+	return result
+}
+
+func (a *App) SetNPUClockLock(devIndex, maxMHz, minMHz int) backend.NPUPowerAction {
+	result, err := backend.SetNPUClockLock(devIndex, maxMHz, minMHz)
+	if err != nil {
+		return backend.NPUPowerAction{Success: false, Message: err.Error()}
+	}
+	return result
+}
+
+func (a *App) ResetNPUDefaults(devIndex int) backend.NPUPowerAction {
+	result, err := backend.ResetNPUDefaults(devIndex)
+	if err != nil {
+		return backend.NPUPowerAction{Success: false, Message: err.Error()}
+	}
+	return result
+}
