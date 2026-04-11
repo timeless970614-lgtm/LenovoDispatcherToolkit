@@ -124,8 +124,8 @@
         <FunctionCheck v-else-if="currentPage === 'funccheck'" :theme="theme" />
         <ModeCheck v-else-if="currentPage === 'modecheck'" :theme="theme" />
         <AIAnalysis v-else-if="currentPage === 'aianalysis'" :theme="theme" />
-        <MSR v-else-if="currentPage === 'msr'" :theme="theme" />
         <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
+        <MSR v-else-if="currentPage === 'msr'" :theme="theme" />
         <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" @update:theme="setTheme" @update:lang="setLang" />
         <About v-else-if="currentPage === 'about'" :theme="theme" />
       </div>
@@ -195,17 +195,17 @@ export default {
           subtitle: 'Log analysis & diagnostics',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'
         },
-        { 
-          id: 'msr', 
-          label: 'MSR', 
-          subtitle: 'Intel Power & MSR Access',
-          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>'
-        },
         {
           id: 'ppm', 
           label: 'PPM Driver', 
           subtitle: 'Processor power management',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>'
+        },
+        { 
+          id: 'msr', 
+          label: 'MSR', 
+          subtitle: 'Intel Power & MSR Access',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>'
         },
       ],
       bottomNavItems: [
