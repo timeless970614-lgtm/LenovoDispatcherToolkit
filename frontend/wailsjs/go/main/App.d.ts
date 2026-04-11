@@ -52,6 +52,22 @@ export function GetMLLogStatus():Promise<backend.MLLogStatus>;
 
 export function GetModeCheckInfo():Promise<backend.ModeCheckInfo>;
 
+export function GetNPUDeviceInfo():Promise<backend.NPUDeviceInfo>;
+
+export function GetNPUDeviceInfoWrapper():Promise<backend.NPUDeviceInfo|string>;
+
+export function GetNPUDeviceMetrics(arg1:number):Promise<backend.NPUDeviceMetrics>;
+
+export function GetNPUDeviceProperties(arg1:number):Promise<backend.NPUDeviceProperties>;
+
+export function GetNPUFullReport():Promise<backend.NPUFullReport>;
+
+export function GetNPUPowerStatus(arg1:number):Promise<backend.NPUPowerStatus>;
+
+export function GetNPUREport():Promise<string>;
+
+export function GetNPUSDKInfo():Promise<backend.NPUSDKInfo>;
+
 export function GetPPMSettings():Promise<backend.PPMSettings>;
 
 export function GetPinnedDYTCMode():Promise<string>;
@@ -62,11 +78,17 @@ export function GetServiceStatus():Promise<string>;
 
 export function GetSystemInfo():Promise<backend.SystemInfo>;
 
+export function NPUGetDVFSMode(arg1:number):Promise<string>;
+
+export function NPUSetDVFSMode(arg1:number,arg2:string):Promise<string>;
+
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function PinDYTCMode(arg1:string):Promise<void>;
 
 export function ReadLogTail(arg1:number):Promise<string>;
+
+export function ResetNPUDefaults(arg1:number):Promise<backend.NPUPowerAction>;
 
 export function RestartService():Promise<string>;
 
@@ -81,6 +103,10 @@ export function SetGPUAutoGear(arg1:number):Promise<backend.SetResult>;
 export function SetIGPUMode(arg1:number):Promise<backend.SetResult>;
 
 export function SetIntelGPUFrequencyRange(arg1:number,arg2:number):Promise<backend.IntelGPUFreqTestResult>;
+
+export function SetNPUClockLock(arg1:number,arg2:number,arg3:number):Promise<backend.NPUPowerAction>;
+
+export function SetNPUMode(arg1:number,arg2:string):Promise<backend.NPUPowerAction>;
 
 export function SetODV(arg1:number,arg2:number):Promise<string>;
 

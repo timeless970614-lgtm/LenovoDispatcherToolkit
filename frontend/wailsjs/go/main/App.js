@@ -102,6 +102,38 @@ export function GetModeCheckInfo() {
   return window['go']['main']['App']['GetModeCheckInfo']();
 }
 
+export function GetNPUDeviceInfo() {
+  return window['go']['main']['App']['GetNPUDeviceInfo']();
+}
+
+export function GetNPUDeviceInfoWrapper() {
+  return window['go']['main']['App']['GetNPUDeviceInfoWrapper']();
+}
+
+export function GetNPUDeviceMetrics(arg1) {
+  return window['go']['main']['App']['GetNPUDeviceMetrics'](arg1);
+}
+
+export function GetNPUDeviceProperties(arg1) {
+  return window['go']['main']['App']['GetNPUDeviceProperties'](arg1);
+}
+
+export function GetNPUFullReport() {
+  return window['go']['main']['App']['GetNPUFullReport']();
+}
+
+export function GetNPUPowerStatus(arg1) {
+  return window['go']['main']['App']['GetNPUPowerStatus'](arg1);
+}
+
+export function GetNPUREport() {
+  return window['go']['main']['App']['GetNPUREport']();
+}
+
+export function GetNPUSDKInfo() {
+  return window['go']['main']['App']['GetNPUSDKInfo']();
+}
+
 export function GetPPMSettings() {
   return window['go']['main']['App']['GetPPMSettings']();
 }
@@ -122,6 +154,14 @@ export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
 }
 
+export function NPUGetDVFSMode(arg1) {
+  return window['go']['main']['App']['NPUGetDVFSMode'](arg1);
+}
+
+export function NPUSetDVFSMode(arg1, arg2) {
+  return window['go']['main']['App']['NPUSetDVFSMode'](arg1, arg2);
+}
+
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
 }
@@ -132,6 +172,10 @@ export function PinDYTCMode(arg1) {
 
 export function ReadLogTail(arg1) {
   return window['go']['main']['App']['ReadLogTail'](arg1);
+}
+
+export function ResetNPUDefaults(arg1) {
+  return window['go']['main']['App']['ResetNPUDefaults'](arg1);
 }
 
 export function RestartService() {
@@ -160,6 +204,14 @@ export function SetIGPUMode(arg1) {
 
 export function SetIntelGPUFrequencyRange(arg1, arg2) {
   return window['go']['main']['App']['SetIntelGPUFrequencyRange'](arg1, arg2);
+}
+
+export function SetNPUClockLock(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetNPUClockLock'](arg1, arg2, arg3);
+}
+
+export function SetNPUMode(arg1, arg2) {
+  return window['go']['main']['App']['SetNPUMode'](arg1, arg2);
 }
 
 export function SetODV(arg1, arg2) {

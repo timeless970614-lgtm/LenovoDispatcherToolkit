@@ -542,3 +542,20 @@ func (a *App) ResetNPUDefaults(devIndex int) backend.NPUPowerAction {
 	}
 	return result
 }
+
+// GetNPUREport returns a detailed diagnostic report of NPU DLL loading,
+// function resolution, and device enumeration. Use this when the UI shows
+// N/A or 0 devices to understand exactly what the backend encountered.
+func (a *App) GetNPUREport() string {
+	return backend.GetNPUREport()
+}
+
+// GetNPUDeviceInfoWrapper returns device enumeration result and exposes
+// the detailed init error if any.
+func (a *App) GetNPUDeviceInfoWrapper() (backend.NPUDeviceInfo, string) {
+	info, err := backend.GetNPUDeviceInfo()
+	if err != nil {
+		return backend.NPUDeviceInfo{}, err.Error()
+	}
+	return info, ""
+}

@@ -1,16 +1,23 @@
 node_modules/
-build/bin/
 frontend/node_modules/
 frontend/dist/
 .tmp/
+build/bin/
+build/diag_*.bat
+check_*.bat
+
 *.exe
 *.zip
+*.md5
 
 # Build artifacts
 backend/ipf_wrapper/*.dll
 backend/ipf_wrapper/*.exp
 backend/ipf_wrapper/*.lib
 backend/ipf_wrapper/*.obj
-build/bin/
-build/diag_*.bat
-check_*.bat
+
+# C++ NPU project build artifacts
+backend/dynamic_npu/*.obj
+backend/dynamic_npu/*.pdb
+backend/dynamic_npu/*.user
+backend/dynamic_npu/x64/

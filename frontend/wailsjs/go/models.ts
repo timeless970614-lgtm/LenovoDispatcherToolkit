@@ -423,6 +423,262 @@ export namespace backend {
 		    return a;
 		}
 	}
+	export class NPUCTCPHYInfo {
+	    groupId: number;
+	    chipId: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUCTCPHYInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.groupId = source["groupId"];
+	        this.chipId = source["chipId"];
+	    }
+	}
+	export class NPUDeviceInfo {
+	    numDevices: number;
+	    deviceIds: number[];
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUDeviceInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.numDevices = source["numDevices"];
+	        this.deviceIds = source["deviceIds"];
+	    }
+	}
+	export class NPUDeviceMetrics {
+	    ipuUtiliRate: number;
+	    ipuVoltageMV: number;
+	    ipuFrequencyHz: number;
+	    boardPowerW: number;
+	    temperatureC: number;
+	    memTotalMB: number;
+	    memUsedMB: number;
+	    memAvailMB: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUDeviceMetrics(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ipuUtiliRate = source["ipuUtiliRate"];
+	        this.ipuVoltageMV = source["ipuVoltageMV"];
+	        this.ipuFrequencyHz = source["ipuFrequencyHz"];
+	        this.boardPowerW = source["boardPowerW"];
+	        this.temperatureC = source["temperatureC"];
+	        this.memTotalMB = source["memTotalMB"];
+	        this.memUsedMB = source["memUsedMB"];
+	        this.memAvailMB = source["memAvailMB"];
+	    }
+	}
+	export class NPUDeviceProperties {
+	    vendorId: number;
+	    serialNumber: string;
+	    modelName: string;
+	    computingPowerTOPS: number;
+	    coreCount: number;
+	    ddrSizeBytes: number;
+	    ddrSizeMB: number;
+	    firmwareVersion: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUDeviceProperties(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.vendorId = source["vendorId"];
+	        this.serialNumber = source["serialNumber"];
+	        this.modelName = source["modelName"];
+	        this.computingPowerTOPS = source["computingPowerTOPS"];
+	        this.coreCount = source["coreCount"];
+	        this.ddrSizeBytes = source["ddrSizeBytes"];
+	        this.ddrSizeMB = source["ddrSizeMB"];
+	        this.firmwareVersion = source["firmwareVersion"];
+	    }
+	}
+	export class NPUPCIeInfo {
+	    bdf: string;
+	    bandwidth: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUPCIeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.bdf = source["bdf"];
+	        this.bandwidth = source["bandwidth"];
+	    }
+	}
+	export class NPUDeviceReport {
+	    index: number;
+	    properties: NPUDeviceProperties;
+	    metrics: NPUDeviceMetrics;
+	    pcieInfo: NPUPCIeInfo;
+	    dvfsMode: string;
+	    ctcPhyInfo: NPUCTCPHYInfo;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUDeviceReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.index = source["index"];
+	        this.properties = this.convertValues(source["properties"], NPUDeviceProperties);
+	        this.metrics = this.convertValues(source["metrics"], NPUDeviceMetrics);
+	        this.pcieInfo = this.convertValues(source["pcieInfo"], NPUPCIeInfo);
+	        this.dvfsMode = source["dvfsMode"];
+	        this.ctcPhyInfo = this.convertValues(source["ctcPhyInfo"], NPUCTCPHYInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class NPUSDKInfo {
+	    buildtime: string;
+	    sdkVersion: string;
+	    driverVersion: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUSDKInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.buildtime = source["buildtime"];
+	        this.sdkVersion = source["sdkVersion"];
+	        this.driverVersion = source["driverVersion"];
+	    }
+	}
+	export class NPUFullReport {
+	    deviceCount: number;
+	    sdkInfo: NPUSDKInfo;
+	    devices: NPUDeviceReport[];
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUFullReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.deviceCount = source["deviceCount"];
+	        this.sdkInfo = this.convertValues(source["sdkInfo"], NPUSDKInfo);
+	        this.devices = this.convertValues(source["devices"], NPUDeviceReport);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class NPUPowerAction {
+	    success: boolean;
+	    message: string;
+	    newMode?: string;
+	    newMaxMHz?: number;
+	    newMinMHz?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUPowerAction(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.message = source["message"];
+	        this.newMode = source["newMode"];
+	        this.newMaxMHz = source["newMaxMHz"];
+	        this.newMinMHz = source["newMinMHz"];
+	    }
+	}
+	export class NPUPowerStatus {
+	    dvfsMode: string;
+	    curIpuFreqMHz: number;
+	    lockIpuMaxMHz: number;
+	    lockIpuMinMHz: number;
+	    ipuLoadPct: number;
+	    boardPowerW: number;
+	    ddrTotalMB: number;
+	    ddrFreeMB: number;
+	    coreNum: number;
+	    coreFreqMHz: number;
+	    coreVoltageMV: number;
+	    core0UtilPct: number;
+	    core1UtilPct: number;
+	    avgUtilPct: number;
+	    ddr0TempC: number;
+	    ddr2TempC: number;
+	    ddr4TempC: number;
+	    ddr5TempC: number;
+	    core0TempC: number;
+	    core1TempC: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUPowerStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dvfsMode = source["dvfsMode"];
+	        this.curIpuFreqMHz = source["curIpuFreqMHz"];
+	        this.lockIpuMaxMHz = source["lockIpuMaxMHz"];
+	        this.lockIpuMinMHz = source["lockIpuMinMHz"];
+	        this.ipuLoadPct = source["ipuLoadPct"];
+	        this.boardPowerW = source["boardPowerW"];
+	        this.ddrTotalMB = source["ddrTotalMB"];
+	        this.ddrFreeMB = source["ddrFreeMB"];
+	        this.coreNum = source["coreNum"];
+	        this.coreFreqMHz = source["coreFreqMHz"];
+	        this.coreVoltageMV = source["coreVoltageMV"];
+	        this.core0UtilPct = source["core0UtilPct"];
+	        this.core1UtilPct = source["core1UtilPct"];
+	        this.avgUtilPct = source["avgUtilPct"];
+	        this.ddr0TempC = source["ddr0TempC"];
+	        this.ddr2TempC = source["ddr2TempC"];
+	        this.ddr4TempC = source["ddr4TempC"];
+	        this.ddr5TempC = source["ddr5TempC"];
+	        this.core0TempC = source["core0TempC"];
+	        this.core1TempC = source["core1TempC"];
+	    }
+	}
+	
 	export class NVIDIAStatus {
 	    detected: boolean;
 	    nvmlLoaded: boolean;

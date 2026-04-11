@@ -508,11 +508,21 @@
           <button class="btn btn-secondary btn-sm" @click="refreshNPU" :disabled="npuLoading"><span v-if="npuLoading" class="spinner-small"></span><span v-else>Refresh</span></button>
         </div>
         <div v-if="npuDriverError" class="npu-error-banner"><div class="error-icon">!</div><div class="error-content"><p><strong>NPU Driver Not Found</strong></p><p class="error-detail">{{ npuDriverError }}</p><p class="error-hint">Ensure libhal_xh2a.dll is in the app directory.</p></div></div>
-        <div v-if="!npuDriverError" class="npu-overview-grid">
+        <div class="npu-overview-grid">
           <div class="npu-overview-item npu-dev-count"><div class="npu-dev-count-num">{{ npuDeviceCount }}</div><div class="npu-dev-count-label">Device(s)</div></div>
           <div class="npu-overview-item"><div class="npu-info-label">SDK Version</div><div class="npu-info-value mono">{{ npuSDKInfo.sdkVersion || 'N/A' }}</div></div>
           <div class="npu-overview-item"><div class="npu-info-label">Driver Ver</div><div class="npu-info-value mono">{{ npuSDKInfo.driverVersion || 'N/A' }}</div></div>
           <div class="npu-overview-item"><div class="npu-info-label">Build Time</div><div class="npu-info-value mono">{{ npuSDKInfo.buildtime || 'N/A' }}</div></div>
+        </div>
+        <div class="npu-diagnostic">
+          <div class="npu-diag-header">
+            <span class="npu-diag-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6 6 6"/><line x1="12" y1="19" x2="20" y2="19"/></svg> NPU Diagnostics</span>
+            <button class="btn btn-secondary btn-sm" @click="loadNPUDiag" :disabled="npuDiagLoading">
+              <span v-if="npuDiagLoading" class="spinner-small"></span>
+              <span v-else>{{ npuDiagReport ? 'Refresh' : 'Load' }}</span>
+            </button>
+          </div>
+          <div v-if="npuDiagReport" class="npu-diag-body"><pre>{{ npuDiagReport }}</pre></div>
         </div>
       </div>
 
@@ -628,8 +638,6 @@
         </div>
         <div class="npu-ctc-row"><span class="npu-ctc-label">CTC PHY:</span><span class="npu-ctc-val">Group={{ dev.ctcGroupId >= 0 ? dev.ctcGroupId : 'N/A' }} Chip={{ dev.ctcChipId >= 0 ? dev.ctcChipId : 'N/A' }}</span></div>
       </div>
-
-      <div v-if="!npuDriverError && npuDeviceCount === 0" class="card"><div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:12px"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M9 9h6v6H9z"/></svg><p>No Houmo AI NPU devices detected.</p><p class="hint-text">Ensure the Houmo HAL driver is installed.</p></div></div>
 
     </div>
 
@@ -948,6 +956,16 @@ export default {
           alert('Failed to start scheduler: ' + (r ? r.Message : 'unknown error'))
         }
       }).catch(e => { this.npuSchedStarting = false; alert('Scheduler error: ' + e) })
+    },
+    loadNPUDiag() {
+      this.npuDiagLoading = true
+      App.GetNPUREport().then(r => {
+        this.npuDiagReport = r || "No data"
+        this.npuDiagLoading = false
+      }).catch(e => {
+        this.npuDiagReport = "Error: " + String(e)
+        this.npuDiagLoading = false
+      })
     },
     stopNpuScheduler() {
       App.StopNPUScheduler().then(r => {
@@ -2204,4 +2222,44 @@ export default {
 .btn-npu-reset{font-size:11px;background:rgba(100,100,100,.15);color:var(--text-secondary);border-color:var(--border-color)}
 .btn-npu-reset:hover:not(:disabled){border-color:var(--lenovo-red);color:var(--lenovo-red)}
 .npu-reset-row{margin-top:6px}
+
+
+.npu-diagnostic {
+  margin-top: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.npu-diag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+.npu-diag-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.npu-diag-body {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: #0a0a0a;
+}
+.npu-diag-body pre {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  color: #22c55e;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  line-height: 1.6;
+}
 </style>

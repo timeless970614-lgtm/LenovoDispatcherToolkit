@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div id="app" :class="theme">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -135,7 +135,6 @@
 
 <script>
 import Dashboard from './pages/Dashboard.vue'
-import PPMDriver from './pages/PPMDriver.vue'
 import FunctionCheck from './pages/FunctionCheck.vue'
 import ModeCheck from './pages/ModeCheck.vue'
 import AIAnalysis from './pages/AIAnalysis.vue'
@@ -147,7 +146,6 @@ export default {
   name: 'App',
   components: {
     Dashboard,
-    PPMDriver,
     FunctionCheck,
     ModeCheck,
     AIAnalysis,
@@ -195,7 +193,8 @@ export default {
           subtitle: 'Log analysis & diagnostics',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'
         },
-        { 
+
+        {
           id: 'ppm', 
           label: 'PPM Driver', 
           subtitle: 'Processor power management',

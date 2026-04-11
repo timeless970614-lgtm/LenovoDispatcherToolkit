@@ -27,7 +27,7 @@
         <div class="info-list">
           <div class="info-row">
             <span class="info-key">Version</span>
-            <span class="info-val">1.0.15</span>
+            <span class="info-val">1.0.16</span>
           </div>
           <div class="info-row">
             <span class="info-key">Framework</span>
