@@ -122,6 +122,7 @@
       <div class="content-body">
         <Dashboard v-if="currentPage === 'dashboard'" :theme="theme" />
         <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
+        <MSR v-else-if="currentPage === 'msr'" :theme="theme" />
 
         <FunctionCheck v-else-if="currentPage === 'funccheck'" :theme="theme" />
         <ModeCheck v-else-if="currentPage === 'modecheck'" :theme="theme" />
@@ -138,6 +139,7 @@ import Dashboard from './pages/Dashboard.vue'
 import FunctionCheck from './pages/FunctionCheck.vue'
 import ModeCheck from './pages/ModeCheck.vue'
 import AIAnalysis from './pages/AIAnalysis.vue'
+import MSR from './pages/MSR.vue'
 import Settings from './pages/Settings.vue'
 import About from './pages/About.vue'
 import { StartMLScenarioCapture, StopMLScenarioCapture, GetMLLogStatus, OpenFolder, UninstallDispatcher } from '../wailsjs/go/main/App'
@@ -149,6 +151,7 @@ export default {
     FunctionCheck,
     ModeCheck,
     AIAnalysis,
+    MSR,
     Settings,
     About
   },
@@ -199,6 +202,12 @@ export default {
           label: 'PPM Driver', 
           subtitle: 'Processor power management',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>'
+        },
+        { 
+          id: 'msr', 
+          label: 'MSR', 
+          subtitle: 'Model Specific Registers',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>'
         },
       ],
       bottomNavItems: [

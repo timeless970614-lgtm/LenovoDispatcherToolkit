@@ -1,0 +1,54 @@
+; MSR Driver Installation File
+; =============================================
+; Intel MSR (Model Specific Register) Access Driver
+; Based on: C:\Users\Zhou\OneDrive - Lenovo\MSR.pptx
+; =============================================
+
+[Version]
+Signature           = "$WINDOWS NT$"
+Class               = "System"
+ClassGuid           = {4d36e97d-e325-11ce-bfc1-08002be10318}
+Provider            = "Lenovo"
+DriverVer           = 04/11/2026,1.0.0.1
+PnpLockdown         = 1
+
+[Manufacturer]
+%Manufacturer% = Lenovo, NTamd64
+
+[Lenovo.NTamd64]
+%DeviceName% = Install, Root\MSRDriver
+
+[DestinationDirs]
+DefaultDestDir = 12
+DriverFiles     = 12
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+MSRDriver.sys = 1
+
+[Install]
+CopyFiles = DriverFiles
+AddReg = DriverAddReg
+
+[DriverAddReg]
+HKR,,"Services","REG_EXPAND_SZ","%DeviceName%"
+
+; =============================================
+; Registry Section
+; =============================================
+[Registry]
+; MSR Register whitelist (from PPT)
+HKLM,"SYSTEM\CurrentControlSet\Services\MSRDriver\Parameters", "AllowedMSRs", 0x00010003, ^
+0x000001B0, ^  ; IA32_ENERGY_PERF_BIAS
+0x00000198, ^  ; IA32_PERF_CTL
+0x00000199, ^  ; IA32_PERF_STATUS
+0x000001A0, ^  ; IA32_MISC_ENABLE
+0x0000019A, ^  ; IA32_CLOCK_MODULATION
+0x00000620, ^  ; MSR_UNCORE_RATIO_LIMIT
+0x00000606, ^  ; MSR_RAPL_POWER_UNIT
+0x00000610, ^  ; MSR_PKG_POWER_LIMIT
+0x00000611, ^  ; MSR_PKG_ENERGY_STATUS
+0x00000638, ^  ; MSR_PP0_POWER_LIMIT
+0x00000618     ; MSR_DRAM_POWER_LIMIT

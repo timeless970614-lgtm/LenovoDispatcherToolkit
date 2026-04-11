@@ -1,0 +1,91 @@
+# MSR Test Application
+# Intel Model Specific Registers Testing Tool
+# Based on: C:\Users\Zhou\OneDrive - Lenovo\MSR.pptx
+
+## Overview
+This application tests and configures Intel MSR (Model Specific Register) parameters for power management.
+
+## MSR Registers from PPT
+
+### 1. IA32_ENERGY_PERF_BIAS (0x1B0)
+- **Bits 3:0**: Energy Performance Bias Hint (0-15)
+  - 0 = Highest Performance
+  - 6 = Balance (default)
+  - 15 = Maximum Energy Savings
+- Affects: Turbo boost, Uncore Frequency Scaling
+
+### 2. IA32_PERF_CTL (0x198)
+- **Bits 15:0**: Target Performance State
+- Controls P-state transitions
+- Write 16-bit value to set target frequency
+
+### 3. IA32_PERF_STATUS (0x199)
+- **Read-only**: Current P-state
+- Updated dynamically when target p-state is reached
+
+### 4. IA32_MISC_ENABLE (0x1A0)
+- **Bit 38**: Turbo Boost enable/disable
+  - 0 = Enabled
+  - 1 = Disabled (for some bits)
+
+### 5. IA32_CLOCK_MODULATION (0x19A)
+- **Bits 3:0**: Duty Cycle
+  - 0x0 = No modulation
+  - 0x1-0xE = Duty cycle (6.25% increments)
+  - 0xF = Reserved
+- **Bit 4**: Enable/Disable
+
+### 6. MSR_UNCORE_RATIO_LIMIT (0x620)
+- **Bits 14:8**: Maximum ratio
+- **Bits 6:0**: Minimum ratio
+- If max = min, uncore frequency is locked
+
+### 7. RAPL MSRs
+- **MSR_RAPL_POWER_UNIT (0x606)**
+  - Bits 3:0: Power Units (default: 1/8W)
+  - Bits 12:8: Energy Status Units
+  - Bits 19:16: Time Units
+  
+- **MSR_PKG_POWER_LIMIT (0x610)**
+  - Package power limit control
+  
+- **MSR_PKG_ENERGY_STATUS (0x611)**
+  - Read energy consumed
+
+## Build Instructions
+
+### Prerequisites
+- Visual Studio 2022 with .NET 8.0
+- Windows 10/11 SDK
+
+### Build
+```
+dotnet build -c Release
+```
+
+### Run
+```
+dotnet run -c Release
+```
+
+## Driver Requirements
+
+This application uses WinRing0 driver for MSR access.
+WinRing0 must be installed for MSR read/write operations.
+
+### Installing WinRing0
+1. Copy WinRing0.sys to System32\drivers
+2. Register the driver with: sc create WinRing0 type= kernel binPath= %SystemRoot%\System32\drivers\WinRing0.sys
+
+## Usage
+1. Launch MSR_Test_App.exe
+2. Select CPU core
+3. Choose MSR register
+4. Read current value or write new value
+5. Apply changes
+
+## Safety Warnings
+- MSR modifications can cause system instability
+- Always backup settings before modification
+- Some changes require administrator privileges
+- Incorrect values may damage hardware
