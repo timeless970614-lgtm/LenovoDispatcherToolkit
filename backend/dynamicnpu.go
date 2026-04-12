@@ -276,6 +276,18 @@ func npuLoad() error {
 	loadReport := fmt.Sprintf(
 		"[NPU Load] DLL found at: %s\n\n[Function resolution]\n", dllPath)
 
+	// Write diagnostic to DLL location directory
+	diagPath := filepath.Join(filepath.Dir(dllPath), "npu_diag.txt")
+	if f, err := os.Create(diagPath); err == nil {
+		fmt.Fprintf(f, "=== NPU DIAGNOSTIC ===\n")
+		fmt.Fprintf(f, "dllPath: %s\n", dllPath)
+		fmt.Fprintf(f, "diagPath: %s\n", diagPath)
+		fmt.Fprintf(f, "\n%s\n", loadReport)
+		f.Close()
+	} else {
+		npuLoadDebug += "[Diag] Failed to write " + diagPath + ": " + err.Error() + "\n"
+	}
+
 	resolve := func(name string) uintptr {
 		p := npuDLL.NewProc(name)
 		if err := p.Find(); err != nil {
@@ -313,7 +325,16 @@ func npuLoad() error {
 	npuFunc.flashRead           = resolve("hm_flash_read")
 	npuFunc.flashProgram        = resolve("hm_flash_program")
 
-	npuLoadDebug = loadReport // store for UI diagnostics
+		npuLoadDebug = loadReport // store for UI diagnostics
+
+	// Also append to diagnostic file in DLL directory
+	if dllPath != "" {
+		diagPath := filepath.Join(filepath.Dir(dllPath), "npu_diag.txt")
+		if f, err := os.OpenFile(diagPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+			fmt.Fprintf(f, "\n=== NPU LOAD COMPLETE ===\n")
+			f.Close()
+		}
+	}
 
 	if npuFunc.getDeviceInfo == 0 {
 		return fmt.Errorf("hm_sys_get_device_info not found in DLL; the loaded DLL does not export the expected HAL API. See diagnostic log.")
@@ -351,6 +372,47 @@ func GetNPUREport() string {
 	// Force InitNPU() to populate npuLoadDebug
 	_ = InitNPU()
 	report, _ := NPURawProbe()
+	// Write to diagnostic file when GetNPUREport is called
+	diagPath := filepath.Join(getExeDir(), "..", "..", "wails_npu_diag.txt")
+	if f, err := os.Create(diagPath); err == nil {
+		fmt.Fprintf(f, "=== Wails GetNPUREport Called ===\n")
+		fmt.Fprintf(f, "exeDir: %s\n", getExeDir())
+		fmt.Fprintf(f, "diagPath: %s\n", diagPath)
+		fmt.Fprintf(f, "\nnpuLoadDebug:\n%s\n", npuLoadDebug)
+		f.Close()
+	}
+
+	// TEST: Try direct LoadLibrary (same as standalone Go program)
+	testDlls := []string{
+		`C:\Users\3-64\source\repos\Project1\Project1\libhal_xh2a.dll`,
+		`C:\LenovoDispatcherToolkit\build\bin\libhal_xh2a.dll`,
+		`C:\Program Files (x86)\houmo-drv-xh2_v1.1.0\hal\lib\libhal_xh2a.dll`,
+	}
+	for _, testPath := range testDlls {
+		if _, err := os.Stat(testPath); err != nil {
+			npuLoadDebug += "\n[Direct Load] " + testPath + " - FILE NOT FOUND\n"
+			continue
+		}
+		dll, err := syscall.LoadDLL(testPath)
+		if err != nil {
+			npuLoadDebug += "\n[Direct Load] " + testPath + " - LoadLibrary FAILED: " + err.Error() + "\n"
+			continue
+		}
+		proc, err := dll.FindProc("hm_sys_get_device_info")
+		dll.Release()
+		if err != nil {
+			npuLoadDebug += "\n[Direct Load] " + testPath + " - GetProcAddress FAILED: " + err.Error() + "\n"
+			continue
+		}
+		type hmDI struct {
+			NumDevices uint32
+			_          [4]byte
+			DeviceIDs  [32]uint32
+		}
+		var info hmDI
+		ret, _, _ := syscall.Syscall(proc.Addr(), 1, uintptr(unsafe.Pointer(&info)), 0, 0)
+		npuLoadDebug += "\n[Direct Load] " + testPath + " - ret=" + fmt.Sprintf("%d", ret) + " NumDevices=" + fmt.Sprintf("%d", info.NumDevices) + "\n"
+	}
 	return npuLoadDebug + "\n\n[Raw Probe Report]\n" + report
 }
 
@@ -456,6 +518,29 @@ func GetNPUDeviceInfo() (NPUDeviceInfo, error) {
 	if devCount == 0 {
 		devCount = uint32(ret)
 	}
+	// DIAGNOSTIC: always write to file so we know what happened
+	diagPath := "C:\\LenovoDispatcherToolkit\\build\\bin\\npu_devcount.txt"
+	if f, err := os.Create(diagPath); err == nil {
+		fmt.Fprintf(f, "LazyDLL: NumDevices=%d ret=%d devCount=%d\n", info.NumDevices, ret, devCount)
+		if devCount == 0 {
+			fmt.Fprintf(f, "Calling direct LoadLibrary fallback...\n")
+			if altCount, altIDs, altErr := tryDirectDLLLoad(); altErr == nil {
+				fmt.Fprintf(f, "Fallback result: altCount=%d err=%v\n", altCount, altErr)
+				if altCount > 0 {
+					devIDs := make([]uint32, altCount)
+					copy(devIDs, altIDs)
+					fmt.Fprintf(f, "Fallback SUCCEEDED: returning %d devices\n", altCount)
+					f.Close()
+					return NPUDeviceInfo{NumDevices: altCount, DeviceIDs: devIDs}, nil
+				} else {
+					fmt.Fprintf(f, "Fallback returned 0\n")
+				}
+			} else {
+				fmt.Fprintf(f, "Fallback error: %v\n", altErr)
+			}
+		}
+		f.Close()
+	}
 	devIDs := make([]uint32, 0, devCount)
 	for i := uint32(0); i < devCount && i < HM_MAX_DEVICES; i++ {
 		devIDs = append(devIDs, info.DeviceIDs[i])
@@ -526,6 +611,49 @@ func GetNPUDeviceProperties(devIndex int) (NPUDeviceProperties, error) {
 		prop.FirmwareVer = cstring(verBuf[:])
 	}
 	return prop, nil
+}
+
+// tryDirectDLLLoad attempts direct LoadLibrary as fallback when LazyDLL returns 0 devices.
+// Standalone Go test confirms this approach works (returns 1 device).
+func tryDirectDLLLoad() (uint32, []uint32, error) {
+	testPaths := []string{
+		`C:\Users\3-64\source\repos\Project1\Project1\libhal_xh2a.dll`,
+		`C:\LenovoDispatcherToolkit\build\bin\libhal_xh2a.dll`,
+		`C:\Program Files (x86)\houmo-drv-xh2_v1.1.0\hal\lib\libhal_xh2a.dll`,
+	}
+	type hmDI struct {
+		NumDevices uint32
+		_          [4]byte
+		DeviceIDs  [32]uint32
+	}
+	for _, p := range testPaths {
+		if _, err := os.Stat(p); err != nil {
+			continue
+		}
+		dll, err := syscall.LoadDLL(p)
+		if err != nil {
+			continue
+		}
+		defer dll.Release()
+		proc, err := dll.FindProc("hm_sys_get_device_info")
+		if err != nil {
+			continue
+		}
+		var info hmDI
+		ret, _, _ := syscall.Syscall(proc.Addr(), 1, uintptr(unsafe.Pointer(&info)), 0, 0)
+		n := info.NumDevices
+		if n == 0 {
+			n = uint32(ret)
+		}
+		if n > 0 {
+			devIDs := make([]uint32, n)
+			for i := uint32(0); i < n; i++ {
+				devIDs[i] = info.DeviceIDs[i]
+			}
+			return n, devIDs, nil
+		}
+	}
+	return 0, nil, fmt.Errorf("all DLL paths returned 0 devices")
 }
 
 // NPUDeviceMetrics holds real-time runtime metrics.

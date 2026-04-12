@@ -13,7 +13,7 @@
         <div class="hero-text">
           <h2 class="hero-title">Lenovo Dispatcher Toolkit</h2>
           <p class="hero-subtitle">Power Management & Dispatcher Control</p>
-          <div class="version-chip">v1.0.15</div>
+          <div class="version-chip">v1.0.16</div>
         </div>
       </div>
     </div>

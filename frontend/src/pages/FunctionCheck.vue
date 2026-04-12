@@ -443,59 +443,6 @@
           </div>
         </div>
       </div>
-
-      <!-- DTT Uninstall -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title card-title-normal">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              <line x1="10" y1="11" x2="10" y2="17"/>
-              <line x1="14" y1="11" x2="14" y2="17"/>
-            </svg>
-            DTT Uninstall
-          </h3>
-        </div>
-        <div class="dtt-uninstall-content">
-          <div class="dtt-desc">
-            <p>Uninstall Intel Dynamic Tuning Technology (DTT) components</p>
-          </div>
-          <div class="dtt-buttons">
-            <button 
-              class="btn btn-dtt btn-dtt-main" 
-              @click="uninstallDTT" 
-              :disabled="uninstallingDTT"
-            >
-              <span v-if="uninstallingDTT" class="spinner-small"></span>
-              <span v-else>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px">
-                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-                Uninstall DTT
-              </span>
-            </button>
-            <button 
-              class="btn btn-dtt btn-dtt-ui" 
-              @click="uninstallDTTUI" 
-              :disabled="uninstallingDTTUI"
-            >
-              <span v-if="uninstallingDTTUI" class="spinner-small"></span>
-              <span v-else>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                  <line x1="8" y1="21" x2="16" y2="21"/>
-                  <line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-                Uninstall DTT UI
-              </span>
-            </button>
-          </div>
-          <div v-if="dttResult" :class="['result-message', dttResult.success ? 'success' : 'error']">
-            {{ dttResult.message }}
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <!-- Tab B Content -->
@@ -503,7 +450,7 @@
 
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M9 9h6v6H9z"/></svg> Houmo AI NPU - Device Overview</h3>
+          <h3 class="card-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M9 9h6v6H9z"/></svg> AI NPU - Device Overview</h3>
           <span class="card-badge">Houmo HAL</span>
           <button class="btn btn-secondary btn-sm" @click="refreshNPU" :disabled="npuLoading"><span v-if="npuLoading" class="spinner-small"></span><span v-else>Refresh</span></button>
         </div>
@@ -533,34 +480,88 @@
           <button class="btn btn-secondary btn-sm" @click="npuShowRef = !npuShowRef">{{ npuShowRef ? 'Collapse' : 'Expand' }}</button>
         </div>
         <div v-if="npuShowRef" class="npu-ref-content">
-          <div class="npu-ref-section"><h4>DVFS Modes</h4><table class="npu-ref-table"><thead><tr><th>Mode</th><th>Frequency</th><th>Power</th><th>Use Case</th></tr></thead><tbody>
-            <tr><td><span style="color:#ef4444;font-weight:700">PERFORMANCE</span></td><td>Fixed 1400 MHz</td><td>High</td><td>Batch inference, compute-intensive tasks</td></tr>
-            <tr><td><span style="color:#4caf50;font-weight:700">ONDEMAND</span></td><td>Dynamic 200-1400 MHz</td><td>Low</td><td>Standby, idle, low-load scenarios</td></tr>
-            <tr><td><span style="color:#ffc107;font-weight:700">POWERLIMIT</span></td><td>Dynamic</td><td>Constrained</td><td>User-defined max/min power budget</td></tr>
-          </tbody></table></div>
-          <div class="npu-ref-section"><h4>Metrics Guide</h4><table class="npu-ref-table"><thead><tr><th>Metric</th><th>Unit</th><th>Warning</th><th>Danger</th></tr></thead><tbody>
-            <tr><td>IPU Utilization</td><td>%</td><td>&gt;85%</td><td>—</td></tr>
-            <tr><td>IPU Frequency</td><td>MHz</td><td>—</td><td>—</td></tr>
-            <tr><td>Temperature</td><td>°C</td><td>&gt;80°C</td><td>&gt;90°C</td></tr>
-            <tr><td>Board Power</td><td>W</td><td>—</td><td>—</td></tr>
-            <tr><td>Memory (DDR)</td><td>MB</td><td>—</td><td>—</td></tr>
-          </tbody></table></div>
-          <div class="npu-ref-section"><h4>Smart Scheduler Strategy</h4>
+          <div class="npu-ref-section">
+            <h4>DVFS Modes</h4>
+            <table class="npu-ref-table">
+              <thead>
+                <tr><th>Mode</th><th>Frequency</th><th>Power</th><th>Use Case</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span style="color:#ef4444;font-weight:700">PERFORMANCE</span></td>
+                  <td>Fixed 1400 MHz</td>
+                  <td>High</td>
+                  <td>Batch inference, compute-intensive tasks</td>
+                </tr>
+                <tr>
+                  <td><span style="color:#4caf50;font-weight:700">ONDEMAND</span></td>
+                  <td>Dynamic 200-1400 MHz</td>
+                  <td>Low</td>
+                  <td>Standby, idle, low-load scenarios</td>
+                </tr>
+                <tr>
+                  <td><span style="color:#ffc107;font-weight:700">POWERLIMIT</span></td>
+                  <td>Dynamic</td>
+                  <td>Constrained</td>
+                  <td>User-defined max/min power budget</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="npu-ref-section">
+            <h4>Metrics Guide</h4>
+            <table class="npu-ref-table">
+              <thead>
+                <tr><th>Metric</th><th>Unit</th><th>Warning</th><th>Danger</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>IPU Utilization</td><td>%</td><td>&gt;85%</td><td>—</td></tr>
+                <tr><td>IPU Frequency</td><td>MHz</td><td>—</td><td>—</td></tr>
+                <tr><td>Temperature</td><td>°C</td><td>&gt;80°C</td><td>&gt;90°C</td></tr>
+                <tr><td>Board Power</td><td>W</td><td>—</td><td>—</td></tr>
+                <tr><td>Memory (DDR)</td><td>MB</td><td>—</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="npu-ref-section">
+            <h4>Smart Scheduler Strategy</h4>
             <ul class="npu-ref-list">
-              <li>Load &gt; <span style="color:#ef4444;font-weight:700">{{ npuSchedSettings.utilHighPct }}%</span> → PERFORMANCE</li>
-              <li>Load &lt; <span style="color:#4caf50;font-weight:700">{{ npuSchedSettings.utilLowPct }}%</span> → ONDEMAND</li>
-              <li>Temp &gt; <span style="color:#ffc107;font-weight:700">{{ npuSchedSettings.tempWarnC }}°C</span> → Force ONDEMAND</li>
-              <li>Temp &gt; <span style="color:#ef4444;font-weight:700">{{ npuSchedSettings.tempCritC }}°C</span> → Force ONDEMAND (throttle)</li>
+              <li>
+                Load &gt; <span style="color:#ef4444;font-weight:700">{{ npuSchedSettings.utilHighPct }}%</span>
+                → PERFORMANCE
+              </li>
+              <li>
+                Load &lt; <span style="color:#4caf50;font-weight:700">{{ npuSchedSettings.utilLowPct }}%</span>
+                → ONDEMAND
+              </li>
+              <li>
+                Temp &gt; <span style="color:#ffc107;font-weight:700">{{ npuSchedSettings.tempWarnC }}°C</span>
+                → Force ONDEMAND
+              </li>
+              <li>
+                Temp &gt; <span style="color:#ef4444;font-weight:700">{{ npuSchedSettings.tempCritC }}°C</span>
+                → Force ONDEMAND (throttle)
+              </li>
             </ul>
           </div>
-          <div class="npu-ref-section"><h4>Firmware Update</h4>
-            <p style="font-size:12px;color:var(--text-secondary);margin:0 0 6px">Use the Houmo upgrade CLI:</p>
+
+          <div class="npu-ref-section">
+            <h4>Firmware Update</h4>
+            <p style="font-size:12px;color:var(--text-secondary);margin:0 0 6px">
+              Use the Houmo upgrade CLI:
+            </p>
             <code class="npu-ref-code">"C:\Program Files (x86)\houmo-drv-xh2_v1.1.0\tools\hm_upgrade_cli\hm_upgrade_cli.exe" list-devices</code>
-            <br><code class="npu-ref-code">burn-image -d &lt;id&gt; -i &lt;firmware.img&gt;</code>
-            <p style="font-size:11px;color:#ffc107;margin:6px 0 0">⚠ Do NOT power off during flash update.</p>
+            <br>
+            <code class="npu-ref-code">burn-image -d &lt;id&gt; -i &lt;firmware.img&gt;</code>
+            <p style="font-size:11px;color:#ffc107;margin:6px 0 0">
+              ⚠ Do NOT power off during flash update.
+            </p>
           </div>
         </div>
       </div>
+
 
       <!-- Smart Auto-Scheduler Card -->
       <div class="card" v-if="!npuDriverError">
@@ -570,30 +571,106 @@
           <span v-else class="npu-sched-badge idle">◀ Idle</span>
         </div>
         <div v-if="!npuSchedRunning" class="npu-sched-controls">
-          <p class="npu-sched-desc">Automatically adjusts DVFS mode based on IPU load and temperature.</p>
+          <p class="npu-sched-desc">
+            Automatically adjusts DVFS mode based on IPU load and temperature.
+          </p>
           <div class="npu-sched-grid">
-            <div class="npu-sched-field"><label>Device</label><select class="npu-cl-input" v-model="npuSchedDev"><option v-for="d in npuDeviceList" :key="d.index" :value="d.index">NPU Device {{ d.index }}</option></select></div>
-            <div class="npu-sched-field"><label>Util High → Perf</label><input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.utilHighPct" min="10" max="100" step="5"> %</div>
-            <div class="npu-sched-field"><label>Util Low → Save</label><input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.utilLowPct" min="1" max="80" step="5"> %</div>
-            <div class="npu-sched-field"><label>Temp Warn</label><input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.tempWarnC" min="50" max="100" step="5"> °C</div>
-            <div class="npu-sched-field"><label>Temp Crit</label><input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.tempCritC" min="60" max="105" step="5"> °C</div>
-            <div class="npu-sched-field"><label>Check Every</label><input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.checkSec" min="2" max="30" step="1"> s</div>
+            <div class="npu-sched-field">
+              <label>Device</label>
+              <select class="npu-cl-input" v-model="npuSchedDev">
+                <option v-for="d in npuDeviceList" :key="d.index" :value="d.index">
+                  NPU Device {{ d.index }}
+                </option>
+              </select>
+            </div>
+            <div class="npu-sched-field">
+              <label>Util High → Perf</label>
+              <input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.utilHighPct" min="10" max="100" step="5"> %
+            </div>
+            <div class="npu-sched-field">
+              <label>Util Low → Save</label>
+              <input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.utilLowPct" min="1" max="80" step="5"> %
+            </div>
+            <div class="npu-sched-field">
+              <label>Temp Warn</label>
+              <input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.tempWarnC" min="50" max="100" step="5"> °C
+            </div>
+            <div class="npu-sched-field">
+              <label>Temp Crit</label>
+              <input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.tempCritC" min="60" max="105" step="5"> °C
+            </div>
+            <div class="npu-sched-field">
+              <label>Check Every</label>
+              <input type="number" class="npu-cl-input" v-model.number="npuSchedSettings.checkSec" min="2" max="30" step="1"> s
+            </div>
           </div>
-          <div class="npu-sched-actions"><button class="btn btn-npu btn-npu-perf" @click="startNpuScheduler" :disabled="npuSchedStarting || npuDeviceCount === 0"><span v-if="npuSchedStarting" class="spinner-small"></span><span v-else>▶ Start Scheduler</span></button></div>
-          <p v-if="npuDeviceCount === 0" class="npu-sched-warn">No NPU devices detected — start a device first.</p>
+          <div class="npu-sched-actions">
+            <button class="btn btn-npu btn-npu-perf" @click="startNpuScheduler" :disabled="npuSchedStarting || npuDeviceCount === 0">
+              <span v-if="npuSchedStarting" class="spinner-small"></span>
+              <span v-else>▶ Start Scheduler</span>
+            </button>
+          </div>
+          <p v-if="npuDeviceCount === 0" class="npu-sched-warn">
+            No NPU devices detected — start a device first.
+          </p>
         </div>
+
         <div v-else class="npu-sched-running">
           <div class="npu-sched-live-grid">
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Mode</span><span :class="['npu-sched-live-val', npuSchedState.curMode === 'PERFORMANCE' ? 'val-perf' : 'val-ondemand']">{{ npuSchedState.curMode || 'N/A' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Decision</span><span class="npu-sched-live-val" style="font-size:11px;color:var(--text-secondary)">{{ npuSchedState.decision || 'Initializing...' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">IPU Util</span><span class="npu-sched-live-val">{{ npuSchedState.curUtilPct >= 0 ? npuSchedState.curUtilPct.toFixed(1) + '%' : 'N/A' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Temp</span><span class="npu-sched-live-val" :style="{ color: npuSchedState.curTempC >= 80 ? '#ef4444' : npuSchedState.curTempC >= 60 ? '#f59e0b' : '#22c55e' }">{{ npuSchedState.curTempC > 0 ? npuSchedState.curTempC.toFixed(1) + ' °C' : 'N/A' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Power</span><span class="npu-sched-live-val">{{ npuSchedState.curPowerW > 0 ? npuSchedState.curPowerW.toFixed(2) + ' W' : 'N/A' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Freq</span><span class="npu-sched-live-val">{{ npuSchedState.curFreqMHz > 0 ? npuSchedState.curFreqMHz.toFixed(0) + ' MHz' : 'N/A' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Clock Lock</span><span class="npu-sched-live-val">{{ npuSchedState.curLockMaxMHz > 0 ? npuSchedState.curLockMaxMHz + '-' + npuSchedState.curLockMinMHz + ' MHz' : 'N/A' }}</span></div>
-            <div class="npu-sched-live-item"><span class="npu-sched-live-label">Last Switch</span><span class="npu-sched-live-val" style="font-size:11px">{{ npuSchedState.lastSwitch || '—' }}</span></div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Mode</span>
+              <span :class="['npu-sched-live-val', npuSchedState.curMode === 'PERFORMANCE' ? 'val-perf' : 'val-ondemand']">
+                {{ npuSchedState.curMode || 'N/A' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Decision</span>
+              <span class="npu-sched-live-val" style="font-size:11px;color:var(--text-secondary)">
+                {{ npuSchedState.decision || 'Initializing...' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">IPU Util</span>
+              <span class="npu-sched-live-val">
+                {{ npuSchedState.curUtilPct >= 0 ? npuSchedState.curUtilPct.toFixed(1) + '%' : 'N/A' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Temp</span>
+              <span class="npu-sched-live-val" :style="{ color: npuSchedState.curTempC >= 80 ? '#ef4444' : npuSchedState.curTempC >= 60 ? '#f59e0b' : '#22c55e' }">
+                {{ npuSchedState.curTempC > 0 ? npuSchedState.curTempC.toFixed(1) + ' °C' : 'N/A' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Power</span>
+              <span class="npu-sched-live-val">
+                {{ npuSchedState.curPowerW > 0 ? npuSchedState.curPowerW.toFixed(2) + ' W' : 'N/A' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Freq</span>
+              <span class="npu-sched-live-val">
+                {{ npuSchedState.curFreqMHz > 0 ? npuSchedState.curFreqMHz.toFixed(0) + ' MHz' : 'N/A' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Clock Lock</span>
+              <span class="npu-sched-live-val">
+                {{ npuSchedState.curLockMaxMHz > 0 ? npuSchedState.curLockMaxMHz + '-' + npuSchedState.curLockMinMHz + ' MHz' : 'N/A' }}
+              </span>
+            </div>
+            <div class="npu-sched-live-item">
+              <span class="npu-sched-live-label">Last Switch</span>
+              <span class="npu-sched-live-val" style="font-size:11px">
+                {{ npuSchedState.lastSwitch || '—' }}
+              </span>
+            </div>
           </div>
-          <div class="npu-sched-stop-row"><button class="btn btn-npu btn-npu-reset" @click="stopNpuScheduler">■ Stop Scheduler</button></div>
+          <div class="npu-sched-stop-row">
+            <button class="btn btn-npu btn-npu-reset" @click="stopNpuScheduler">
+              ■ Stop Scheduler
+            </button>
+          </div>
         </div>
       </div>
 
@@ -931,6 +1008,8 @@ export default {
   },
   async mounted() {
     await this.refreshAll()
+    // Load NPU device info
+    this.loadNPUInfo()
     // Start registry watcher for GPU status (real-time, no polling)
     await this.startGPUStatusWatcher()
     // Start GPU utilization polling (every 3s, only when IGPU tab is active)
@@ -956,6 +1035,17 @@ export default {
           alert('Failed to start scheduler: ' + (r ? r.Message : 'unknown error'))
         }
       }).catch(e => { this.npuSchedStarting = false; alert('Scheduler error: ' + e) })
+    },
+    loadNPUInfo() {
+      App.GetNPUDeviceInfo().then(r => {
+        if (r && r.numDevices !== undefined) {
+          this.npuDeviceCount = r.numDevices
+          this.npuDeviceList = (r.deviceIds || []).map((id, i) => ({ index: i, id: id }))
+        }
+      }).catch(e => { console.error("GetNPUDeviceInfo error:", e) })
+      App.GetNPUSDKInfo().then(r => {
+        if (r) this.npuSDKInfo = r
+      }).catch(e => { console.error("GetNPUSDKInfo error:", e) })
     },
     loadNPUDiag() {
       this.npuDiagLoading = true

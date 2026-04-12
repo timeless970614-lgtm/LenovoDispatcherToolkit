@@ -663,3 +663,258 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .card:nth-child(3) {
   animation-delay: 0.2s;
 }
+
+
+/* ===== NPU Parameter Reference ===== */
+.npu-ref-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.npu-ref-section {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+}
+
+.npu-ref-section h4 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lenovo-red);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0 0 10px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.npu-ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.npu-ref-table th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+}
+
+.npu-ref-table td {
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: top;
+}
+
+.npu-ref-table tr:hover td {
+  background: var(--bg-card-hover);
+}
+
+.npu-ref-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.npu-ref-list li {
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-color);
+  line-height: 1.5;
+}
+
+.npu-ref-code {
+  display: block;
+  background: #0a0a0a;
+  color: #22c55e;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  margin: 6px 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ===== NPU Smart Scheduler ===== */
+.npu-sched-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.npu-sched-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.npu-sched-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.npu-sched-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.npu-sched-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.npu-cl-input {
+  padding: 7px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.npu-cl-input:focus {
+  outline: none;
+  border-color: var(--lenovo-red);
+}
+
+.npu-sched-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.npu-sched-warn {
+  font-size: 12px;
+  color: #f59e0b;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(245,158,11,0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(245,158,11,0.3);
+}
+
+.npu-sched-running {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.npu-sched-live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.npu-sched-live-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.npu-sched-live-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.npu-sched-live-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.npu-sched-live-val.val-perf { color: #ef4444; }
+.npu-sched-live-val.val-ondemand { color: #4caf50; }
+
+.npu-sched-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.npu-sched-badge.running { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.npu-sched-badge.idle { background: rgba(255,255,255,0.05); color: var(--text-tertiary); border: 1px solid var(--border-color); }
+
+.npu-sched-stop-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+/* ===== NPU Diagnostic ===== */
+.npu-diagnostic {
+  margin-top: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.npu-diag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.npu-diag-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.npu-diag-body {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: #0a0a0a;
+}
+
+.npu-diag-body pre {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  color: #22c55e;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  line-height: 1.6;
+}
