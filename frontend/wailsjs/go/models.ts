@@ -1,5 +1,148 @@
 export namespace backend {
 	
+	export class CPUProcessItem {
+	    processName: string;
+	    pid: number;
+	    cpuPct: number;
+	    duration: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CPUProcessItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.processName = source["processName"];
+	        this.pid = source["pid"];
+	        this.cpuPct = source["cpuPct"];
+	        this.duration = source["duration"];
+	    }
+	}
+	export class CPUAnalysis {
+	    busyProcesses: CPUProcessItem[];
+	    cpuUsagePct: string;
+	    contextSwitches: number;
+	    interrupts: number;
+	    hardIrqs: number;
+	    dpcsQueued: number;
+	    dpcsDropped: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CPUAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.busyProcesses = this.convertValues(source["busyProcesses"], CPUProcessItem);
+	        this.cpuUsagePct = source["cpuUsagePct"];
+	        this.contextSwitches = source["contextSwitches"];
+	        this.interrupts = source["interrupts"];
+	        this.hardIrqs = source["hardIrqs"];
+	        this.dpcsQueued = source["dpcsQueued"];
+	        this.dpcsDropped = source["dpcsDropped"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class ConnItem {
+	    localAddr: string;
+	    remoteAddr: string;
+	    state: string;
+	    bytesSent: number;
+	    bytesReceived: number;
+	    processName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.localAddr = source["localAddr"];
+	        this.remoteAddr = source["remoteAddr"];
+	        this.state = source["state"];
+	        this.bytesSent = source["bytesSent"];
+	        this.bytesReceived = source["bytesReceived"];
+	        this.processName = source["processName"];
+	    }
+	}
+	export class LatencyItem {
+	    processName: string;
+	    module: string;
+	    maxLatencyMs: string;
+	    avgLatencyMs: string;
+	    count: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new LatencyItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.processName = source["processName"];
+	        this.module = source["module"];
+	        this.maxLatencyMs = source["maxLatencyMs"];
+	        this.avgLatencyMs = source["avgLatencyMs"];
+	        this.count = source["count"];
+	    }
+	}
+	export class DPCISRAnalysis {
+	    highDpcLatencyProcs: LatencyItem[];
+	    highIsrLatencyProcs: LatencyItem[];
+	    avgDpcMs: string;
+	    avgIsrMs: string;
+	    maxDpcMs: string;
+	    maxIsrMs: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DPCISRAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.highDpcLatencyProcs = this.convertValues(source["highDpcLatencyProcs"], LatencyItem);
+	        this.highIsrLatencyProcs = this.convertValues(source["highIsrLatencyProcs"], LatencyItem);
+	        this.avgDpcMs = source["avgDpcMs"];
+	        this.avgIsrMs = source["avgIsrMs"];
+	        this.maxDpcMs = source["maxDpcMs"];
+	        this.maxIsrMs = source["maxIsrMs"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class DispatcherFeature {
 	    bit: number;
 	    name: string;
@@ -66,6 +209,69 @@ export namespace backend {
 		    return a;
 		}
 	}
+	export class DiskIOItem {
+	    processName: string;
+	    path: string;
+	    ioType: string;
+	    count: number;
+	    sizeMB: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DiskIOItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.processName = source["processName"];
+	        this.path = source["path"];
+	        this.ioType = source["ioType"];
+	        this.count = source["count"];
+	        this.sizeMB = source["sizeMB"];
+	    }
+	}
+	export class DiskAnalysis {
+	    topReaders: DiskIOItem[];
+	    topWriters: DiskIOItem[];
+	    totalReadMB: string;
+	    totalWrittenMB: string;
+	    readOpsPerSec: string;
+	    writeOpsPerSec: string;
+	    avgLatencyMs: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DiskAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.topReaders = this.convertValues(source["topReaders"], DiskIOItem);
+	        this.topWriters = this.convertValues(source["topWriters"], DiskIOItem);
+	        this.totalReadMB = source["totalReadMB"];
+	        this.totalWrittenMB = source["totalWrittenMB"];
+	        this.readOpsPerSec = source["readOpsPerSec"];
+	        this.writeOpsPerSec = source["writeOpsPerSec"];
+	        this.avgLatencyMs = source["avgLatencyMs"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	
 	export class DispatcherInfo {
 	    driverVersion: string;
@@ -127,6 +333,247 @@ export namespace backend {
 	        this.softParking = source["softParking"];
 	    }
 	}
+	export class ProfileAnalysis {
+	    profileName: string;
+	    providersActive: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ProfileAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileName = source["profileName"];
+	        this.providersActive = source["providersActive"];
+	    }
+	}
+	export class GPUEngineItem {
+	    engineName: string;
+	    utilPct: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GPUEngineItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.engineName = source["engineName"];
+	        this.utilPct = source["utilPct"];
+	    }
+	}
+	export class GPUAnalysis {
+	    gpuEngineUtilPct: string;
+	    gpuMemoryUsedMB: string;
+	    gpuContextCreated: number;
+	    gpuEngines: GPUEngineItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new GPUAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.gpuEngineUtilPct = source["gpuEngineUtilPct"];
+	        this.gpuMemoryUsedMB = source["gpuMemoryUsedMB"];
+	        this.gpuContextCreated = source["gpuContextCreated"];
+	        this.gpuEngines = this.convertValues(source["gpuEngines"], GPUEngineItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class PowerAnalysis {
+	    platformIdle: string;
+	    cpuPower: string;
+	    packagePower: string;
+	    gpuPower: string;
+	    s0ixDuration: string;
+	    s0ixTransitions: number;
+	    processorFreqMHz: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PowerAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.platformIdle = source["platformIdle"];
+	        this.cpuPower = source["cpuPower"];
+	        this.packagePower = source["packagePower"];
+	        this.gpuPower = source["gpuPower"];
+	        this.s0ixDuration = source["s0ixDuration"];
+	        this.s0ixTransitions = source["s0ixTransitions"];
+	        this.processorFreqMHz = source["processorFreqMHz"];
+	    }
+	}
+	export class NetworkAnalysis {
+	    totalSentMB: string;
+	    totalRecvMB: string;
+	    tcpConnections: number;
+	    topConnections: ConnItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new NetworkAnalysis(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.totalSentMB = source["totalSentMB"];
+	        this.totalRecvMB = source["totalRecvMB"];
+	        this.tcpConnections = source["tcpConnections"];
+	        this.topConnections = this.convertValues(source["topConnections"], ConnItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ETLTraceInfo {
+	    path: string;
+	    sizeMB: string;
+	    capturedAt: string;
+	    durationSecs: number;
+	    profile: string;
+	    profileName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ETLTraceInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.sizeMB = source["sizeMB"];
+	        this.capturedAt = source["capturedAt"];
+	        this.durationSecs = source["durationSecs"];
+	        this.profile = source["profile"];
+	        this.profileName = source["profileName"];
+	    }
+	}
+	export class ETLAnalysisResult {
+	    traceInfo: ETLTraceInfo;
+	    cpu: CPUAnalysis;
+	    disk: DiskAnalysis;
+	    network: NetworkAnalysis;
+	    power: PowerAnalysis;
+	    gpu: GPUAnalysis;
+	    dpcrisr: DPCISRAnalysis;
+	    profile: ProfileAnalysis;
+	    summary: string;
+	    rawCSVPath: string;
+	    isElevated: boolean;
+	    rawCSVLines: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ETLAnalysisResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.traceInfo = this.convertValues(source["traceInfo"], ETLTraceInfo);
+	        this.cpu = this.convertValues(source["cpu"], CPUAnalysis);
+	        this.disk = this.convertValues(source["disk"], DiskAnalysis);
+	        this.network = this.convertValues(source["network"], NetworkAnalysis);
+	        this.power = this.convertValues(source["power"], PowerAnalysis);
+	        this.gpu = this.convertValues(source["gpu"], GPUAnalysis);
+	        this.dpcrisr = this.convertValues(source["dpcrisr"], DPCISRAnalysis);
+	        this.profile = this.convertValues(source["profile"], ProfileAnalysis);
+	        this.summary = source["summary"];
+	        this.rawCSVPath = source["rawCSVPath"];
+	        this.isElevated = source["isElevated"];
+	        this.rawCSVLines = source["rawCSVLines"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ETLCaptureState {
+	    isCapturing: boolean;
+	    profile: string;
+	    startTime: string;
+	    durationSecs: number;
+	    outputPath: string;
+	    status: string;
+	    error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ETLCaptureState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.isCapturing = source["isCapturing"];
+	        this.profile = source["profile"];
+	        this.startTime = source["startTime"];
+	        this.durationSecs = source["durationSecs"];
+	        this.outputPath = source["outputPath"];
+	        this.status = source["status"];
+	        this.error = source["error"];
+	    }
+	}
+	export class ETLProfile {
+	    id: string;
+	    name: string;
+	    description: string;
+	    category: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ETLProfile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.category = source["category"];
+	    }
+	}
+	
 	export class EnableFuncPolicy {
 	    bit: number;
 	    name: string;
@@ -145,6 +592,7 @@ export namespace backend {
 	        this.enabled = source["enabled"];
 	    }
 	}
+	
 	export class GPUAutoGear {
 	    available: boolean;
 	    value: number;
@@ -159,6 +607,7 @@ export namespace backend {
 	        this.value = source["value"];
 	    }
 	}
+	
 	export class GPUInfo {
 	    name: string;
 	    vendorId: number;
@@ -313,6 +762,7 @@ export namespace backend {
 	        this.error = source["error"];
 	    }
 	}
+	
 	export class LogFileInfo {
 	    name: string;
 	    size: number;
@@ -751,6 +1201,7 @@ export namespace backend {
 	        this.serviceRunning = source["serviceRunning"];
 	    }
 	}
+	
 	export class PPMSetting {
 	    name: string;
 	    guid: string;
@@ -823,6 +1274,8 @@ export namespace backend {
 		    return a;
 		}
 	}
+	
+	
 	export class SSDInfo {
 	    driveIndex: number;
 	    name: string;

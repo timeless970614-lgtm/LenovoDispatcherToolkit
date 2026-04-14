@@ -567,3 +567,41 @@ func (a *App) GetNPUDeviceOverview(devIndex int) backend.NPUDeviceOverview {
 	}
 	return overview
 }
+
+// ============ ETL Trace Analyzer ============
+
+// IsElevated returns whether the current process has administrator privileges
+func (a *App) IsElevated() bool {
+	return backend.IsElevated()
+}
+
+// GetETLProfiles returns available WPR profile options for the UI
+func (a *App) GetETLProfiles() []backend.ETLProfile {
+	return backend.GetETLProfiles()
+}
+
+// StartETLCapture starts a WPR trace with the given profile ID
+// durationSecs: capture duration in seconds (0 = indefinite, caller must call StopETLCapture)
+func (a *App) StartETLCapture(profile string, durationSecs int) backend.ETLCaptureState {
+	return backend.StartETLCapture(profile, durationSecs)
+}
+
+// StopETLCapture stops the running WPR trace and returns trace info
+func (a *App) StopETLCapture() backend.ETLTraceInfo {
+	return backend.StopETLCapture()
+}
+
+// GetETLCaptureStatus returns the current capture state
+func (a *App) GetETLCaptureStatus() backend.ETLCaptureState {
+	return backend.GetETLCaptureStatus()
+}
+
+// GetETLTraceList returns list of previously captured traces
+func (a *App) GetETLTraceList() []backend.ETLTraceInfo {
+	return backend.GetETLTraceList()
+}
+
+// AnalyzeETLFile parses an ETL file and returns structured analysis results
+func (a *App) AnalyzeETLFile(etlPath string) backend.ETLAnalysisResult {
+	return backend.AnalyzeETLFile(etlPath)
+}
