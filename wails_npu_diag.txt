@@ -1,0 +1,38 @@
+=== Wails GetNPUREport Called ===
+exeDir: C:\LenovoDispatcherToolkit\build\bin
+diagPath: C:\LenovoDispatcherToolkit\wails_npu_diag.txt
+
+npuLoadDebug:
+[NPU Load] DLL found at: C:\LenovoDispatcherToolkit\build\bin\libhal_xh2a.dll
+
+[Function resolution]
+  OK:      hm_sys_get_device_info
+  OK:      hm_sys_check_device_index
+  OK:      hm_sys_get_vendor_id
+  OK:      hm_sys_get_device_sn
+  OK:      hm_sys_get_device_name
+  OK:      hm_sys_get_computing_power
+  OK:      hm_sys_get_core_count
+  OK:      hm_sys_get_ipu_utili_rate
+  OK:      hm_sys_get_ipu_core_utili_rate
+  OK:      hm_sys_get_ipu_voltage
+  OK:      hm_sys_get_ipu_frequency
+  OK:      hm_sys_get_mem_info
+  OK:      hm_sys_get_temperature
+  OK:      hm_sys_get_buildtime
+  OK:      hm_sys_get_version
+  OK:      hm_sys_get_driver_version
+  OK:      hm_sys_get_device_version
+  OK:      hm_sys_get_ddr_size
+  OK:      hm_sys_get_bdf
+  OK:      hm_sys_get_bandwidth
+  OK:      hm_sys_get_board_power
+  OK:      hm_sys_get_dvfs_mode
+  OK:      hm_sys_set_dvfs_mode
+  OK:      hm_sys_get_ctc_phy_id
+  MISSING: hm_flash_read
+  MISSING: hm_flash_program
+
+[NPU Probe] hm_sys_get_device_info returned: numDevices=1 ret=1
+[NPU Probe] Found 1 device(s): [0]
+

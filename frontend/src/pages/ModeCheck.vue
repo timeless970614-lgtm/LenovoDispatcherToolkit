@@ -458,13 +458,13 @@ export default {
 
 <style scoped>
 .mode-check-page {
-  padding: 24px;
+  padding: 8px 16px 16px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .status-bar {

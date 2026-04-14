@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -658,14 +657,15 @@ func tryDirectDLLLoad() (uint32, []uint32, error) {
 
 // NPUDeviceMetrics holds real-time runtime metrics.
 type NPUDeviceMetrics struct {
-	IPUUtiliRate    float64 `json:"ipuUtiliRate"`
-	IPUVoltageMV    float64 `json:"ipuVoltageMV"`
-	IPUFrequencyHz  uint64  `json:"ipuFrequencyHz"`
-	BoardPowerW     float64 `json:"boardPowerW"`
-	TemperatureC    float64 `json:"temperatureC"`
-	MemTotalMB      uint32  `json:"memTotalMB"`
-	MemUsedMB       uint32  `json:"memUsedMB"`
-	MemAvailMB      uint32  `json:"memAvailMB"`
+	IPUUtiliRate    float64   `json:"ipuUtiliRate"`
+	IPUVoltageMV    float64   `json:"ipuVoltageMV"`
+	IPUFrequencyHz uint64    `json:"ipuFrequencyHz"`
+	BoardPowerW    float64   `json:"boardPowerW"`
+	TemperatureC   float64   `json:"temperatureC"`
+	MemTotalMB     uint32    `json:"memTotalMB"`
+	MemUsedMB      uint32    `json:"memUsedMB"`
+	MemAvailMB     uint32    `json:"memAvailMB"`
+	CoreUtiliPct   []float64 `json:"coreUtiliPct"` // per-core utilization, 0-100
 }
 
 func GetNPUDeviceMetrics(devIndex int) (NPUDeviceMetrics, error) {
@@ -706,6 +706,18 @@ func GetNPUDeviceMetrics(devIndex int) (NPUDeviceMetrics, error) {
 		m.MemUsedMB = mem.MemUsed
 		m.MemAvailMB = mem.MemAvail
 	}
+	// Per-core utilization: get core count from IPUUtiliRate call
+	var coreCount uint32
+	if npuFunc.getCoreCount != 0 {
+		v, _, _ := syscall.Syscall(npuFunc.getCoreCount, 1, uintptr(devIndex), 0, 0)
+		coreCount = uint32(v)
+	}
+	if coreCount > 0 && npuFunc.getIPUCoreUtiliRate != 0 {
+		for i := uint32(0); i < coreCount; i++ {
+			v, _, _ := syscall.Syscall(npuFunc.getIPUCoreUtiliRate, 3, uintptr(devIndex), uintptr(i), 0)
+			m.CoreUtiliPct = append(m.CoreUtiliPct, mathFloat(v)*100)
+		}
+	}
 	return m, nil
 }
 
@@ -721,6 +733,102 @@ func GetNPUPerCoreUtili(devIndex int, coreCount int) ([]float64, error) {
 		rates = append(rates, mathFloat(v))
 	}
 	return rates, nil
+}
+
+// NPUDeviceOverview mirrors test.exe print_device_info() output for a single device.
+type NPUDeviceOverview struct {
+	// Basic Info
+	DevID           int     `json:"devId"`
+	DevName         string  `json:"devName"`
+	VendorID        int     `json:"vendorId"`
+	Serial          string  `json:"serial"`
+	ComputingPower  int     `json:"computingPower"`
+	CoreCount       int     `json:"coreCount"`
+	DDRSizeMB       uint32  `json:"ddrSizeMB"`
+	// DVFS Mode
+	DVFSMode        string  `json:"dvfsMode"`
+	DVFSModeDesc   string  `json:"dvfsModeDesc"`
+	// Runtime Metrics
+	IPUUtiliPct    float64 `json:"ipuUtiliPct"`
+	IPUFreqGHz     float64 `json:"ipuFreqGHz"`
+	IPUVoltageMV   float64 `json:"ipuVoltageMV"`
+	TemperatureC   float64 `json:"temperatureC"`
+	BoardPowerW    float64 `json:"boardPowerW"`
+	// Memory Info
+	MemTotalMB     uint32  `json:"memTotalMB"`
+	MemUsedMB      uint32  `json:"memUsedMB"`
+	MemAvailMB     uint32  `json:"memAvailMB"`
+	// Per-Core
+	CoreUtiliPct   []float64 `json:"coreUtiliPct"`
+	// Version Info
+	SDKVersion     string  `json:"sdkVersion"`
+	DriverVersion  string  `json:"driverVersion"`
+	FirmwareVer    string  `json:"firmwareVer"`
+}
+
+// GetNPUDeviceOverview returns full device info for devIndex, mirroring test.exe print_device_info().
+func GetNPUDeviceOverview(devIndex int) (NPUDeviceOverview, error) {
+	props, err := GetNPUDeviceProperties(devIndex)
+	if err != nil {
+		return NPUDeviceOverview{}, err
+	}
+	metrics, err := GetNPUDeviceMetrics(devIndex)
+	if err != nil {
+		return NPUDeviceOverview{}, err
+	}
+	sdkInfo, _ := GetNPUSDKInfo()
+	dvfsMode, _ := NPUGetDVFSMode(devIndex)
+	dvfsDesc := dvfsModeDesc(dvfsMode)
+
+	// Get firmware version
+	var firmware [64]byte
+	npuMutex.RLock()
+	if npuFunc.getDeviceVersion != 0 {
+		syscall.Syscall(npuFunc.getDeviceVersion, 3, uintptr(devIndex), uintptr(unsafe.Pointer(&firmware[0])), uintptr(64))
+	}
+	npuMutex.RUnlock()
+
+	return NPUDeviceOverview{
+		DevID:           devIndex,
+		DevName:         props.ModelName,
+		VendorID:        props.VendorID,
+		Serial:          props.SerialNumber,
+		ComputingPower:  props.ComputingPower,
+		CoreCount:       props.CoreCount,
+		DDRSizeMB:       props.DDRSizeMB,
+		DVFSMode:        dvfsMode,
+		DVFSModeDesc:    dvfsDesc,
+		IPUUtiliPct:     metrics.IPUUtiliRate * 100,
+		IPUFreqGHz:      float64(metrics.IPUFrequencyHz) / 1e9,
+		IPUVoltageMV:    metrics.IPUVoltageMV,
+		TemperatureC:    metrics.TemperatureC,
+		BoardPowerW:     metrics.BoardPowerW,
+		MemTotalMB:      metrics.MemTotalMB,
+		MemUsedMB:       metrics.MemUsedMB,
+		MemAvailMB:      metrics.MemAvailMB,
+		CoreUtiliPct:    metrics.CoreUtiliPct,
+		SDKVersion:      sdkInfo.SDKVersion,
+		DriverVersion:   sdkInfo.DriverVersion,
+		FirmwareVer:     cstring(firmware[:]),
+	}, nil
+}
+
+// dvfsModeDesc returns a human-readable description for each DVFS mode.
+func dvfsModeDesc(mode string) string {
+	switch mode {
+	case "PERFORMANCE":
+		return "Fixed 1400 MHz, max throughput, high power"
+	case "ONDEMAND":
+		return "Dynamic 200-1400 MHz, auto-adjust, low power"
+	case "POWERSAVE":
+		return "Fixed minimum frequency, lowest power"
+	case "USERSPACE":
+		return "User-defined frequency via clock lock"
+	case "CONSERVATIVE":
+		return "Slow ramp, conservative power saving"
+	default:
+		return "Auto-adjust frequency and power"
+	}
 }
 
 // NPUSDKInfo holds SDK and driver version strings.
@@ -833,12 +941,13 @@ type NPUFullReport struct {
 
 // NPUDeviceReport is per-device consolidated data.
 type NPUDeviceReport struct {
-	Index      int                 `json:"index"`
-	Properties NPUDeviceProperties `json:"properties"`
-	Metrics    NPUDeviceMetrics   `json:"metrics"`
-	PCIeInfo   NPUPCIeInfo       `json:"pcieInfo"`
-	DVFSMode   string             `json:"dvfsMode"`
-	CTCPHYInfo NPUCTCPHYInfo     `json:"ctcPhyInfo"`
+	Index        int                   `json:"index"`
+	Properties   NPUDeviceProperties   `json:"properties"`
+	Metrics      NPUDeviceMetrics      `json:"metrics"`
+	PCIeInfo     NPUPCIeInfo           `json:"pcieInfo"`
+	DVFSMode     string                `json:"dvfsMode"`
+	DVFSModeDesc string                `json:"dvfsModeDesc"`
+	CTCPHYInfo   NPUCTCPHYInfo         `json:"ctcPhyInfo"`
 }
 
 func GetNPUFullReport() (NPUFullReport, error) {
@@ -853,13 +962,14 @@ func GetNPUFullReport() (NPUFullReport, error) {
 		Devices:     make([]NPUDeviceReport, 0, devInfo.NumDevices),
 	}
 	for _, devID := range devInfo.DeviceIDs {
-		props, _   := GetNPUDeviceProperties(int(devID))
-		metrics, _ := GetNPUDeviceMetrics(int(devID))
+		props, _    := GetNPUDeviceProperties(int(devID))
+		metrics, _  := GetNPUDeviceMetrics(int(devID))
 		dvfsMode, _ := NPUGetDVFSMode(int(devID))
 		ctcInfo, _  := GetNPUCTCPHYInfo(int(devID))
 		report.Devices = append(report.Devices, NPUDeviceReport{
 			Index: int(devID), Properties: props, Metrics: metrics,
-			PCIeInfo: NPUPCIeInfo{}, DVFSMode: dvfsMode, CTCPHYInfo: ctcInfo,
+			PCIeInfo: NPUPCIeInfo{}, DVFSMode: dvfsMode,
+			DVFSModeDesc: dvfsModeDesc(dvfsMode), CTCPHYInfo: ctcInfo,
 		})
 	}
 	return report, nil
@@ -890,7 +1000,7 @@ var hmSMI = `C:\Program Files (x86)\houmo-drv-xh2_v1.1.0\tools\hm_smi\hm_smi.exe
 
 // runHMCLI executes hm_smi with given args and returns stdout+stderr.
 func runHMCLI(args ...string) (string, error) {
-	cmd := exec.Command(hmSMI, args...)
+	cmd := hiddenCmd(hmSMI, args...)
 	cmd.Env = os.Environ()
 	out, err := cmd.CombinedOutput()
 	if err != nil {

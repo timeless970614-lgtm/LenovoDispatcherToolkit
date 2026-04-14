@@ -11,8 +11,7 @@
           </svg>
         </div>
         <div class="brand-text">
-          <span class="brand-name">Lenovo</span>
-          <span class="brand-sub">Dispatcher Toolkit</span>
+          <span class="brand-name">Dispatcher Tool</span>
         </div>
       </div>
       
@@ -126,6 +125,7 @@
         <AIAnalysis v-else-if="currentPage === 'aianalysis'" :theme="theme" />
         <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
         <MSR v-else-if="currentPage === 'msr'" :theme="theme" />
+        <NPU v-else-if="currentPage === 'npu'" :theme="theme" />
         <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" @update:theme="setTheme" @update:lang="setLang" />
         <About v-else-if="currentPage === 'about'" :theme="theme" />
       </div>
@@ -139,6 +139,7 @@ import FunctionCheck from './pages/FunctionCheck.vue'
 import ModeCheck from './pages/ModeCheck.vue'
 import AIAnalysis from './pages/AIAnalysis.vue'
 import MSR from './pages/MSR.vue'
+import NPU from './pages/NPU.vue'
 import Settings from './pages/Settings.vue'
 import About from './pages/About.vue'
 import { StartMLScenarioCapture, StopMLScenarioCapture, GetMLLogStatus, OpenFolder, UninstallDispatcher } from '../wailsjs/go/main/App'
@@ -151,6 +152,7 @@ export default {
     ModeCheck,
     AIAnalysis,
     MSR,
+    NPU,
     Settings,
     About
   },
@@ -206,6 +208,12 @@ export default {
           label: 'MSR', 
           subtitle: 'Intel Power & MSR Access',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>'
+        },
+        {
+          id: 'npu',
+          label: 'NPU',
+          subtitle: 'Houmo NPU 智能调度',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/></svg>'
         },
       ],
       bottomNavItems: [

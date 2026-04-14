@@ -118,7 +118,6 @@
           </button>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -133,7 +132,8 @@ export default {
       serviceStatus: 'Unknown',
       refreshInterval: null,
       enablingLog: false,
-      logEnabled: false
+      logEnabled: false,
+
     }
   },
   async mounted() {
@@ -270,4 +270,5 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 </style>

@@ -559,3 +559,11 @@ func (a *App) GetNPUDeviceInfoWrapper() (backend.NPUDeviceInfo, string) {
 	}
 	return info, ""
 }
+
+func (a *App) GetNPUDeviceOverview(devIndex int) backend.NPUDeviceOverview {
+	overview, err := backend.GetNPUDeviceOverview(devIndex)
+	if err != nil {
+		return backend.NPUDeviceOverview{}
+	}
+	return overview
+}

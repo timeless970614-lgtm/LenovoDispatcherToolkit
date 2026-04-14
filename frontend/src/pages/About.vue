@@ -11,7 +11,7 @@
           </svg>
         </div>
         <div class="hero-text">
-          <h2 class="hero-title">Lenovo Dispatcher Toolkit</h2>
+          <h2 class="hero-title">Lenovo Dispatcher Tool</h2>
           <p class="hero-subtitle">Power Management & Dispatcher Control</p>
           <div class="version-chip">v1.0.16</div>
         </div>
@@ -73,7 +73,7 @@
         <span class="card-title">About This Tool</span>
       </div>
       <p class="about-desc">
-        Lenovo Dispatcher Toolkit is a lightweight utility for managing Lenovo laptop power and thermal settings.
+        Lenovo Dispatcher Tool is a lightweight utility for managing Lenovo laptop power and thermal settings.
         It provides direct access to the Lenovo Dispatcher driver, allowing fine-grained control over CPU scheduling,
         energy performance preferences, and thermal modes — all through a modern, intuitive interface.
       </p>
@@ -148,14 +148,14 @@ export default {
 .hero-title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
   margin-bottom: 6px;
   letter-spacing: -0.5px;
 }
 
 .hero-subtitle {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.65);
   margin-bottom: 12px;
 }
 

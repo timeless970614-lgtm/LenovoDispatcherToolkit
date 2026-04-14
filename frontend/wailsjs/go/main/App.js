@@ -114,6 +114,10 @@ export function GetNPUDeviceMetrics(arg1) {
   return window['go']['main']['App']['GetNPUDeviceMetrics'](arg1);
 }
 
+export function GetNPUDeviceOverview(arg1) {
+  return window['go']['main']['App']['GetNPUDeviceOverview'](arg1);
+}
+
 export function GetNPUDeviceProperties(arg1) {
   return window['go']['main']['App']['GetNPUDeviceProperties'](arg1);
 }

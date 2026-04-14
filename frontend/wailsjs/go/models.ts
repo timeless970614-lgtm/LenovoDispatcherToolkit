@@ -460,6 +460,7 @@ export namespace backend {
 	    memTotalMB: number;
 	    memUsedMB: number;
 	    memAvailMB: number;
+	    coreUtiliPct: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new NPUDeviceMetrics(source);
@@ -475,6 +476,59 @@ export namespace backend {
 	        this.memTotalMB = source["memTotalMB"];
 	        this.memUsedMB = source["memUsedMB"];
 	        this.memAvailMB = source["memAvailMB"];
+	        this.coreUtiliPct = source["coreUtiliPct"];
+	    }
+	}
+	export class NPUDeviceOverview {
+	    devId: number;
+	    devName: string;
+	    vendorId: number;
+	    serial: string;
+	    computingPower: number;
+	    coreCount: number;
+	    ddrSizeMB: number;
+	    dvfsMode: string;
+	    dvfsModeDesc: string;
+	    ipuUtiliPct: number;
+	    ipuFreqGHz: number;
+	    ipuVoltageMV: number;
+	    temperatureC: number;
+	    boardPowerW: number;
+	    memTotalMB: number;
+	    memUsedMB: number;
+	    memAvailMB: number;
+	    coreUtiliPct: number[];
+	    sdkVersion: string;
+	    driverVersion: string;
+	    firmwareVer: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPUDeviceOverview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.devId = source["devId"];
+	        this.devName = source["devName"];
+	        this.vendorId = source["vendorId"];
+	        this.serial = source["serial"];
+	        this.computingPower = source["computingPower"];
+	        this.coreCount = source["coreCount"];
+	        this.ddrSizeMB = source["ddrSizeMB"];
+	        this.dvfsMode = source["dvfsMode"];
+	        this.dvfsModeDesc = source["dvfsModeDesc"];
+	        this.ipuUtiliPct = source["ipuUtiliPct"];
+	        this.ipuFreqGHz = source["ipuFreqGHz"];
+	        this.ipuVoltageMV = source["ipuVoltageMV"];
+	        this.temperatureC = source["temperatureC"];
+	        this.boardPowerW = source["boardPowerW"];
+	        this.memTotalMB = source["memTotalMB"];
+	        this.memUsedMB = source["memUsedMB"];
+	        this.memAvailMB = source["memAvailMB"];
+	        this.coreUtiliPct = source["coreUtiliPct"];
+	        this.sdkVersion = source["sdkVersion"];
+	        this.driverVersion = source["driverVersion"];
+	        this.firmwareVer = source["firmwareVer"];
 	    }
 	}
 	export class NPUDeviceProperties {
@@ -523,6 +577,7 @@ export namespace backend {
 	    metrics: NPUDeviceMetrics;
 	    pcieInfo: NPUPCIeInfo;
 	    dvfsMode: string;
+	    dvfsModeDesc: string;
 	    ctcPhyInfo: NPUCTCPHYInfo;
 	
 	    static createFrom(source: any = {}) {
@@ -536,6 +591,7 @@ export namespace backend {
 	        this.metrics = this.convertValues(source["metrics"], NPUDeviceMetrics);
 	        this.pcieInfo = this.convertValues(source["pcieInfo"], NPUPCIeInfo);
 	        this.dvfsMode = source["dvfsMode"];
+	        this.dvfsModeDesc = source["dvfsModeDesc"];
 	        this.ctcPhyInfo = this.convertValues(source["ctcPhyInfo"], NPUCTCPHYInfo);
 	    }
 	

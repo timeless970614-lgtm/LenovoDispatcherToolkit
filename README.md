@@ -161,6 +161,7 @@ ML Scenario log outputs 84 columns matching ML_Scenario `Result.csv`:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.0.16 | 2026-04-14 | 更新NPU information |
 | 1.0.14 | 2026-04-04 | IPF/PPM DLL integration, ML Log rewrite, UI improvements |
 | 1.0.13 | — | Initial release |
 

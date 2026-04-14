@@ -58,6 +58,8 @@ export function GetNPUDeviceInfoWrapper():Promise<backend.NPUDeviceInfo|string>;
 
 export function GetNPUDeviceMetrics(arg1:number):Promise<backend.NPUDeviceMetrics>;
 
+export function GetNPUDeviceOverview(arg1:number):Promise<backend.NPUDeviceOverview>;
+
 export function GetNPUDeviceProperties(arg1:number):Promise<backend.NPUDeviceProperties>;
 
 export function GetNPUFullReport():Promise<backend.NPUFullReport>;
