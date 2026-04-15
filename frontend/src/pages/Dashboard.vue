@@ -60,17 +60,26 @@
             </svg>
             Dispatcher Device Information
           </span>
-          <button class="btn-enable-log" @click="enableLog" :disabled="enablingLog" :title="logEnabled ? 'Log already enabled' : 'Enable Dynamic Log'">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-            <span v-if="enablingLog">Enabling...</span>
-            <span v-else-if="logEnabled">Log Enabled</span>
-            <span v-else>EnableLog</span>
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-enable-log" @click="enableLog" :disabled="enablingLog" :title="logEnabled ? 'Log already enabled' : 'Enable Dynamic Log'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              <span v-if="enablingLog">Enabling...</span>
+              <span v-else-if="logEnabled">Log Enabled</span>
+              <span v-else>EnableLog</span>
+            </button>
+            <button class="btn-test-mode" @click="openTestMode" title="Open Test Mode CMD">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 17 10 11 4 5"/>
+                <line x1="12" y1="19" x2="20" y2="19"/>
+              </svg>
+              <span>TestMode</span>
+            </button>
+          </div>
         </div>
         <div class="card-content" v-if="deviceInfo">
           <div class="info-item">
@@ -203,6 +212,18 @@ export default {
       } finally {
         this.enablingLog = false
       }
+    },
+    async openTestMode() {
+      try {
+        if (window.go && window.go.main && window.go.main.App) {
+          const result = await window.go.main.App.OpenTestMode()
+          if (!result.success) {
+            alert('Failed to open test mode: ' + result.message)
+          }
+        }
+      } catch (e) {
+        alert('Error: ' + e)
+      }
     }
   }
 }
@@ -269,6 +290,28 @@ export default {
 .btn-enable-log:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-test-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.btn-test-mode:hover {
+  border-color: var(--lenovo-red);
+  color: var(--lenovo-red);
+  background: rgba(227, 6, 19, 0.08);
 }
 
 </style>

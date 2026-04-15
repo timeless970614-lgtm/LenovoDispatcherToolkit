@@ -12,9 +12,13 @@ export function ApplyMaxFrequency(arg1:number,arg2:number):Promise<string>;
 
 export function ApplySoftParkLatency(arg1:number,arg2:number):Promise<string>;
 
+export function CheckAllToolkitInstalled():Promise<Array<backend.ToolkitInstallStatus>>;
+
 export function CheckDYTCCapabilities():Promise<Record<string, boolean>>;
 
 export function CheckNVIDIAStatus():Promise<backend.NVIDIAStatus>;
+
+export function CheckToolkitInstalled(arg1:string):Promise<backend.ToolkitInstallStatus>;
 
 export function EnableDynamicLog():Promise<backend.DynamicLogResult>;
 
@@ -45,6 +49,8 @@ export function GetGPUPrefStatus():Promise<backend.GPUPrefStatus>;
 export function GetGPUPrefStatusFromCache():Promise<backend.GPUPrefStatus>;
 
 export function GetIGPUMode():Promise<backend.IGPUStatus>;
+
+export function GetInstalledToolkitTools():Promise<Array<string>>;
 
 export function GetIntelDriverDownloadURL():Promise<string>;
 
@@ -88,13 +94,27 @@ export function GetServiceStatus():Promise<string>;
 
 export function GetSystemInfo():Promise<backend.SystemInfo>;
 
+export function GetToolkitInstallDir():Promise<string>;
+
+export function GetToolkitProgress(arg1:string):Promise<backend.ToolkitInstallProgress>;
+
+export function GetToolkitTools():Promise<Array<backend.ToolkitTool>>;
+
+export function InstallToolkitTool(arg1:string):Promise<backend.ToolkitInstallProgress>;
+
 export function IsElevated():Promise<boolean>;
+
+export function IsToolkitBusy(arg1:string):Promise<boolean>;
 
 export function NPUGetDVFSMode(arg1:number):Promise<string>;
 
 export function NPUSetDVFSMode(arg1:number,arg2:string):Promise<string>;
 
 export function OpenFolder(arg1:string):Promise<void>;
+
+export function OpenTestMode():Promise<Record<string, any>>;
+
+export function OpenToolkitFolder():Promise<string>;
 
 export function PinDYTCMode(arg1:string):Promise<void>;
 
@@ -105,6 +125,8 @@ export function ResetNPUDefaults(arg1:number):Promise<backend.NPUPowerAction>;
 export function RestartService():Promise<string>;
 
 export function RestoreDefaults():Promise<string>;
+
+export function RunToolkitTool(arg1:string):Promise<string>;
 
 export function SetDYTCMode(arg1:string):Promise<string>;
 
@@ -149,5 +171,7 @@ export function UninstallDTT():Promise<string>;
 export function UninstallDTTUI():Promise<string>;
 
 export function UninstallDispatcher():Promise<backend.UninstallResult>;
+
+export function UninstallToolkitTool(arg1:string):Promise<string>;
 
 export function UnpinDYTCMode():Promise<void>;

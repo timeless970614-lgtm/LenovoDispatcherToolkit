@@ -22,12 +22,20 @@ export function ApplySoftParkLatency(arg1, arg2) {
   return window['go']['main']['App']['ApplySoftParkLatency'](arg1, arg2);
 }
 
+export function CheckAllToolkitInstalled() {
+  return window['go']['main']['App']['CheckAllToolkitInstalled']();
+}
+
 export function CheckDYTCCapabilities() {
   return window['go']['main']['App']['CheckDYTCCapabilities']();
 }
 
 export function CheckNVIDIAStatus() {
   return window['go']['main']['App']['CheckNVIDIAStatus']();
+}
+
+export function CheckToolkitInstalled(arg1) {
+  return window['go']['main']['App']['CheckToolkitInstalled'](arg1);
 }
 
 export function EnableDynamicLog() {
@@ -88,6 +96,10 @@ export function GetGPUPrefStatusFromCache() {
 
 export function GetIGPUMode() {
   return window['go']['main']['App']['GetIGPUMode']();
+}
+
+export function GetInstalledToolkitTools() {
+  return window['go']['main']['App']['GetInstalledToolkitTools']();
 }
 
 export function GetIntelDriverDownloadURL() {
@@ -174,8 +186,28 @@ export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
 }
 
+export function GetToolkitInstallDir() {
+  return window['go']['main']['App']['GetToolkitInstallDir']();
+}
+
+export function GetToolkitProgress(arg1) {
+  return window['go']['main']['App']['GetToolkitProgress'](arg1);
+}
+
+export function GetToolkitTools() {
+  return window['go']['main']['App']['GetToolkitTools']();
+}
+
+export function InstallToolkitTool(arg1) {
+  return window['go']['main']['App']['InstallToolkitTool'](arg1);
+}
+
 export function IsElevated() {
   return window['go']['main']['App']['IsElevated']();
+}
+
+export function IsToolkitBusy(arg1) {
+  return window['go']['main']['App']['IsToolkitBusy'](arg1);
 }
 
 export function NPUGetDVFSMode(arg1) {
@@ -188,6 +220,14 @@ export function NPUSetDVFSMode(arg1, arg2) {
 
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
+}
+
+export function OpenTestMode() {
+  return window['go']['main']['App']['OpenTestMode']();
+}
+
+export function OpenToolkitFolder() {
+  return window['go']['main']['App']['OpenToolkitFolder']();
 }
 
 export function PinDYTCMode(arg1) {
@@ -208,6 +248,10 @@ export function RestartService() {
 
 export function RestoreDefaults() {
   return window['go']['main']['App']['RestoreDefaults']();
+}
+
+export function RunToolkitTool(arg1) {
+  return window['go']['main']['App']['RunToolkitTool'](arg1);
 }
 
 export function SetDYTCMode(arg1) {
@@ -296,6 +340,10 @@ export function UninstallDTTUI() {
 
 export function UninstallDispatcher() {
   return window['go']['main']['App']['UninstallDispatcher']();
+}
+
+export function UninstallToolkitTool(arg1) {
+  return window['go']['main']['App']['UninstallToolkitTool'](arg1);
 }
 
 export function UnpinDYTCMode() {

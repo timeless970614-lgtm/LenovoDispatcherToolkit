@@ -250,24 +250,36 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 	if sleepSec <= 0 {
 		sleepSec = 30
 	}
-	// Just start + wait; goroutine will stop after duration
-	// Correct WPR syntax: wpr -start <profile> <filename>
-	wprScript := fmt.Sprintf(
-		`wpr -start %s "%s" && timeout /t %d`,
-		profile, outputFile, sleepSec,
-	)
-
-	// Launch visible cmd window for wpr -start + timeout countdown
-	cmd := visibleCmd("cmd.exe", "/C", wprScript+" & pause")
+	// Correct WPR start syntax: wpr -start <profile> -instancename <session>
+	// -instancename MUST be the last parameter per WPR documentation
+	// Output file is specified at wpr -stop time, not at start time
+	// First, start WPR with hiddenCmd to capture output and verify success
+	startCmd := fmt.Sprintf(`wpr -start %s -filemode -recordtempto "%s" -instancename dispatcher_trace`, profile, etlOutputDir)
+	cmd := hiddenCmd("cmd.exe", "/C", startCmd)
 	cmd.Dir = etlOutputDir
-	if err := cmd.Start(); err != nil {
+	startOut, startErr := cmd.CombinedOutput()
+
+	// Log the start result
+	logFile := etlOutputDir + "\\wpr_goroutine_log.txt"
+	f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f.WriteString(fmt.Sprintf("[%s] wpr -start command: %s\n", time.Now().Format("15:04:05.000"), startCmd))
+	f.WriteString(fmt.Sprintf("[%s] wpr -start exit: %v\n", time.Now().Format("15:04:05.000"), startErr))
+	f.WriteString(fmt.Sprintf("[%s] wpr -start output:\n%s\n", time.Now().Format("15:04:05.000"), string(startOut)))
+	f.Close()
+
+	if startErr != nil {
 		return ETLCaptureState{
 			IsCapturing: false,
 			Status:      "error",
-			Error:       fmt.Sprintf("Failed to launch WPR command: %s", err.Error()),
+			Error:       fmt.Sprintf("WPR start failed: %s", string(startOut)),
 		}
 	}
-	// Don't wait for it — the cmd window runs independently
+
+	// Start succeeded - launch visible cmd window for countdown display
+	countdownScript := fmt.Sprintf(`echo WPR trace started with profile %s. Auto-stopping in %d seconds... && timeout /t %d`, profile, sleepSec, sleepSec)
+	countdownCmd := visibleCmd("cmd.exe", "/C", countdownScript+" & pause")
+	countdownCmd.Dir = etlOutputDir
+	countdownCmd.Start() // Don't wait - let user see the countdown
 
 	captureState = ETLCaptureState{
 		IsCapturing: true,
@@ -307,10 +319,14 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 		captureMu.Unlock()
 
 		// Run wpr -stop outside the lock so UI doesn't block
-		// Correct syntax: wpr -stop <session> <description> <output.etl>
-		stopScript := fmt.Sprintf(`wpr -stop dispatcher_trace "ETL_Trace_Capture" "%s"`, outputPath)
+		// Correct WPR stop syntax: wpr -stop <output.etl> <description> -instancename <session>
+		// -instancename MUST be the last parameter per WPR documentation
+		stopScript := fmt.Sprintf(`wpr -stop "%s" "ETL_Trace_Capture" -force -instancename dispatcher_trace`, outputPath)
 		cmd := hiddenCmd("cmd.exe", "/C", stopScript)
 		cmd.Dir = etlOutputDir
+		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		f.WriteString(fmt.Sprintf("[%s] stop command: %s\n", time.Now().Format("15:04:05.000"), stopScript))
+		f.Close()
 		out, err := cmd.CombinedOutput()
 		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
 		f.WriteString(fmt.Sprintf("[%s] wpr -stop done. err=%v output=%s\n", time.Now().Format("15:04:05.000"), err, string(out)))
@@ -332,8 +348,8 @@ func StopETLCapture() ETLTraceInfo {
 	outputPath := captureState.OutputPath
 
 	// Run wpr -stop and -merge silently (goroutine may have already done this)
-	// Correct syntax: wpr -stop <session> <description> <output.etl>
-	stopScript := fmt.Sprintf(`wpr -stop dispatcher_trace "ETL_Trace_Capture" "%s"`, outputPath)
+	// Correct WPR stop syntax: wpr -stop <output.etl> <description> -instancename <session> -force
+	stopScript := fmt.Sprintf(`wpr -stop "%s" "ETL_Trace_Capture" -instancename dispatcher_trace -force`, outputPath)
 	cmd := hiddenCmd("cmd.exe", "/C", stopScript)
 	cmd.Dir = etlOutputDir
 	cmd.Run() // ignore error — may already be stopped

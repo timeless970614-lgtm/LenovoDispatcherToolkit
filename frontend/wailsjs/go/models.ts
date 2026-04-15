@@ -308,14 +308,11 @@ export namespace backend {
 	    }
 	}
 	export class EPOTStatus {
-	    epot: number;
-	    epp: number;
-	    epp1: number;
-	    ppmFrequencyLimit: number;
-	    ppmFrequencyLimit1: number;
-	    ppmCpMin: number;
-	    ppmCpMax: number;
-	    softParking: number;
+	    epot1: number;
+	    epot2: number;
+	    epot3: number;
+	    epot4: number;
+	    valid: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new EPOTStatus(source);
@@ -323,14 +320,11 @@ export namespace backend {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.epot = source["epot"];
-	        this.epp = source["epp"];
-	        this.epp1 = source["epp1"];
-	        this.ppmFrequencyLimit = source["ppmFrequencyLimit"];
-	        this.ppmFrequencyLimit1 = source["ppmFrequencyLimit1"];
-	        this.ppmCpMin = source["ppmCpMin"];
-	        this.ppmCpMax = source["ppmCpMax"];
-	        this.softParking = source["softParking"];
+	        this.epot1 = source["epot1"];
+	        this.epot2 = source["epot2"];
+	        this.epot3 = source["epot3"];
+	        this.epot4 = source["epot4"];
+	        this.valid = source["valid"];
 	    }
 	}
 	export class ProfileAnalysis {
@@ -1223,6 +1217,11 @@ export namespace backend {
 	    }
 	}
 	export class PPMSettings {
+	    schemeName: string;
+	    schemeGUID: string;
+	    minPerf: PPMSetting;
+	    maxPerf: PPMSetting;
+	    cpMinCores: PPMSetting;
 	    epp: PPMSetting;
 	    epp1: PPMSetting;
 	    heteroInc: PPMSetting;
@@ -1230,11 +1229,6 @@ export namespace backend {
 	    maxFreq: PPMSetting;
 	    maxFreq1: PPMSetting;
 	    softPark: PPMSetting;
-	    cpMinCores: PPMSetting;
-	    minPerf: PPMSetting;
-	    maxPerf: PPMSetting;
-	    schemeName: string;
-	    schemeGUID: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PPMSettings(source);
@@ -1242,6 +1236,11 @@ export namespace backend {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.schemeName = source["schemeName"];
+	        this.schemeGUID = source["schemeGUID"];
+	        this.minPerf = this.convertValues(source["minPerf"], PPMSetting);
+	        this.maxPerf = this.convertValues(source["maxPerf"], PPMSetting);
+	        this.cpMinCores = this.convertValues(source["cpMinCores"], PPMSetting);
 	        this.epp = this.convertValues(source["epp"], PPMSetting);
 	        this.epp1 = this.convertValues(source["epp1"], PPMSetting);
 	        this.heteroInc = this.convertValues(source["heteroInc"], PPMSetting);
@@ -1249,11 +1248,6 @@ export namespace backend {
 	        this.maxFreq = this.convertValues(source["maxFreq"], PPMSetting);
 	        this.maxFreq1 = this.convertValues(source["maxFreq1"], PPMSetting);
 	        this.softPark = this.convertValues(source["softPark"], PPMSetting);
-	        this.cpMinCores = this.convertValues(source["cpMinCores"], PPMSetting);
-	        this.minPerf = this.convertValues(source["minPerf"], PPMSetting);
-	        this.maxPerf = this.convertValues(source["maxPerf"], PPMSetting);
-	        this.schemeName = source["schemeName"];
-	        this.schemeGUID = source["schemeGUID"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1360,6 +1354,78 @@ export namespace backend {
 	        this.OSVersion = source["OSVersion"];
 	        this.TotalMemoryGB = source["TotalMemoryGB"];
 	        this.MemoryType = source["MemoryType"];
+	    }
+	}
+	export class ToolkitInstallProgress {
+	    toolId: string;
+	    status: string;
+	    progress: number;
+	    message: string;
+	    timestamp: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolkitInstallProgress(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.toolId = source["toolId"];
+	        this.status = source["status"];
+	        this.progress = source["progress"];
+	        this.message = source["message"];
+	        this.timestamp = source["timestamp"];
+	    }
+	}
+	export class ToolkitInstallStatus {
+	    toolId: string;
+	    installed: boolean;
+	    installPath: string;
+	    version: string;
+	    lastChecked: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolkitInstallStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.toolId = source["toolId"];
+	        this.installed = source["installed"];
+	        this.installPath = source["installPath"];
+	        this.version = source["version"];
+	        this.lastChecked = source["lastChecked"];
+	    }
+	}
+	export class ToolkitTool {
+	    id: string;
+	    name: string;
+	    description: string;
+	    version: string;
+	    category: string;
+	    wingetId: string;
+	    executableName: string;
+	    installLocation: string;
+	    sizeMb: number;
+	    website: string;
+	    vendor: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolkitTool(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.version = source["version"];
+	        this.category = source["category"];
+	        this.wingetId = source["wingetId"];
+	        this.executableName = source["executableName"];
+	        this.installLocation = source["installLocation"];
+	        this.sizeMb = source["sizeMb"];
+	        this.website = source["website"];
+	        this.vendor = source["vendor"];
 	    }
 	}
 	export class UninstallResult {

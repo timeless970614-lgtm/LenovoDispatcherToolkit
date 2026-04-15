@@ -99,17 +99,13 @@ func (a *App) RestartService() string {
 // ============ PPM Settings ============
 
 // GetPPMSettings reads all current PPM power settings
-func (a *App) GetPPMSettings() backend.PPMSettings {
+func (a *App) GetPPMSettings() *backend.PPMSettings {
 	return backend.GetPPMSettings()
 }
 
 // SetPowerSettingRaw sets a power setting by GUID with raw AC/DC values
-func (a *App) SetPowerSettingRaw(settingGUID string, acValue, dcValue int) string {
-	err := backend.SetPowerSettingRaw(settingGUID, acValue, dcValue)
-	if err != nil {
-		return "Error: " + err.Error()
-	}
-	return "OK"
+func (a *App) SetPowerSettingRaw(settingGUID string, acValue, dcValue uint32) string {
+	return backend.SetPowerSettingRaw(settingGUID, acValue, dcValue)
 }
 
 // ApplyHetero applies Hetero scheduling settings
@@ -221,6 +217,13 @@ func (a *App) CheckDYTCCapabilities() map[string]bool {
 		"GEEK": backend.CheckGEEK(),
 		"DCC":  backend.CheckDCC(),
 	}
+}
+
+// ============ Test Mode ============
+
+// OpenTestMode opens a CMD window for test mode operations
+func (a *App) OpenTestMode() map[string]interface{} {
+	return backend.OpenTestMode()
 }
 
 // ============ Function Check (GPU & System Diagnostics) ============
@@ -604,4 +607,73 @@ func (a *App) GetETLTraceList() []backend.ETLTraceInfo {
 // AnalyzeETLFile parses an ETL file and returns structured analysis results
 func (a *App) AnalyzeETLFile(etlPath string) backend.ETLAnalysisResult {
 	return backend.AnalyzeETLFile(etlPath)
+}
+
+// ============ Toolkit - One-click Tool Installation ============
+
+// GetToolkitTools returns the list of available tools for installation
+func (a *App) GetToolkitTools() []backend.ToolkitTool {
+	return backend.GetToolkitTools()
+}
+
+// GetToolkitInstallDir returns the toolkit installation directory
+func (a *App) GetToolkitInstallDir() string {
+	return backend.GetToolkitInstallDir()
+}
+
+// CheckToolkitInstalled checks if a specific tool is installed
+func (a *App) CheckToolkitInstalled(toolID string) backend.ToolkitInstallStatus {
+	return backend.CheckToolkitInstalled(toolID)
+}
+
+// CheckAllToolkitInstalled returns installation status for all tools
+func (a *App) CheckAllToolkitInstalled() []backend.ToolkitInstallStatus {
+	return backend.CheckAllToolkitInstalled()
+}
+
+// InstallToolkitTool downloads and installs a tool by ID
+func (a *App) InstallToolkitTool(toolID string) backend.ToolkitInstallProgress {
+	return backend.InstallToolkitTool(toolID)
+}
+
+// UninstallToolkitTool removes a downloaded tool
+func (a *App) UninstallToolkitTool(toolID string) string {
+	err := backend.UninstallToolkitTool(toolID)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return "Tool removed successfully"
+}
+
+// RunToolkitTool launches an installed tool
+func (a *App) RunToolkitTool(toolID string) string {
+	err := backend.RunToolkitTool(toolID)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return "Tool launched"
+}
+
+// OpenToolkitFolder opens the toolkit installation folder in Explorer
+func (a *App) OpenToolkitFolder() string {
+	err := backend.OpenToolkitFolder()
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return "Folder opened"
+}
+
+// GetToolkitProgress returns current installation progress for a tool
+func (a *App) GetToolkitProgress(toolID string) backend.ToolkitInstallProgress {
+	return backend.GetToolkitProgress(toolID)
+}
+
+// IsToolkitBusy checks if a tool is currently being installed
+func (a *App) IsToolkitBusy(toolID string) bool {
+	return backend.IsToolkitBusy(toolID)
+}
+
+// GetInstalledToolkitTools returns list of installed tool IDs
+func (a *App) GetInstalledToolkitTools() []string {
+	return backend.GetInstalledToolkitTools()
 }
