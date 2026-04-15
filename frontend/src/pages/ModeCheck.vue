@@ -72,98 +72,143 @@
         </div>
       </div>
 
-      <!-- DYTC Function Card -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-            DYTC Dispatcher Function
-          </span>
-        </div>
-
-        <div class="dytc-display">
-          <div class="dytc-value">
-            <span class="dytc-label">DISPATCHER_FUNCTION</span>
-            <span class="dytc-hex">{{ info.dytcValue ? '0x' + info.dytcValue.toString(16).toUpperCase().padStart(8, '0') : 'N/A' }}</span>
-          </div>
-          <div class="dytc-binary" v-if="info.dytcBinary">
-            <span class="binary-label">Binary:</span>
-            <span class="binary-value">{{ info.dytcBinary }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Features Card -->
-      <div class="card" v-if="info.features && info.features.length">
-        <div class="card-header">
-          <span class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            Supported Features
-          </span>
-        </div>
-
-        <div class="features-list">
-          <div v-for="feature in info.features" :key="feature.name" class="feature-row">
-            <div class="feature-name">{{ feature.name }}</div>
-            <div class="feature-support" :class="feature.value === 'Y' ? 'support-yes' : 'support-na'">
-              {{ feature.value === 'Y' ? 'Supported' : 'N/A' }}
-            </div>
-            <div class="feature-desc">{{ feature.support }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Policy Enable Function Card -->
-      <div class="card">
-        <div class="card-header">
+      <!-- Advanced Section - Password Protected -->
+      <div class="card advanced-section">
+        <div class="card-header advanced-toggle" @click="toggleAdvanced">
           <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            Policy Enable Function
+            Advanced DYTC Settings
           </span>
-          <span class="func-value">{{ info.enableFuncHex }}</span>
+          <svg :class="['chevron-icon', { 'chevron-open': advancedUnlocked }]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </div>
 
-        <div class="policy-list">
-          <div 
-            v-for="policy in info.enableFuncPolicies" 
-            :key="policy.bit"
-            :class="['policy-row', policy.enabled ? 'policy-enabled' : 'policy-disabled']"
-          >
-            <div class="policy-bit">
-              <span class="bit-num">bit{{ policy.bit }}</span>
+        <!-- Password Prompt (shown when collapsed & not unlocked) -->
+        <div v-if="!advancedUnlocked" class="password-prompt">
+          <div class="password-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; flex-shrink:0;">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <input 
+              type="password" 
+              class="password-input" 
+              v-model="advancedPassword" 
+              placeholder="Enter password to unlock"
+              @keydown.enter="unlockAdvanced"
+              ref="passwordInput"
+            />
+            <button class="btn-unlock" @click="unlockAdvanced">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+              Unlock
+            </button>
+          </div>
+          <div v-if="passwordError" class="password-error">{{ passwordError }}</div>
+        </div>
+
+        <!-- Unlocked Content -->
+        <div v-if="advancedUnlocked" class="advanced-content">
+          <!-- DYTC Function Card -->
+          <div class="sub-card">
+            <div class="sub-card-header">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                  <polyline points="16 18 22 12 16 6"/>
+                  <polyline points="8 6 2 12 8 18"/>
+                </svg>
+                DYTC Dispatcher Function
+              </span>
             </div>
-            <div class="policy-indicator">
-              <span v-if="policy.enabled" class="led led-on"></span>
-              <span v-else class="led led-off"></span>
+
+            <div class="dytc-display">
+              <div class="dytc-value">
+                <span class="dytc-label">DISPATCHER_FUNCTION</span>
+                <span class="dytc-hex">{{ info.dytcValue ? '0x' + info.dytcValue.toString(16).toUpperCase().padStart(8, '0') : 'N/A' }}</span>
+              </div>
+              <div class="dytc-binary" v-if="info.dytcBinary">
+                <span class="binary-label">Binary:</span>
+                <span class="binary-value">{{ info.dytcBinary }}</span>
+              </div>
             </div>
-            <div class="policy-info">
-              <span class="policy-name">{{ policy.name }}</span>
-              <span class="policy-desc">{{ policy.desc }}</span>
+          </div>
+
+          <!-- Features Card -->
+          <div class="sub-card" v-if="info.features && info.features.length">
+            <div class="sub-card-header">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                Supported Features
+              </span>
             </div>
-            <div class="policy-status">
-              <span :class="['status-tag', policy.enabled ? 'tag-on' : 'tag-off']">
-                {{ policy.enabled ? 'ON' : 'OFF' }}
+
+            <div class="features-list">
+              <div v-for="feature in info.features" :key="feature.name" class="feature-row">
+                <div class="feature-name">{{ feature.name }}</div>
+                <div class="feature-support" :class="feature.value === 'Y' ? 'support-yes' : 'support-na'">
+                  {{ feature.value === 'Y' ? 'Supported' : 'N/A' }}
+                </div>
+                <div class="feature-desc">{{ feature.support }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Policy Enable Function Card -->
+          <div class="sub-card">
+            <div class="sub-card-header">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Policy Enable Function
+              </span>
+              <span class="func-value">{{ info.enableFuncHex }}</span>
+            </div>
+
+            <div class="policy-list">
+              <div 
+                v-for="policy in info.enableFuncPolicies" 
+                :key="policy.bit"
+                :class="['policy-row', policy.enabled ? 'policy-enabled' : 'policy-disabled']"
+              >
+                <div class="policy-bit">
+                  <span class="bit-num">bit{{ policy.bit }}</span>
+                </div>
+                <div class="policy-indicator">
+                  <span v-if="policy.enabled" class="led led-on"></span>
+                  <span v-else class="led led-off"></span>
+                </div>
+                <div class="policy-info">
+                  <span class="policy-name">{{ policy.name }}</span>
+                  <span class="policy-desc">{{ policy.desc }}</span>
+                </div>
+                <div class="policy-status">
+                  <span :class="['status-tag', policy.enabled ? 'tag-on' : 'tag-off']">
+                    {{ policy.enabled ? 'ON' : 'OFF' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="policy-summary">
+              <span class="summary-item">
+                <span class="led led-on"></span>
+                {{ info.enableFuncPolicies.filter(p => p.enabled).length }} policies enabled
+              </span>
+              <span class="summary-item">
+                <span class="led led-off"></span>
+                {{ info.enableFuncPolicies.filter(p => !p.enabled).length }} policies disabled
               </span>
             </div>
           </div>
-        </div>
-
-        <div class="policy-summary">
-          <span class="summary-item">
-            <span class="led led-on"></span>
-            {{ info.enableFuncPolicies.filter(p => p.enabled).length }} policies enabled
-          </span>
-          <span class="summary-item">
-            <span class="led led-off"></span>
-            {{ info.enableFuncPolicies.filter(p => !p.enabled).length }} policies disabled
-          </span>
         </div>
       </div>
 
@@ -177,6 +222,10 @@
             </svg>
             DTT Uninstall
           </span>
+          <div class="driver-versions">
+            <span class="drv-tag">IPF Framework <strong>v2.2.10204.8</strong></span>
+            <span class="drv-tag">DTT <strong>v9.0.11905.54373</strong></span>
+          </div>
         </div>
 
         <div class="dtt-uninstall-content">
@@ -241,7 +290,10 @@ export default {
       ],
       uninstallingDTT: false,
       uninstallingDTTUI: false,
-      dttResult: null
+      dttResult: null,
+      advancedUnlocked: false,
+      advancedPassword: '',
+      passwordError: ''
     }
   },
   async mounted() {
@@ -451,6 +503,24 @@ export default {
         this.dttResult = { success: false, message: 'Error: ' + e }
       }
       this.uninstallingDTTUI = false
+    },
+
+    toggleAdvanced() {
+      // If already unlocked, toggle collapse
+      if (this.advancedUnlocked) {
+        this.advancedUnlocked = !this.advancedUnlocked
+      }
+    },
+
+    unlockAdvanced() {
+      if (this.advancedPassword === 'Lenovo2026') {
+        this.advancedUnlocked = true
+        this.passwordError = ''
+        this.advancedPassword = ''
+      } else {
+        this.passwordError = 'Need Dispatcher owner check'
+        setTimeout(() => { this.passwordError = '' }, 3000)
+      }
     }
   }
 }
@@ -951,6 +1021,140 @@ export default {
 .dtt-result { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; }
 .dtt-result.success { background: rgba(76,175,80,0.1); color: #4CAF50; }
 .dtt-result.error { background: rgba(239,68,68,0.1); color: #EF4444; }
+
+.driver-versions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.drv-tag {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.drv-tag strong {
+  color: var(--accent-green);
+  font-family: 'Consolas', monospace;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* Advanced Section - Password Protected */
+.advanced-section {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.advanced-toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+  border-radius: var(--radius-lg);
+  margin: -20px -20px 0 -20px;
+  padding: 16px 20px;
+}
+
+.advanced-toggle:hover {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.chevron-icon {
+  transition: transform 0.25s ease;
+  color: var(--text-tertiary);
+}
+
+.chevron-icon.chevron-open {
+  transform: rotate(180deg);
+}
+
+.password-prompt {
+  padding: 16px 0 0 0;
+}
+
+.password-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.password-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'Consolas', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.password-input:focus {
+  border-color: #F59E0B;
+}
+
+.password-input::placeholder {
+  color: var(--text-tertiary);
+  font-family: inherit;
+}
+
+.btn-unlock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  color: #F59E0B;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-unlock:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #F59E0B;
+}
+
+.password-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #EF4444;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.advanced-content {
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sub-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.sub-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sub-card-header .card-title {
+  font-size: 13px;
+}
 
 /* Responsive */
 @media (max-width: 900px) {
