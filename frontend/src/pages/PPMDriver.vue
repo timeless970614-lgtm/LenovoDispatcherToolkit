@@ -15,7 +15,6 @@
         </div>
         <div class="card-title-info">
           <h2>Platform & PPM Drivers</h2>
-          <p class="card-subtitle">System information and power management components</p>
         </div>
         <button class="btn-refresh" @click="loadPPMInfo" :disabled="loading">
           <svg :class="{ 'spin': loading }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -259,8 +258,8 @@ export default {
 .ppm-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 12px;
   height: calc(100vh - 140px);
   overflow-y: auto;
 }

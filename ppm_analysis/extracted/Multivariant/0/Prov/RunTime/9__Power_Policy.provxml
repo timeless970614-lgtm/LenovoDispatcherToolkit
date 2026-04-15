@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<wap-provisioningdoc>
+  <characteristic type="MCSF">
+    <characteristic type="Power">
+      <characteristic type="Policy">
+        <characteristic type="Settings">
+          <characteristic type="Processor">
+            <characteristic type="SchemePersonality">
+              <characteristic type="381b4222-f694-41f0-9685-ff5bb260df2e">
+                <characteristic type="8bc6262c-c026-411d-ae3b-7e2f70811a13">
+                  <characteristic type="CPConcurrency">
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPDecreaseTime">
+                    <parm name="DcValue" value="1" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPHeadroom">
+                    <parm name="DcValue" value="90" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPIncreaseTime">
+                    <parm name="DcValue" value="2" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPMaxCores">
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPMinCores">
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfBoostMode">
+                    <parm name="DcValue" value="0" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+            </characteristic>
+          </characteristic>
+        </characteristic>
+      </characteristic>
+    </characteristic>
+  </characteristic>
+</wap-provisioningdoc>

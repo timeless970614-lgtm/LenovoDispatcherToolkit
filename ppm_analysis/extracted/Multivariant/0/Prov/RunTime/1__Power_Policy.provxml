@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<wap-provisioningdoc>
+  <characteristic type="MCSF">
+    <characteristic type="Power">
+      <characteristic type="Policy">
+        <characteristic type="Settings">
+          <characteristic type="Processor">
+            <characteristic type="SchemePersonality">
+              <characteristic type="381b4222-f694-41f0-9685-ff5bb260df2e">
+                <characteristic type="8bc6262c-c026-411d-ae3b-7e2f70811a13">
+                  <characteristic type="PerfBoostMode">
+                    <parm name="AcValue" value="0" datatype="integer" />
+                    <parm name="DcValue" value="0" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="ee1e4f72-e368-46b1-b3c6-5048b11c2dbd">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+              <characteristic type="961cc777-2547-4f9d-8174-7d86181b8a7a">
+                <characteristic type="DefaultPowerSchemeValues">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+              <characteristic type="ded574b5-45a0-4f42-8737-46345c09c238">
+                <characteristic type="DefaultPowerSchemeValues">
+                  <characteristic type="PerfDecreaseThreshold">
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="DcValue" value="33" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfIncreasePolicy">
+                    <parm name="DcValue" value="2" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfIncreaseThreshold">
+                    <parm name="DcValue" value="30" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+            </characteristic>
+          </characteristic>
+        </characteristic>
+      </characteristic>
+    </characteristic>
+  </characteristic>
+</wap-provisioningdoc>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<wap-provisioningdoc>
+  <characteristic type="MCSF">
+    <characteristic type="Power">
+      <characteristic type="Policy">
+        <characteristic type="Settings">
+          <characteristic type="Processor">
+            <characteristic type="SchemePersonality">
+              <characteristic type="ded574b5-45a0-4f42-8737-46345c09c238">
+                <characteristic type="0c3d5326-944b-4aab-8ad8-fe422a0e50e0">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="DcValue" value="33" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="a4a61b5f-f42c-4d23-b3ab-5c27df9f0f18">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="25" datatype="integer" />
+                    <parm name="DcValue" value="33" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+            </characteristic>
+          </characteristic>
+        </characteristic>
+      </characteristic>
+    </characteristic>
+  </characteristic>
+</wap-provisioningdoc>
