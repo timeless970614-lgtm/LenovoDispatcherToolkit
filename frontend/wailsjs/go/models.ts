@@ -1200,8 +1200,6 @@ export namespace backend {
 	    name: string;
 	    version: string;
 	    date: string;
-	    manufacturer: string;
-	    location: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PPMDriverInfo(source);
@@ -1212,8 +1210,6 @@ export namespace backend {
 	        this.name = source["name"];
 	        this.version = source["version"];
 	        this.date = source["date"];
-	        this.manufacturer = source["manufacturer"];
-	        this.location = source["location"];
 	    }
 	}
 	export class PPMPlatformInfo {

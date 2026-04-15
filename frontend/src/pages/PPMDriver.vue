@@ -216,20 +216,19 @@ export default {
           // Load PPM drivers
           const drivers = await window.go.main.App.GetPPMDrivers()
           if (drivers && drivers.length > 0) {
-            // Find IPF Framework (Processor Participant or Generic Participant)
+            // Find IPF Framework Manager
             this.ipfDriver = drivers.find(d => 
-              d.name.includes('Innovation Platform Framework Manager') ||
-              d.name.includes('Processor Participant')
-            ) || drivers.find(d => d.name.includes('Innovation Platform'))
+              d.name && d.name.includes('Framework Manager')
+            )
             
-            // Find DTT
+            // Find DTT (Intel Dynamic Tuning Technology, not Updater)
             this.dttDriver = drivers.find(d => 
-              d.name.includes('Dynamic Tuning Technology') && !d.name.includes('Updater')
+              d.name && d.name.includes('Dynamic Tuning') && !d.name.includes('Updater')
             )
             
             // Find PPM Provisioning
             this.ppmProvisioning = drivers.find(d => 
-              d.name.includes('PPM Provisioning')
+              d.name && d.name.includes('PPM Provisioning')
             )
           }
         }
@@ -241,6 +240,11 @@ export default {
     },
     formatDate(dateStr) {
       if (!dateStr) return ''
+      // PowerShell date format: "20241216000000.******+***"
+      if (dateStr.length >= 8) {
+        return dateStr.substring(0, 4) + '-' + dateStr.substring(4, 6) + '-' + dateStr.substring(6, 8)
+      }
+      // Fallback: try to match YYYYMMDD format
       const match = dateStr.match(/^(\d{4})(\d{2})(\d{2})/)
       if (match) {
         return `${match[1]}-${match[2]}-${match[3]}`

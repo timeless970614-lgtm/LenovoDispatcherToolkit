@@ -3,10 +3,10 @@
 package backend
 
 import (
-	"fmt"
+	"encoding/json"
 	"os/exec"
-	"regexp"
 	"strings"
+	"syscall"
 )
 
 // PPMPlatformInfo represents platform information
@@ -20,11 +20,32 @@ type PPMPlatformInfo struct {
 
 // PPMDriverInfo represents a PPM driver
 type PPMDriverInfo struct {
-	Name         string `json:"name"`
-	Version      string `json:"version"`
-	Date         string `json:"date"`
-	Manufacturer string `json:"manufacturer"`
-	Location     string `json:"location"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Date    string `json:"date"`
+}
+
+// pnpmDriverRaw is used for JSON unmarshaling from PowerShell output
+type pnpmDriverRaw struct {
+	DeviceName    string `json:"DeviceName"`
+	DriverVersion string `json:"DriverVersion"`
+	DriverDate    string `json:"DriverDate"`
+}
+
+// runPowerShellHidden executes PowerShell command without showing window
+func runPowerShellHidden(command string) (string, error) {
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", command)
+	
+	// Hide window on Windows
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+	}
+	
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
 }
 
 // GetPPMPlatformInfo retrieves platform information
@@ -34,37 +55,24 @@ func GetPPMPlatformInfo() *PPMPlatformInfo {
 		Architecture: "x64",
 	}
 
-	// Get CPU info via PowerShell
-	cmd := exec.Command("powershell", "-NoProfile", "-Command",
+	// Get CPU info via PowerShell (hidden window)
+	output, err := runPowerShellHidden(
 		"Get-WmiObject -Class Win32_Processor | Select-Object -First 1 | ConvertTo-Json")
-	output, err := cmd.Output()
-	if err == nil {
-		// Parse JSON-like output
-		lines := strings.Split(string(output), "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, `"Name"`) {
-				re := regexp.MustCompile(`"Name"\s*:\s*"([^"]+)"`)
-				matches := re.FindStringSubmatch(line)
-				if len(matches) > 1 {
-					info.CPUName = matches[1]
-				}
-			}
-			if strings.HasPrefix(line, `"NumberOfCores"`) {
-				re := regexp.MustCompile(`"NumberOfCores"\s*:\s*(\d+)`)
-				matches := re.FindStringSubmatch(line)
-				if len(matches) > 1 {
-					fmt.Sscanf(matches[1], "%d", &info.Cores)
-				}
-			}
-			if strings.HasPrefix(line, `"NumberOfLogicalProcessors"`) {
-				re := regexp.MustCompile(`"NumberOfLogicalProcessors"\s*:\s*(\d+)`)
-				matches := re.FindStringSubmatch(line)
-				if len(matches) > 1 {
-					fmt.Sscanf(matches[1], "%d", &info.Threads)
-				}
-			}
-		}
+	if err != nil {
+		return info
+	}
+
+	// Parse JSON
+	var cpu struct {
+		Name                      string `json:"Name"`
+		NumberOfCores             int    `json:"NumberOfCores"`
+		NumberOfLogicalProcessors int    `json:"NumberOfLogicalProcessors"`
+	}
+	
+	if err := json.Unmarshal([]byte(output), &cpu); err == nil {
+		info.CPUName = cpu.Name
+		info.Cores = cpu.NumberOfCores
+		info.Threads = cpu.NumberOfLogicalProcessors
 	}
 
 	return info
@@ -74,84 +82,60 @@ func GetPPMPlatformInfo() *PPMPlatformInfo {
 func GetPPMDrivers() []PPMDriverInfo {
 	var drivers []PPMDriverInfo
 
-	// PowerShell command to get PPM drivers
-	cmd := exec.Command("powershell", "-NoProfile", "-Command",
-		`Get-WmiObject -Class Win32_PnPSignedDriver | Where-Object { 
-			$_.DeviceName -like "*PPM*" -or 
-			$_.DeviceName -like "*Dynamic Tuning*" -or 
-			$_.DeviceName -like "*Innovation Platform*" -or
-			$_.DeviceName -like "*Processor Participant*"
-		} | Select-Object DeviceName, DriverVersion, DriverDate, Manufacturer, Location | ConvertTo-Json`)
-
-	output, err := cmd.Output()
+	// PowerShell command to get PPM drivers (hidden window)
+	output, err := runPowerShellHidden(
+		`Get-WmiObject -Class Win32_PnPSignedDriver | Where-Object { $_.DeviceName -like "*PPM*" -or $_.DeviceName -like "*Dynamic Tuning*" -or $_.DeviceName -like "*Innovation Platform*" -or $_.DeviceName -like "*Processor Participant*" } | Select-Object DeviceName, DriverVersion, DriverDate | ConvertTo-Json`)
 	if err != nil {
 		return drivers
 	}
 
-	// Parse output
-	text := string(output)
-	
-	// Check if it's an array or single object
-	if strings.Contains(text, `"DeviceName"`) {
-		// Single object or array
-		entries := parseDriverJSON(text)
-		drivers = append(drivers, entries...)
+	// Parse JSON output
+	var rawDrivers []pnpmDriverRaw
+	if err := json.Unmarshal([]byte(output), &rawDrivers); err != nil {
+		// Try single object
+		var singleDriver pnpmDriverRaw
+		if err := json.Unmarshal([]byte(output), &singleDriver); err == nil {
+			rawDrivers = []pnpmDriverRaw{singleDriver}
+		}
+	}
+
+	// Convert to PPMDriverInfo
+	for _, raw := range rawDrivers {
+		driver := PPMDriverInfo{
+			Name:    raw.DeviceName,
+			Version: raw.DriverVersion,
+			Date:    raw.DriverDate,
+		}
+		drivers = append(drivers, driver)
 	}
 
 	return drivers
 }
 
-func parseDriverJSON(text string) []PPMDriverInfo {
-	var drivers []PPMDriverInfo
-
-	// Simple JSON parsing for the format returned by ConvertTo-Json
-	// Split by array elements if array
-	var entries []string
-	if strings.HasPrefix(strings.TrimSpace(text), "[") {
-		// Array - split by }, {
-		re := regexp.MustCompile(`\{\s*"DeviceName"`)
-		entries = re.Split(text, -1)[1:] // Skip first empty
-	} else {
-		entries = []string{text}
+// FormatDate converts PowerShell date format to YYYY-MM-DD
+func FormatDate(dateStr string) string {
+	// PowerShell date format: "20241216000000.******+***"
+	if len(dateStr) >= 8 {
+		return dateStr[0:4] + "-" + dateStr[4:6] + "-" + dateStr[6:8]
 	}
+	return dateStr
+}
 
-	for _, entry := range entries {
-		driver := PPMDriverInfo{}
-		
-		// Extract DeviceName
-		re := regexp.MustCompile(`"DeviceName"\s*:\s*"([^"]+)"`)
-		if matches := re.FindStringSubmatch(entry); len(matches) > 1 {
-			driver.Name = matches[1]
-		}
-		
-		// Extract DriverVersion
-		re = regexp.MustCompile(`"DriverVersion"\s*:\s*"([^"]+)"`)
-		if matches := re.FindStringSubmatch(entry); len(matches) > 1 {
-			driver.Version = matches[1]
-		}
-		
-		// Extract DriverDate
-		re = regexp.MustCompile(`"DriverDate"\s*:\s*"([^"]+)"`)
-		if matches := re.FindStringSubmatch(entry); len(matches) > 1 {
-			driver.Date = matches[1]
-		}
-		
-		// Extract Manufacturer
-		re = regexp.MustCompile(`"Manufacturer"\s*:\s*"([^"]+)"`)
-		if matches := re.FindStringSubmatch(entry); len(matches) > 1 {
-			driver.Manufacturer = matches[1]
-		}
-		
-		// Extract Location
-		re = regexp.MustCompile(`"Location"\s*:\s*"([^"]*)"`)
-		if matches := re.FindStringSubmatch(entry); len(matches) > 1 {
-			driver.Location = matches[1]
-		}
-
-		if driver.Name != "" {
-			drivers = append(drivers, driver)
-		}
+// GetDriverDisplayName returns a short display name for a driver
+func GetDriverDisplayName(name string) string {
+	name = strings.TrimSpace(name)
+	switch {
+	case strings.Contains(name, "Framework Manager"):
+		return "IPF Framework Manager"
+	case strings.Contains(name, "Processor Participant"):
+		return "IPF Processor Participant"
+	case strings.Contains(name, "Generic Participant"):
+		return "IPF Generic Participant"
+	case strings.Contains(name, "Dynamic Tuning") && !strings.Contains(name, "Updater"):
+		return "Intel DTT"
+	case strings.Contains(name, "PPM Provisioning"):
+		return "PPM Provisioning"
+	default:
+		return name
 	}
-
-	return drivers
 }
