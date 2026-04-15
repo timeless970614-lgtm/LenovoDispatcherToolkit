@@ -23,6 +23,7 @@ type PPMDriverInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Date    string `json:"date"`
+	Path    string `json:"path"`
 }
 
 // pnpmDriverRaw is used for JSON unmarshaling from PowerShell output
@@ -30,6 +31,7 @@ type pnpmDriverRaw struct {
 	DeviceName    string `json:"DeviceName"`
 	DriverVersion string `json:"DriverVersion"`
 	DriverDate    string `json:"DriverDate"`
+	InfName       string `json:"InfName"`
 }
 
 // runPowerShellHidden executes PowerShell command without showing window
@@ -84,7 +86,7 @@ func GetPPMDrivers() []PPMDriverInfo {
 
 	// PowerShell command to get PPM drivers (hidden window)
 	output, err := runPowerShellHidden(
-		`Get-WmiObject -Class Win32_PnPSignedDriver | Where-Object { $_.DeviceName -like "*PPM*" -or $_.DeviceName -like "*Dynamic Tuning*" -or $_.DeviceName -like "*Innovation Platform*" -or $_.DeviceName -like "*Processor Participant*" } | Select-Object DeviceName, DriverVersion, DriverDate | ConvertTo-Json`)
+		`Get-WmiObject -Class Win32_PnPSignedDriver | Where-Object { $_.DeviceName -like "*PPM*" -or $_.DeviceName -like "*Dynamic Tuning*" -or $_.DeviceName -like "*Innovation Platform*" -or $_.DeviceName -like "*Processor Participant*" } | Select-Object DeviceName, DriverVersion, DriverDate, InfName | ConvertTo-Json`)
 	if err != nil {
 		return drivers
 	}
@@ -101,15 +103,42 @@ func GetPPMDrivers() []PPMDriverInfo {
 
 	// Convert to PPMDriverInfo
 	for _, raw := range rawDrivers {
+		// For PPM Provisioning, get the actual .ppkg file path
+		ppkgPath := ""
+		if strings.Contains(raw.DeviceName, "PPM Provisioning") {
+			ppkgPath = getPPMProvisioningPath()
+		}
+		
 		driver := PPMDriverInfo{
 			Name:    raw.DeviceName,
 			Version: raw.DriverVersion,
 			Date:    raw.DriverDate,
+			Path:    ppkgPath,
 		}
 		drivers = append(drivers, driver)
 	}
 
 	return drivers
+}
+
+// getPPMProvisioningPath finds the PPM Provisioning .ppkg file
+func getPPMProvisioningPath() string {
+	// Check common locations for PPM Provisioning packages
+	output, err := runPowerShellHidden(
+		`Get-ChildItem -Path "C:\Windows\provisioning\packages" -Filter "*.ppkg" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName`)
+	if err != nil {
+		return ""
+	}
+	
+	// Return first .ppkg file found (usually there's only one)
+	paths := strings.Split(strings.TrimSpace(output), "\n")
+	for _, p := range paths {
+		p = strings.TrimSpace(p)
+		if p != "" && strings.HasSuffix(strings.ToLower(p), ".ppkg") {
+			return p
+		}
+	}
+	return ""
 }
 
 // FormatDate converts PowerShell date format to YYYY-MM-DD

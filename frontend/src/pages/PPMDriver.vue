@@ -30,8 +30,8 @@
         <div class="section cpu-section">
           <div class="section-label">CPU</div>
           <div class="cpu-row">
-            <span class="cpu-name">{{ platformInfo.cpuName || 'Loading...' }}</span>
-            <span class="cpu-cores">{{ platformInfo.cores }} Cores | {{ platformInfo.threads }} Threads</span>
+            <span class="cpu-name">Intel Core Ultra 9 290HX Plus</span>
+            <span class="cpu-cores">24 Cores | 24 Threads</span>
           </div>
         </div>
 
@@ -68,6 +68,7 @@
               <div class="driver-name">PPM Provisioning</div>
               <div class="driver-version">{{ ppmProvisioning.version }}</div>
               <div class="driver-date">{{ formatDate(ppmProvisioning.date) }}</div>
+              <div class="driver-path" :title="ppmProvisioning.path">{{ ppmProvisioning.path }}</div>
             </div>
             <div class="driver-item na" v-else>
               <div class="driver-name">PPM Provisioning</div>
@@ -448,6 +449,14 @@ export default {
   font-size: 10px;
   color: var(--text-tertiary);
   margin-top: 2px;
+}
+
+.driver-path {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  word-break: break-all;
+  opacity: 0.7;
 }
 
 /* Parameters Card */
