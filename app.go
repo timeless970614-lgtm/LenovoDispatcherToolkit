@@ -677,3 +677,15 @@ func (a *App) IsToolkitBusy(toolID string) bool {
 func (a *App) GetInstalledToolkitTools() []string {
 	return backend.GetInstalledToolkitTools()
 }
+
+// ============ PPM Driver Info ============
+
+// GetPPMPlatformInfo returns platform information (CPU, cores, etc.)
+func (a *App) GetPPMPlatformInfo() *backend.PPMPlatformInfo {
+	return backend.GetPPMPlatformInfo()
+}
+
+// GetPPMDrivers returns list of PPM related drivers
+func (a *App) GetPPMDrivers() []backend.PPMDriverInfo {
+	return backend.GetPPMDrivers()
+}

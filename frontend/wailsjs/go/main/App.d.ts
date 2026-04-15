@@ -84,6 +84,10 @@ export function GetNPUREport():Promise<string>;
 
 export function GetNPUSDKInfo():Promise<backend.NPUSDKInfo>;
 
+export function GetPPMDrivers():Promise<Array<backend.PPMDriverInfo>>;
+
+export function GetPPMPlatformInfo():Promise<backend.PPMPlatformInfo>;
+
 export function GetPPMSettings():Promise<backend.PPMSettings>;
 
 export function GetPinnedDYTCMode():Promise<string>;

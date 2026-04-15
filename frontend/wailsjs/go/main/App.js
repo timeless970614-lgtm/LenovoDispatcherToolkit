@@ -166,6 +166,14 @@ export function GetNPUSDKInfo() {
   return window['go']['main']['App']['GetNPUSDKInfo']();
 }
 
+export function GetPPMDrivers() {
+  return window['go']['main']['App']['GetPPMDrivers']();
+}
+
+export function GetPPMPlatformInfo() {
+  return window['go']['main']['App']['GetPPMPlatformInfo']();
+}
+
 export function GetPPMSettings() {
   return window['go']['main']['App']['GetPPMSettings']();
 }

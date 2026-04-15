@@ -1196,6 +1196,46 @@ export namespace backend {
 	    }
 	}
 	
+	export class PPMDriverInfo {
+	    name: string;
+	    version: string;
+	    date: string;
+	    manufacturer: string;
+	    location: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PPMDriverInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.version = source["version"];
+	        this.date = source["date"];
+	        this.manufacturer = source["manufacturer"];
+	        this.location = source["location"];
+	    }
+	}
+	export class PPMPlatformInfo {
+	    cpuName: string;
+	    cores: number;
+	    threads: number;
+	    platform: string;
+	    architecture: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PPMPlatformInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cpuName = source["cpuName"];
+	        this.cores = source["cores"];
+	        this.threads = source["threads"];
+	        this.platform = source["platform"];
+	        this.architecture = source["architecture"];
+	    }
+	}
 	export class PPMSetting {
 	    name: string;
 	    guid: string;
