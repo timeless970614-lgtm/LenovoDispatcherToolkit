@@ -1,7 +1,7 @@
 <template>
   <div class="ppm-page">
-    <!-- Platform Info Card -->
-    <div class="card platform-card">
+    <!-- Combined Platform & Drivers Card -->
+    <div class="card info-card">
       <div class="card-header">
         <div class="card-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -11,43 +11,11 @@
             <line x1="15" y1="2" x2="15" y2="4"/>
             <line x1="9" y1="20" x2="9" y2="22"/>
             <line x1="15" y1="20" x2="15" y2="22"/>
-            <line x1="20" y1="9" x2="22" y2="9"/>
-            <line x1="20" y1="14" x2="22" y2="14"/>
-            <line x1="2" y1="9" x2="4" y2="9"/>
-            <line x1="2" y1="14" x2="4" y2="14"/>
           </svg>
         </div>
         <div class="card-title-info">
-          <h2>Platform Information</h2>
-          <p class="card-subtitle">CPU and platform details</p>
-        </div>
-      </div>
-      <div class="platform-content">
-        <div class="cpu-info">
-          <div class="cpu-name">{{ platformInfo.cpuName || 'Loading...' }}</div>
-          <div class="cpu-details">
-            <span class="cpu-detail-item">{{ platformInfo.cores }} Cores</span>
-            <span class="cpu-detail-divider">|</span>
-            <span class="cpu-detail-item">{{ platformInfo.threads }} Threads</span>
-            <span class="cpu-detail-divider">|</span>
-            <span class="cpu-detail-item">{{ platformInfo.platform }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PPM Drivers Card -->
-    <div class="card drivers-card">
-      <div class="card-header">
-        <div class="card-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            <circle cx="12" cy="12" r="4"/>
-          </svg>
-        </div>
-        <div class="card-title-info">
-          <h2>PPM Drivers</h2>
-          <p class="card-subtitle">Intel Processor Power Management Components</p>
+          <h2>Platform & PPM Drivers</h2>
+          <p class="card-subtitle">System information and power management components</p>
         </div>
         <button class="btn-refresh" @click="loadPPMInfo" :disabled="loading">
           <svg :class="{ 'spin': loading }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -57,38 +25,56 @@
           <span>{{ loading ? 'Scanning...' : 'Refresh' }}</span>
         </button>
       </div>
-      <div class="drivers-content">
-        <!-- IPF Framework -->
-        <div class="driver-row" v-if="ipfDriver">
-          <div class="driver-label">IPF Framework</div>
-          <div class="driver-value">v{{ ipfDriver.version }}</div>
-          <div class="driver-date">{{ formatDate(ipfDriver.date) }}</div>
+      
+      <div class="info-content">
+        <!-- CPU Info Section -->
+        <div class="section cpu-section">
+          <div class="section-label">CPU</div>
+          <div class="cpu-row">
+            <span class="cpu-name">{{ platformInfo.cpuName || 'Loading...' }}</span>
+            <span class="cpu-cores">{{ platformInfo.cores }} Cores | {{ platformInfo.threads }} Threads</span>
+          </div>
         </div>
-        <div class="driver-row loading-row" v-else-if="!ipfDriver && !loading">
-          <div class="driver-label">IPF Framework</div>
-          <div class="driver-value na">N/A</div>
-        </div>
-        
-        <!-- DTT -->
-        <div class="driver-row" v-if="dttDriver">
-          <div class="driver-label">DTT</div>
-          <div class="driver-value">v{{ dttDriver.version }}</div>
-          <div class="driver-date">{{ formatDate(dttDriver.date) }}</div>
-        </div>
-        <div class="driver-row loading-row" v-else-if="!dttDriver && !loading">
-          <div class="driver-label">DTT</div>
-          <div class="driver-value na">N/A</div>
-        </div>
-        
-        <!-- PPM Provisioning -->
-        <div class="driver-row" v-if="ppmProvisioning">
-          <div class="driver-label">PPM Provisioning</div>
-          <div class="driver-value">v{{ ppmProvisioning.version }}</div>
-          <div class="driver-date">{{ formatDate(ppmProvisioning.date) }}</div>
-        </div>
-        <div class="driver-row loading-row" v-else-if="!ppmProvisioning && !loading">
-          <div class="driver-label">PPM Provisioning</div>
-          <div class="driver-value na">N/A</div>
+
+        <div class="section-divider"></div>
+
+        <!-- Drivers Section -->
+        <div class="section drivers-section">
+          <div class="section-label">PPM Drivers</div>
+          <div class="drivers-grid">
+            <!-- IPF Framework -->
+            <div class="driver-item" v-if="ipfDriver">
+              <div class="driver-name">IPF Framework</div>
+              <div class="driver-version">{{ ipfDriver.version }}</div>
+              <div class="driver-date">{{ formatDate(ipfDriver.date) }}</div>
+            </div>
+            <div class="driver-item na" v-else>
+              <div class="driver-name">IPF Framework</div>
+              <div class="driver-version">N/A</div>
+            </div>
+
+            <!-- DTT -->
+            <div class="driver-item" v-if="dttDriver">
+              <div class="driver-name">DTT</div>
+              <div class="driver-version">{{ dttDriver.version }}</div>
+              <div class="driver-date">{{ formatDate(dttDriver.date) }}</div>
+            </div>
+            <div class="driver-item na" v-else>
+              <div class="driver-name">DTT</div>
+              <div class="driver-version">N/A</div>
+            </div>
+
+            <!-- PPM Provisioning -->
+            <div class="driver-item" v-if="ppmProvisioning">
+              <div class="driver-name">PPM Provisioning</div>
+              <div class="driver-version">{{ ppmProvisioning.version }}</div>
+              <div class="driver-date">{{ formatDate(ppmProvisioning.date) }}</div>
+            </div>
+            <div class="driver-item na" v-else>
+              <div class="driver-name">PPM Provisioning</div>
+              <div class="driver-version">N/A</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -286,14 +272,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-tertiary);
 }
 
 .card-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   background: rgba(230, 63, 50, 0.1);
   color: var(--lenovo-red);
@@ -304,14 +290,14 @@ export default {
 
 .card-title-info h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .card-title-info .card-subtitle {
   margin: 2px 0 0 0;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -325,7 +311,7 @@ export default {
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -350,86 +336,115 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-/* Platform Card */
-.platform-card {
+/* Combined Info Card */
+.info-card {
   flex-shrink: 0;
 }
 
-.platform-content {
-  padding: 24px 20px;
-}
-
-.cpu-info {
-  text-align: center;
-}
-
-.cpu-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.cpu-details {
-  font-size: 13px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.cpu-detail-divider {
-  color: var(--text-tertiary);
-}
-
-/* Drivers Card */
-.drivers-card {
-  flex-shrink: 0;
-}
-
-.drivers-content {
+.info-content {
   padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
-.driver-row {
+.section {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
   gap: 16px;
 }
 
-.driver-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  min-width: 140px;
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 100px;
 }
 
-.driver-value {
-  font-size: 13px;
+.section-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 14px 0;
+}
+
+/* CPU Section */
+.cpu-section {
+  padding: 8px 0;
+}
+
+.cpu-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.cpu-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cpu-cores {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+/* Drivers Section */
+.drivers-section {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.drivers-section .section-label {
+  margin-bottom: 4px;
+}
+
+.drivers-grid {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.driver-item {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.driver-item.na {
+  opacity: 0.5;
+}
+
+.driver-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.driver-version {
+  font-size: 14px;
   font-weight: 700;
   color: var(--accent-green);
   font-family: 'Consolas', monospace;
 }
 
-.driver-value.na {
+.driver-item.na .driver-version {
   color: var(--text-tertiary);
 }
 
 .driver-date {
-  margin-left: auto;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-tertiary);
-}
-
-.loading-row {
-  opacity: 0.6;
+  margin-top: 2px;
 }
 
 /* Parameters Card */
@@ -439,13 +454,12 @@ export default {
 }
 
 .params-content {
-  padding: 16px;
+  padding: 12px 16px;
   overflow-x: auto;
 }
 
 .param-table {
   width: 100%;
-  border-collapse: collapse;
 }
 
 .param-header-row,
@@ -453,14 +467,14 @@ export default {
   display: grid;
   grid-template-columns: 200px 1fr 280px;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   align-items: center;
 }
 
 .param-header-row {
   background: var(--bg-tertiary);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -478,18 +492,18 @@ export default {
 .param-col-key {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .param-key {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--lenovo-red);
   font-family: 'Consolas', monospace;
 }
 
 .param-category {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-tertiary);
   background: var(--bg-tertiary);
@@ -499,7 +513,7 @@ export default {
 }
 
 .param-col-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -509,9 +523,9 @@ export default {
 }
 
 .impact-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: 4px;
   display: inline-block;
 }
