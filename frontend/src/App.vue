@@ -123,7 +123,6 @@
         <FunctionCheck v-else-if="currentPage === 'funccheck'" :theme="theme" />
         <ModeCheck v-else-if="currentPage === 'modecheck'" :theme="theme" />
         <AIAnalysis v-else-if="currentPage === 'aianalysis'" :theme="theme" />
-        <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
         <MSR v-else-if="currentPage === 'msr'" :theme="theme" />
         <NPU v-else-if="currentPage === 'npu'" :theme="theme" />
         <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" @update:theme="setTheme" @update:lang="setLang" />
@@ -156,6 +155,7 @@ export default {
     Settings,
     About
   },
+
   data() {
     return {
       currentPage: 'dashboard',
@@ -196,12 +196,6 @@ export default {
           label: 'AI Analysis',
           subtitle: 'Log analysis & diagnostics',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'
-        },
-        {
-          id: 'ppm', 
-          label: 'PPM Driver', 
-          subtitle: 'Processor power management',
-          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>'
         },
         { 
           id: 'msr', 
