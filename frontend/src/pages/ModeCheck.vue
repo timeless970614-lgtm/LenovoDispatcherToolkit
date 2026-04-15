@@ -518,7 +518,7 @@ export default {
         this.passwordError = ''
         this.advancedPassword = ''
       } else {
-        this.passwordError = 'Need Dispatcher owner check'
+        this.passwordError = 'Need Dispatcher owner check or contact zhoushang2'
         setTimeout(() => { this.passwordError = '' }, 3000)
       }
     }
