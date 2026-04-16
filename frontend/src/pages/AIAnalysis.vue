@@ -354,9 +354,9 @@
 
     <!-- Log Analysis Tab -->
     <div v-if="activeAIType === 'log'" class="log-section">
-      <!-- Log Files Card -->
-      <div class="card">
-        <div class="card-header">
+      <!-- Log Files Card - Password Protected -->
+      <div class="card advanced-section">
+        <div class="card-header advanced-toggle" @click="toggleLogSection">
           <span class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -365,21 +365,53 @@
             </svg>
             Log Files
           </span>
-          <button class="btn-sm" @click="loadLogs">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          <svg :class="['chevron', { open: logSectionExpanded }]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <!-- Password Prompt -->
+        <div v-if="logSectionExpanded && !logUnlocked" class="password-prompt">
+          <div class="password-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; flex-shrink:0;">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
             </svg>
-            Refresh
-          </button>
-        </div>
-        <div v-if="logFiles.length" class="log-file-list">
-          <div v-for="f in logFiles" :key="f.name" class="log-file-item"
-            :class="{ active: selectedLog === f.name }" @click="selectLog(f.name)">
-            <span class="log-name">{{ f.name }}</span>
-            <span class="log-meta">{{ formatSize(f.size) }}  {{ f.modTime }}</span>
+            <input
+              type="password"
+              class="password-input"
+              v-model="logPassword"
+              placeholder="Enter password to unlock"
+              @keydown.enter="unlockLogs"
+              ref="logPasswordInput"
+            />
+            <button class="btn-unlock" @click="unlockLogs">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              Unlock
+            </button>
           </div>
+          <div v-if="logPasswordError" class="password-error">{{ logPasswordError }}</div>
         </div>
-        <div v-else class="empty-hint">No log files found in {{ logDir }}</div>
+
+        <!-- Unlocked Content -->
+        <div v-if="logSectionExpanded && logUnlocked">
+          <div style="display:flex;justify-content:flex-end;padding:0 0 8px 0;">
+            <button class="btn-sm" @click="loadLogs">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+          <div v-if="logFiles.length" class="log-file-list">
+            <div v-for="f in logFiles" :key="f.name" class="log-file-item"
+              :class="{ active: selectedLog === f.name }" @click="selectLog(f.name)">
+              <span class="log-name">{{ f.name }}</span>
+              <span class="log-meta">{{ formatSize(f.size) }}  {{ f.modTime }}</span>
+            </div>
+          </div>
+          <div v-else class="empty-hint">No log files found in {{ logDir }}</div>
+        </div>
       </div>
 
       <!-- AI Analysis Card -->
@@ -460,28 +492,6 @@
         </div>
       </div>
 
-      <!-- Raw Log -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px">
-              <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-            </svg>
-            Raw Log (last {{ tailLines }} lines)
-          </span>
-          <div class="header-controls">
-            <select v-model="tailLines" class="lines-select" @change="loadRawLog">
-              <option :value="100">100 lines</option>
-              <option :value="200">200 lines</option>
-              <option :value="500">500 lines</option>
-              <option :value="1000">1000 lines</option>
-            </select>
-            <button class="btn-sm" @click="loadRawLog">Load</button>
-          </div>
-        </div>
-        <div v-if="rawLog" class="raw-log-box"><pre>{{ rawLog }}</pre></div>
-        <div v-else class="empty-hint">Click Load to view raw log</div>
-      </div>
     </div><!-- /log-section -->
 
     <!-- Toolkit Tab -->
@@ -660,6 +670,10 @@ export default {
       // Log
       logDir: 'C:\\ProgramData\\Lenovo\\LenovoDispatcher\\Logs',
       logFiles: [],
+      logSectionExpanded: false,
+      logUnlocked: false,
+      logPassword: '',
+      logPasswordError: '',
       selectedLog: null,
       summary: null,
       rawLog: '',
@@ -768,6 +782,20 @@ export default {
       } catch (e) { console.error(e) }
     },
     selectLog(name) { this.selectedLog = name },
+    toggleLogSection() {
+      this.logSectionExpanded = !this.logSectionExpanded
+    },
+    unlockLogs() {
+      if (this.logPassword === 'Lenovo2026') {
+        this.logUnlocked = true
+        this.logPasswordError = ''
+        this.logPassword = ''
+        this.loadLogs()
+      } else {
+        this.logPasswordError = 'Need Dispatcher owner check or contact zhoushang2'
+        setTimeout(() => { this.logPasswordError = '' }, 3000)
+      }
+    },
     async runAnalysis() {
       this.analyzing = true
       this.summary = null
@@ -1070,6 +1098,20 @@ export default {
 .log-file-item.active { background: rgba(230,63,50,0.08); border-color: rgba(230,63,50,0.25); }
 .log-name { font-size: 13px; font-weight: 500; color: var(--text-primary); font-family: 'Consolas','Monaco',monospace; }
 .log-meta { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; margin-left: 12px; }
+
+/* Log Files - Password Protected */
+.advanced-section { border-color: rgba(245, 158, 11, 0.3); }
+.advanced-toggle { cursor: pointer; user-select: none; }
+.advanced-toggle .chevron { transition: transform 0.2s; margin-left: auto; }
+.advanced-toggle .chevron.open { transform: rotate(180deg); }
+.password-prompt { padding: 16px 0 0 0; }
+.password-row { display: flex; align-items: center; gap: 8px; }
+.password-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 13px; outline: none; transition: border-color 0.2s; }
+.password-input:focus { border-color: #F59E0B; }
+.password-input::placeholder { color: var(--text-tertiary); font-family: inherit; }
+.btn-unlock { display: flex; align-items: center; gap: 4px; padding: 8px 16px; border: 1px solid #F59E0B; border-radius: 6px; background: rgba(245,158,11,0.1); color: #F59E0B; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn-unlock:hover { background: rgba(245,158,11,0.2); border-color: #F59E0B; }
+.password-error { margin-top: 8px; font-size: 12px; color: #EF4444; }
 
 .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
 .summary-panel { background: var(--bg-tertiary); border-radius: 8px; padding: 14px; border: 1px solid var(--border-color); }

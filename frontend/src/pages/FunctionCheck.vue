@@ -58,26 +58,6 @@
             </div>
           </div>
         </div>
-
-        <div class="igpu-control">
-          <div class="btn-group">
-            <button class="btn btn-primary" @click="setIGPUMode(0)" :disabled="settingMode || igpuStatus.mode === 0">
-              Enable DGPU (Mode 0)
-            </button>
-            <button class="btn btn-warning" @click="setIGPUMode(1)" :disabled="settingMode || igpuStatus.mode === 1">
-              Enable UMA Only (Mode 1)
-            </button>
-          </div>
-        </div>
-
-        <div v-if="settingMode" class="loading-overlay">
-          <div class="spinner"></div>
-          <p>Setting IGPU mode...</p>
-        </div>
-
-        <div v-if="settingResult" :class="['result-message', settingResult.success ? 'success' : 'error']">
-          {{ settingResult.message }}
-        </div>
       </div>
 
       <!-- System Diagnostic -->
@@ -109,6 +89,19 @@
             <span class="diag-label">NVIDIA Detected</span>
             <span class="diag-value">{{ nvidiaStatus.detected ? 'Yes' : 'No' }}</span>
           </div>
+        </div>
+
+        <div class="diag-buttons">
+          <button class="btn btn-primary btn-sm" @click="setIGPUMode(0)" :disabled="settingMode || igpuStatus.mode === 0">
+            Enable DGPU (Mode 0)
+          </button>
+          <button class="btn btn-warning btn-sm" @click="setIGPUMode(1)" :disabled="settingMode || igpuStatus.mode === 1">
+            Enable UMA Only (Mode 1)
+          </button>
+          <div v-if="settingMode" class="spinner-small"></div>
+          <span v-if="settingResult" :class="['result-text', settingResult.success ? 'success' : 'error']">
+            {{ settingResult.message }}
+          </span>
         </div>
       </div>
 
@@ -451,8 +444,289 @@
       </div>
     </div>
 
-    <!-- Tab B Content -->
+    <!-- Tab B Content - Power Management -->
     <div v-if="activeTab === 'b'" class="func-content">
+      <div class="ppm-container">
+        <!-- Header with refresh -->
+        <div class="ppm-header">
+          <h3>PPM Power Settings</h3>
+          <div class="ppm-actions">
+            <span class="ppm-scheme" v-if="ppmSettings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              {{ ppmSettings.schemeName }}
+            </span>
+            <button class="btn btn-outline btn-sm" @click="refreshPPMSettings" :disabled="ppmLoading">
+              <span v-if="ppmLoading">Loading...</span>
+              <span v-else>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Error message -->
+        <div v-if="ppmError" class="error-box">
+          {{ ppmError }}
+        </div>
+
+        <!-- Loading state -->
+        <div v-if="ppmLoading && !ppmSettings" class="loading-placeholder">
+          <div class="spinner"></div>
+          <span>Loading PPM settings...</span>
+        </div>
+
+        <!-- PPM Settings Grid -->
+        <div v-if="ppmSettings" class="ppm-grid">
+          <!-- Performance State Section -->
+          <div class="ppm-section">
+            <h4 class="ppm-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Processor Performance
+            </h4>
+            <div class="ppm-cards">
+              <!-- Min Performance State -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Min Performance State</span>
+                  <span class="ppm-badge" :class="ppmSettings.minPerf.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.minPerf.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.minPerf.found ? (ppmSettings.minPerf.ACValue / 100) + '%' : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.minPerf.found ? (ppmSettings.minPerf.DCValue / 100) + '%' : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Max Performance State -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Max Performance State</span>
+                  <span class="ppm-badge" :class="ppmSettings.maxPerf.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.maxPerf.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.maxPerf.found ? (ppmSettings.maxPerf.ACValue / 100) + '%' : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.maxPerf.found ? (ppmSettings.maxPerf.DCValue / 100) + '%' : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Processor Cores Section -->
+          <div class="ppm-section">
+            <h4 class="ppm-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+              Processor Cores
+            </h4>
+            <div class="ppm-cards">
+              <!-- Min Processor Cores -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Min Processor Cores</span>
+                  <span class="ppm-badge" :class="ppmSettings.cpMinCores.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.cpMinCores.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.cpMinCores.found ? ppmSettings.cpMinCores.ACValue : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.cpMinCores.found ? ppmSettings.cpMinCores.DCValue : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EPP Section -->
+          <div class="ppm-section">
+            <h4 class="ppm-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Energy Performance Preference
+            </h4>
+            <div class="ppm-cards">
+              <!-- EPP P-Core -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">EPP (P-Core)</span>
+                  <span class="ppm-badge" :class="ppmSettings.epp.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.epp.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.epp.found ? ppmSettings.epp.ACValue : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.epp.found ? ppmSettings.epp.DCValue : '-' }}</span>
+                  </div>
+                </div>
+                <div class="ppm-bar-container">
+                  <div class="ppm-bar" :style="{width: ppmSettings.epp.found ? (ppmSettings.epp.ACValue) + '%' : '0%'}"></div>
+                </div>
+              </div>
+
+              <!-- EPP E-Core -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">EPP (E-Core)</span>
+                  <span class="ppm-badge" :class="ppmSettings.epp1.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.epp1.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.epp1.found ? ppmSettings.epp1.ACValue : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.epp1.found ? ppmSettings.epp1.DCValue : '-' }}</span>
+                  </div>
+                </div>
+                <div class="ppm-bar-container">
+                  <div class="ppm-bar" :style="{width: ppmSettings.epp1.found ? (ppmSettings.epp1.ACValue) + '%' : '0%'}"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Heterogeneous Scheduling Section -->
+          <div class="ppm-section">
+            <h4 class="ppm-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Heterogeneous Scheduling
+            </h4>
+            <div class="ppm-cards">
+              <!-- Increase Threshold -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Increase Threshold</span>
+                  <span class="ppm-badge" :class="ppmSettings.heteroInc.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.heteroInc.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.heteroInc.found ? ppmSettings.heteroInc.ACValue : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.heteroInc.found ? ppmSettings.heteroInc.DCValue : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Decrease Threshold -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Decrease Threshold</span>
+                  <span class="ppm-badge" :class="ppmSettings.heteroDec.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.heteroDec.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.heteroDec.found ? ppmSettings.heteroDec.ACValue : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.heteroDec.found ? ppmSettings.heteroDec.DCValue : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frequency Limits Section -->
+          <div class="ppm-section">
+            <h4 class="ppm-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+              Frequency Limits
+            </h4>
+            <div class="ppm-cards">
+              <!-- Max Frequency P-Core -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Max Freq (P-Core)</span>
+                  <span class="ppm-badge" :class="ppmSettings.maxFreq.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.maxFreq.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.maxFreq.found ? (ppmSettings.maxFreq.ACValue / 100) + '%' : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.maxFreq.found ? (ppmSettings.maxFreq.DCValue / 100) + '%' : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Max Frequency E-Core -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Max Freq (E-Core)</span>
+                  <span class="ppm-badge" :class="ppmSettings.maxFreq1.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.maxFreq1.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.maxFreq1.found ? (ppmSettings.maxFreq1.ACValue / 100) + '%' : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.maxFreq1.found ? (ppmSettings.maxFreq1.DCValue / 100) + '%' : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Soft Park Latency -->
+              <div class="ppm-card">
+                <div class="ppm-card-header">
+                  <span class="ppm-card-label">Soft Park Latency</span>
+                  <span class="ppm-badge" :class="ppmSettings.softPark.found ? 'badge-success' : 'badge-warning'">
+                    {{ ppmSettings.softPark.found ? 'Active' : 'N/A' }}
+                  </span>
+                </div>
+                <div class="ppm-values">
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">AC</span>
+                    <span class="ppm-value">{{ ppmSettings.softPark.found ? ppmSettings.softPark.ACValue : '-' }}</span>
+                  </div>
+                  <div class="ppm-value-item">
+                    <span class="ppm-value-label">DC</span>
+                    <span class="ppm-value">{{ ppmSettings.softPark.found ? ppmSettings.softPark.DCValue : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Tab C Content - GPU Frequency -->
@@ -615,7 +889,7 @@
 </template>
 <script>
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
-import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI } from '../../wailsjs/go/main/App'
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI, GetPPMSettings } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'FunctionCheck',
@@ -626,7 +900,8 @@ export default {
         { id: 'gpu', label: 'DGPU Function', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
         { id: 'd', label: 'Auto Gear', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
         { id: 'a', label: 'SSD Turbo', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h2"/></svg>' },
-        { id: 'c', label: 'IGPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+        { id: 'c', label: 'IGPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="4" x2="12" y2="1"/></svg>' },
+        { id: 'power', label: 'Power Management', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
       ],
       gpuList: [],
       processList: [],
@@ -691,6 +966,10 @@ export default {
       uninstallingDTT: false,
       uninstallingDTTUI: false,
       dttResult: null,
+      // Power Management (PPM)
+      ppmSettings: null,
+      ppmLoading: false,
+      ppmError: '',
     }
   },
   computed: {
@@ -722,6 +1001,14 @@ export default {
       if (this.gpuUtilization >= 80) return 'freq-stat-value util-high'
       if (this.gpuUtilization >= 40) return 'freq-stat-value util-mid'
       return 'freq-stat-value util-low'
+    }
+  },
+  watch: {
+    activeTab(newTab) {
+      // Auto-load data when switching to specific tabs
+      if (newTab === 'power' && !this.ppmSettings) {
+        this.refreshPPMSettings()
+      }
     }
   },
   async mounted() {
@@ -1046,6 +1333,23 @@ export default {
         this.dttResult = { success: false, message: 'Error: ' + e }
       }
       this.uninstallingDTTUI = false
+    },
+
+    async refreshPPMSettings() {
+      this.ppmLoading = true
+      this.ppmError = ''
+      try {
+        const settings = await GetPPMSettings()
+        if (settings) {
+          this.ppmSettings = settings
+        } else {
+          this.ppmError = 'Failed to load PPM settings'
+        }
+      } catch (e) {
+        this.ppmError = 'Error: ' + e
+      } finally {
+        this.ppmLoading = false
+      }
     }
   }
 }
@@ -1774,7 +2078,7 @@ export default {
 
 .diag-item {
   background: var(--bg-tertiary);
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-radius: 6px;
   text-align: center;
 }
@@ -1788,9 +2092,31 @@ export default {
 }
 
 .diag-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.diag-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.result-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.result-text.success {
+  color: var(--accent-green);
+}
+
+.result-text.error {
+  color: #f87171;
 }
 
 .empty-state {
@@ -1927,5 +2253,198 @@ export default {
 .btn-dtt-main:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
 .btn-dtt-ui { border-color: #F59E0B; color: #F59E0B; }
 .btn-dtt-ui:hover:not(:disabled) { background: rgba(245,158,11,0.1); }
+
+/* ============ PPM Power Management Styles ============ */
+.ppm-container {
+  padding: 0;
+}
+
+.ppm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ppm-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ppm-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ppm-scheme {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ppm-scheme svg {
+  color: var(--primary-color);
+}
+
+.error-box {
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error-color);
+  border-radius: 6px;
+  color: var(--error-color);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.loading-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  gap: 12px;
+}
+
+.ppm-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ppm-section {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.ppm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 14px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ppm-section-title svg {
+  color: var(--primary-color);
+}
+
+.ppm-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.ppm-card {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s;
+}
+
+.ppm-card:hover {
+  border-color: var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ppm-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ppm-card-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ppm-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success-color);
+}
+
+.badge-warning {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--warning-color);
+}
+
+.ppm-values {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.ppm-value-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ppm-value-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.ppm-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ppm-bar-container {
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.ppm-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+@media (max-width: 768px) {
+  .ppm-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .ppm-cards {
+    grid-template-columns: 1fr;
+  }
+}
 
 </style>
