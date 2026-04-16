@@ -11,27 +11,27 @@
             <line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/>
             <line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/>
           </svg>
-          Houmo DNPU 智能调度控制台
+          NPU Smart Scheduler
         </h3>
         <div class="live-indicator" v-if="!npuLoading">
-          <span class="live-dot"></span> {{ npuDeviceCount }} 台设备
+          <span class="live-dot"></span> {{ npuDeviceCount }} Device(s)
         </div>
         <button class="btn btn-secondary btn-sm" @click="refreshNPU" :disabled="npuLoading">
-          {{ npuLoading ? '刷新中...' : '刷新' }}
+          {{ npuLoading ? 'Refreshing...' : 'Refresh' }}
         </button>
       </div>
 
       <!-- Driver Error / No Device Warning -->
       <div v-if="npuDriverError" style="margin:16px; padding:20px; background:#7f1d1d; border:2px solid #ef4444; border-radius:8px; text-align:center">
-        <div style="font-size:18px; font-weight:bold; color:#fca5a5; margin-bottom:8px">⚠ 未检测到 NPU 设备</div>
+        <div style="font-size:18px; font-weight:bold; color:#fca5a5; margin-bottom:8px">⚠ NPU Device Not Detected</div>
         <div style="font-size:13px; color:#fecaca; line-height:1.6">{{ npuDriverError }}</div>
-        <div style="margin-top:12px; font-size:12px; color:#f87171">请确认：① 驱动已安装 ② BIOS 中 NPU 已启用 ③ 无其他程序占用 NPU</div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px; background:#991b1b; color:#fef2f2; border-color:#b91c1c" @click="showNPUREport">查看诊断报告</button>
+        <div style="margin-top:12px; font-size:12px; color:#f87171">Please verify: ① Driver installed ② NPU enabled in BIOS ③ No other program using NPU</div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px; background:#991b1b; color:#fef2f2; border-color:#b91c1c" @click="showNPUREport">View Diagnostic Report</button>
       </div>
 
       <!-- Loading -->
       <div v-if="npuLoading" style="margin:16px; padding:40px; text-align:center; color:var(--text-secondary)">
-        <div style="font-size:16px">正在连接 NPU 驱动...</div>
+        <div style="font-size:16px">Connecting to NPU driver...</div>
         <div style="margin-top:12px">
           <svg width="32" height="32" viewBox="0 0 24 24" style="animation:spin 1s linear infinite; fill:none; stroke:var(--text-secondary); stroke-width:2">
             <circle cx="12" cy="12" r="10" stroke-opacity="0.3"/>
@@ -63,7 +63,7 @@
 
       <!-- No device -->
       <div v-if="!npuLoading && npuDeviceCount === 0 && !npuDriverError" style="margin:16px; padding:30px; text-align:center; color:var(--text-secondary); background:var(--bg-secondary); border:2px dashed var(--border-color); border-radius:8px">
-        未检测到 NPU 设备，请确认驱动已正确安装。
+        No NPU device detected. Please verify the driver is properly installed.
       </div>
 
       <!-- Device List -->
@@ -72,8 +72,8 @@
           <!-- Device Header -->
           <div class="npu-dev-header">
             <div class="npu-dev-title">
-              <strong>设备 {{ dev.index }}</strong>
-              <span class="npu-dev-name">{{ dev.modelName || 'Houmo NPU XH2A' }}</span>
+              <strong>Device {{ dev.index }}</strong>
+              <span class="npu-dev-name">{{ dev.modelName || 'NPU XH2A' }}</span>
               <span class="npu-dvfs-badge" :class="'npu-dvfs-' + (dev.dvfsMode || 'unknown').toLowerCase()">{{ dev.dvfsMode || 'N/A' }}</span>
             </div>
             <div class="npu-dev-actions">
@@ -81,7 +81,7 @@
               <button class="btn btn-secondary btn-sm" @click="setNPUDVFS(dev.index, 'ONDEMAND')" :disabled="npuSettingDVFS === dev.index">🔄 ONDEMAND</button>
               <button class="btn btn-warning btn-sm" @click="setNPUDVFS(dev.index, 'POWERLIMIT')" :disabled="npuSettingDVFS === dev.index">⚡ POWERLIMIT</button>
               <select v-model="npuSelectedDev" class="form-select form-select-sm" style="width:auto;margin-left:8px">
-                <option v-for="d in npuDeviceList" :key="d.index" :value="d.index">设备 {{ d.index }}</option>
+                <option v-for="d in npuDeviceList" :key="d.index" :value="d.index">Device {{ d.index }}</option>
               </select>
             </div>
           </div>
@@ -89,42 +89,42 @@
           <!-- Metrics Grid -->
           <div class="npu-metrics-grid">
             <div class="npu-metric">
-              <span class="npu-metric-label">IPU 利用率</span>
+              <span class="npu-metric-label">IPU Utilization</span>
               <div class="npu-metric-bar-wrap">
                 <div class="npu-metric-bar" :style="{width: Math.round((dev.ipuUtiliRate||0)*100) + '%', background: utilColor(dev.ipuUtiliRate)}"></div>
               </div>
               <span class="npu-metric-val">{{ Math.round((dev.ipuUtiliRate||0)*100) }}%</span>
             </div>
             <div class="npu-metric">
-              <span class="npu-metric-label">芯片温度</span>
+              <span class="npu-metric-label">Chip Temperature</span>
               <div class="npu-metric-bar-wrap">
                 <div class="npu-metric-bar" :style="{width: Math.min(100, (dev.temperatureC||0)/1.0) + '%', background: tempColor(dev.temperatureC)}"></div>
               </div>
               <span class="npu-metric-val">{{ dev.temperatureC > 0 ? dev.temperatureC.toFixed(1) + '°C' : 'N/A' }}</span>
             </div>
             <div class="npu-metric">
-              <span class="npu-metric-label">IPU 频率</span>
+              <span class="npu-metric-label">IPU Frequency</span>
               <div class="npu-metric-bar-wrap">
                 <div class="npu-metric-bar" :style="{width: Math.min(100, (dev.ipuFrequencyHz||0)/14e8*100) + '%', background: '#3b82f6'}"></div>
               </div>
               <span class="npu-metric-val">{{ dev.ipuFrequencyHz > 0 ? (dev.ipuFrequencyHz/1e9).toFixed(3) + ' GHz' : 'N/A' }}</span>
             </div>
             <div class="npu-metric">
-              <span class="npu-metric-label">板级功率</span>
+              <span class="npu-metric-label">Board Power</span>
               <div class="npu-metric-bar-wrap">
                 <div class="npu-metric-bar" :style="{width: Math.min(100, (dev.boardPowerW||0)/50*100) + '%', background: '#a855f7'}"></div>
               </div>
               <span class="npu-metric-val">{{ dev.boardPowerW > 0 ? dev.boardPowerW.toFixed(2) + ' W' : 'N/A' }}</span>
             </div>
             <div class="npu-metric">
-              <span class="npu-metric-label">IPU 电压</span>
+              <span class="npu-metric-label">IPU Voltage</span>
               <div class="npu-metric-bar-wrap">
                 <div class="npu-metric-bar" :style="{width: Math.min(100, (dev.ipuVoltageMV||0)/1200*100) + '%', background: '#f59e0b'}"></div>
               </div>
               <span class="npu-metric-val">{{ dev.ipuVoltageMV > 0 ? dev.ipuVoltageMV.toFixed(2) + ' mV' : 'N/A' }}</span>
             </div>
             <div class="npu-metric">
-              <span class="npu-metric-label">DDR 内存</span>
+              <span class="npu-metric-label">DDR Memory</span>
               <div class="npu-metric-bar-wrap">
                 <div class="npu-metric-bar" :style="{width: dev.memTotalMB > 0 ? Math.round((dev.memUsedMB||0)/(dev.memTotalMB)*100) + '%' : '0%', background: '#64748b'}"></div>
               </div>
@@ -134,16 +134,16 @@
 
           <!-- Basic Info Row -->
           <div class="npu-info-row">
-            <div class="npu-info-item"><span class="npu-info-label">厂商 ID</span><span class="npu-info-val">{{ dev.vendorId > 0 ? '0x' + dev.vendorId.toString(16).toUpperCase() : 'N/A' }}</span></div>
-            <div class="npu-info-item"><span class="npu-info-label">算力</span><span class="npu-info-val">{{ dev.computingPower > 0 ? dev.computingPower + ' TOPS' : 'N/A' }}</span></div>
-            <div class="npu-info-item"><span class="npu-info-label">核心数</span><span class="npu-info-val">{{ dev.coreCount > 0 ? dev.coreCount : 'N/A' }}</span></div>
-            <div class="npu-info-item"><span class="npu-info-label">DDR 容量</span><span class="npu-info-val">{{ dev.ddrSizeMB > 0 ? (dev.ddrSizeMB/1024).toFixed(1) + ' GB' : 'N/A' }}</span></div>
-            <div class="npu-info-item"><span class="npu-info-label">固件版本</span><span class="npu-info-val">{{ dev.firmwareVer || 'N/A' }}</span></div>
+            <div class="npu-info-item"><span class="npu-info-label">Vendor ID</span><span class="npu-info-val">{{ dev.vendorId > 0 ? '0x' + dev.vendorId.toString(16).toUpperCase() : 'N/A' }}</span></div>
+            <div class="npu-info-item"><span class="npu-info-label">Computing Power</span><span class="npu-info-val">{{ dev.computingPower > 0 ? dev.computingPower + ' TOPS' : 'N/A' }}</span></div>
+            <div class="npu-info-item"><span class="npu-info-label">Core Count</span><span class="npu-info-val">{{ dev.coreCount > 0 ? dev.coreCount : 'N/A' }}</span></div>
+            <div class="npu-info-item"><span class="npu-info-label">DDR Capacity</span><span class="npu-info-val">{{ dev.ddrSizeMB > 0 ? (dev.ddrSizeMB/1024).toFixed(1) + ' GB' : 'N/A' }}</span></div>
+            <div class="npu-info-item"><span class="npu-info-label">Firmware Ver</span><span class="npu-info-val">{{ dev.firmwareVer || 'N/A' }}</span></div>
           </div>
 
           <!-- Per-Core Utilization -->
           <div v-if="dev.coreCount > 0" class="npu-cores-section">
-            <div class="npu-cores-title">每核心利用率</div>
+            <div class="npu-cores-title">Per-Core Utilization</div>
             <div class="npu-cores-grid">
               <div v-for="(pct, idx) in (npuPowerStatus[dev.index] ? getCoreUtilList(dev.index, dev.coreCount) : [])" :key="idx" class="npu-core-row">
                 <span class="npu-core-lbl">Core {{ idx }}</span>
@@ -157,19 +157,19 @@
 
           <!-- Power Limit Panel -->
           <div class="npu-panel">
-            <div class="npu-panel-title">⚡ 功率限制（POWERLIMIT 模式）</div>
+            <div class="npu-panel-title">⚡ Power Limit (POWERLIMIT Mode)</div>
             <div class="npu-power-limit-row">
               <div class="npu-power-limit-field">
-                <label>最大功率 (W)</label>
+                <label>Max Power (W)</label>
                 <input type="number" v-model.number="npuPowerLimit[dev.index].maxW" min="5" max="50" class="form-input form-input-sm" style="width:80px">
               </div>
               <div class="npu-power-limit-field">
-                <label>最小功率 (W)</label>
+                <label>Min Power (W)</label>
                 <input type="number" v-model.number="npuPowerLimit[dev.index].minW" min="3" max="50" class="form-input form-input-sm" style="width:80px">
               </div>
-              <button class="btn btn-warning btn-sm" @click="setNPUPowerLimit(dev.index)" :disabled="npuPowerLimit[dev.index]?.setting">应用功率限制</button>
+              <button class="btn btn-warning btn-sm" @click="setNPUPowerLimit(dev.index)" :disabled="npuPowerLimit[dev.index]?.setting">Apply Power Limit</button>
             </div>
-            <div class="npu-power-limit-tip">设置后 DVFS 将切换至 POWERLIMIT 模式，设备自动在设定功率范围内动态调节频率</div>
+            <div class="npu-power-limit-tip">After setting, DVFS will switch to POWERLIMIT mode. Device will dynamically adjust frequency within the power range.</div>
             <div v-if="npuPowerResult[dev.index]" :class="['result-message', npuPowerResult[dev.index].Success ? 'success' : 'error']" style="margin-top:8px">
               {{ npuPowerResult[dev.index].Message }}
             </div>
@@ -177,35 +177,35 @@
 
           <!-- Power Status from hm_smi -->
           <div v-if="npuPowerStatus[dev.index]" class="npu-power-status">
-            <div class="npu-power-title">hm_smi 功率状态</div>
+            <div class="npu-power-title">hm_smi Power Status</div>
             <div class="npu-power-grid">
-              <div class="npu-power-item"><span>DVFS 模式</span><span>{{ npuPowerStatus[dev.index].dvfsMode || 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>IPU 频率</span><span>{{ npuPowerStatus[dev.index].curIpuFreqMHz > 0 ? npuPowerStatus[dev.index].curIpuFreqMHz + ' MHz' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>频率范围</span><span>{{ npuPowerStatus[dev.index].lockIpuMinMHz || '—' }} ~ {{ npuPowerStatus[dev.index].lockIpuMaxMHz || '—' }} MHz</span></div>
-              <div class="npu-power-item"><span>板级功率</span><span>{{ npuPowerStatus[dev.index].boardPowerW > 0 ? npuPowerStatus[dev.index].boardPowerW + ' W' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>IPU 负载</span><span>{{ npuPowerStatus[dev.index].ipuLoadPct > 0 ? npuPowerStatus[dev.index].ipuLoadPct + '%' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>DDR 可用</span><span>{{ npuPowerStatus[dev.index].ddrFreeMB > 0 ? npuPowerStatus[dev.index].ddrFreeMB + ' MB' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>核心0 温度</span><span>{{ npuPowerStatus[dev.index].core0TempC > 0 ? npuPowerStatus[dev.index].core0TempC + '°C' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>核心1 温度</span><span>{{ npuPowerStatus[dev.index].core1TempC > 0 ? npuPowerStatus[dev.index].core1TempC + '°C' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>DDR0 温度</span><span>{{ npuPowerStatus[dev.index].ddr0TempC > 0 ? npuPowerStatus[dev.index].ddr0TempC + '°C' : 'N/A' }}</span></div>
-              <div class="npu-power-item"><span>DDR2 温度</span><span>{{ npuPowerStatus[dev.index].ddr2TempC > 0 ? npuPowerStatus[dev.index].ddr2TempC + '°C' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>DVFS Mode</span><span>{{ npuPowerStatus[dev.index].dvfsMode || 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>IPU Frequency</span><span>{{ npuPowerStatus[dev.index].curIpuFreqMHz > 0 ? npuPowerStatus[dev.index].curIpuFreqMHz + ' MHz' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>Freq Range</span><span>{{ npuPowerStatus[dev.index].lockIpuMinMHz || '—' }} ~ {{ npuPowerStatus[dev.index].lockIpuMaxMHz || '—' }} MHz</span></div>
+              <div class="npu-power-item"><span>Board Power</span><span>{{ npuPowerStatus[dev.index].boardPowerW > 0 ? npuPowerStatus[dev.index].boardPowerW + ' W' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>IPU Load</span><span>{{ npuPowerStatus[dev.index].ipuLoadPct > 0 ? npuPowerStatus[dev.index].ipuLoadPct + '%' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>DDR Available</span><span>{{ npuPowerStatus[dev.index].ddrFreeMB > 0 ? npuPowerStatus[dev.index].ddrFreeMB + ' MB' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>Core0 Temp</span><span>{{ npuPowerStatus[dev.index].core0TempC > 0 ? npuPowerStatus[dev.index].core0TempC + '°C' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>Core1 Temp</span><span>{{ npuPowerStatus[dev.index].core1TempC > 0 ? npuPowerStatus[dev.index].core1TempC + '°C' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>DDR0 Temp</span><span>{{ npuPowerStatus[dev.index].ddr0TempC > 0 ? npuPowerStatus[dev.index].ddr0TempC + '°C' : 'N/A' }}</span></div>
+              <div class="npu-power-item"><span>DDR2 Temp</span><span>{{ npuPowerStatus[dev.index].ddr2TempC > 0 ? npuPowerStatus[dev.index].ddr2TempC + '°C' : 'N/A' }}</span></div>
             </div>
           </div>
 
           <!-- Clock Lock Panel -->
           <div class="npu-panel">
-            <div class="npu-panel-title">🔒 时钟频率锁定</div>
+            <div class="npu-panel-title">🔒 Clock Frequency Lock</div>
             <div class="npu-clock-row">
               <div class="npu-clock-field">
-                <label>最大频率 (MHz)</label>
+                <label>Max Frequency (MHz)</label>
                 <input type="number" v-model.number="npuClockLocking[dev.index].maxMhz" min="700" max="1400" class="form-input form-input-sm" placeholder="1400" style="width:100px">
               </div>
               <div class="npu-clock-field">
-                <label>最小频率 (MHz)</label>
+                <label>Min Frequency (MHz)</label>
                 <input type="number" v-model.number="npuClockLocking[dev.index].minMhz" min="700" max="1400" class="form-input form-input-sm" placeholder="700" style="width:100px">
               </div>
-              <button class="btn btn-primary btn-sm" @click="setNPUClockLock(dev.index)" :disabled="npuClockLocking[dev.index]?.setting">应用</button>
-              <button class="btn btn-secondary btn-sm" @click="resetNPUDefaults(dev.index)" :disabled="npuClockLocking[dev.index]?.setting">重置</button>
+              <button class="btn btn-primary btn-sm" @click="setNPUClockLock(dev.index)" :disabled="npuClockLocking[dev.index]?.setting">Apply</button>
+              <button class="btn btn-secondary btn-sm" @click="resetNPUDefaults(dev.index)" :disabled="npuClockLocking[dev.index]?.setting">Reset</button>
             </div>
             <div v-if="npuPowerResult[dev.index]" :class="['result-message', npuPowerResult[dev.index].Success ? 'success' : 'error']" style="margin-top:8px">
               {{ npuPowerResult[dev.index].Message }}
@@ -222,10 +222,10 @@
       <!-- Debug Panel -->
       <div style="margin-top:16px">
         <button class="btn btn-secondary btn-sm" @click="npuShowDebug = !npuShowDebug">
-          {{ npuShowDebug ? '隐藏' : '显示' }} 诊断报告
+          {{ npuShowDebug ? 'Hide' : 'Show' }} Diagnostic Report
         </button>
         <div v-if="npuShowDebug" class="result-message" style="margin-top:8px; background:#1a1a2e; color:#0f0; font-family:monospace; font-size:11px; max-height:300px; overflow-y:auto; white-space:pre-wrap; text-align:left">
-          {{ npuRawProbe || '加载中...' }}
+          {{ npuRawProbe || 'Loading...' }}
         </div>
       </div>
     </div>
@@ -237,60 +237,60 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
           </svg>
-          🧠 智能自动调度器
+          Smart Auto Scheduler
         </h3>
         <div class="live-indicator" v-if="npuSchedRunning">
-          <span class="live-dot"></span> 运行中
+          <span class="live-dot"></span> Running
         </div>
       </div>
 
       <div class="npu-sched-grid">
         <div class="npu-sched-field">
-          <label>设备</label>
+          <label>Device</label>
           <select v-model="npuSchedDev" class="form-select form-select-sm">
-            <option v-for="d in npuDeviceList" :key="d.index" :value="d.index">设备 {{ d.index }}</option>
+            <option v-for="d in npuDeviceList" :key="d.index" :value="d.index">Device {{ d.index }}</option>
           </select>
         </div>
         <div class="npu-sched-field">
-          <label>高负载阈值 %</label>
+          <label>High Load Threshold %</label>
           <input type="number" v-model.number="npuSchedSettings.utilHighPct" min="10" max="100" class="form-input form-input-sm">
         </div>
         <div class="npu-sched-field">
-          <label>低负载阈值 %</label>
+          <label>Low Load Threshold %</label>
           <input type="number" v-model.number="npuSchedSettings.utilLowPct" min="1" max="99" class="form-input form-input-sm">
         </div>
         <div class="npu-sched-field">
-          <label>温度警告 °C</label>
+          <label>Temp Warning °C</label>
           <input type="number" v-model.number="npuSchedSettings.tempWarnC" min="40" max="100" class="form-input form-input-sm">
         </div>
         <div class="npu-sched-field">
-          <label>温度临界 °C</label>
+          <label>Temp Critical °C</label>
           <input type="number" v-model.number="npuSchedSettings.tempCritC" min="50" max="110" class="form-input form-input-sm">
         </div>
         <div class="npu-sched-field">
-          <label>检测间隔 (秒)</label>
+          <label>Check Interval (sec)</label>
           <input type="number" v-model.number="npuSchedSettings.checkSec" min="1" max="60" class="form-input form-input-sm">
         </div>
       </div>
 
       <div class="npu-sched-actions">
         <button v-if="!npuSchedRunning" class="btn btn-primary" @click="startNpuScheduler" :disabled="npuSchedStarting || npuDeviceList.length === 0">
-          ▶ {{ npuSchedStarting ? '启动中...' : '启动调度器' }}
+          ▶ {{ npuSchedStarting ? 'Starting...' : 'Start Scheduler' }}
         </button>
-        <button v-else class="btn btn-warning" @click="stopNpuScheduler">■ 停止调度器</button>
+        <button v-else class="btn btn-warning" @click="stopNpuScheduler">■ Stop Scheduler</button>
       </div>
 
       <!-- Scheduler State -->
       <div v-if="npuSchedRunning" class="npu-sched-state">
-        <div class="npu-sched-state-title">调度器运行中 — {{ npuSchedState.curMode || '—' }}</div>
+        <div class="npu-sched-state-title">Scheduler Running — {{ npuSchedState.curMode || '—' }}</div>
         <div class="npu-sched-state-grid">
-          <div class="npu-sched-state-item"><span>IPU 利用率</span><span>{{ npuSchedState.curUtilPct >= 0 ? npuSchedState.curUtilPct.toFixed(1) + '%' : '—' }}</span></div>
-          <div class="npu-sched-state-item"><span>芯片温度</span><span>{{ npuSchedState.curTempC > 0 ? npuSchedState.curTempC.toFixed(1) + '°C' : '—' }}</span></div>
-          <div class="npu-sched-state-item"><span>板级功率</span><span>{{ npuSchedState.curPowerW > 0 ? npuSchedState.curPowerW.toFixed(2) + ' W' : '—' }}</span></div>
-          <div class="npu-sched-state-item"><span>IPU 频率</span><span>{{ npuSchedState.curFreqMHz > 0 ? npuSchedState.curFreqMHz.toFixed(0) + ' MHz' : '—' }}</span></div>
-          <div class="npu-sched-state-item"><span>频率范围</span><span>{{ npuSchedState.curLockMinMHz || '—' }} ~ {{ npuSchedState.curLockMaxMHz || '—' }} MHz</span></div>
-          <div class="npu-sched-state-item"><span>调度决策</span><span>{{ npuSchedState.decision || '—' }}</span></div>
-          <div class="npu-sched-state-item"><span>上次切换</span><span>{{ npuSchedState.lastSwitch || '—' }}</span></div>
+          <div class="npu-sched-state-item"><span>IPU Utilization</span><span>{{ npuSchedState.curUtilPct >= 0 ? npuSchedState.curUtilPct.toFixed(1) + '%' : '—' }}</span></div>
+          <div class="npu-sched-state-item"><span>Chip Temp</span><span>{{ npuSchedState.curTempC > 0 ? npuSchedState.curTempC.toFixed(1) + '°C' : '—' }}</span></div>
+          <div class="npu-sched-state-item"><span>Board Power</span><span>{{ npuSchedState.curPowerW > 0 ? npuSchedState.curPowerW.toFixed(2) + ' W' : '—' }}</span></div>
+          <div class="npu-sched-state-item"><span>IPU Frequency</span><span>{{ npuSchedState.curFreqMHz > 0 ? npuSchedState.curFreqMHz.toFixed(0) + ' MHz' : '—' }}</span></div>
+          <div class="npu-sched-state-item"><span>Freq Range</span><span>{{ npuSchedState.curLockMinMHz || '—' }} ~ {{ npuSchedState.curLockMaxMHz || '—' }} MHz</span></div>
+          <div class="npu-sched-state-item"><span>Decision</span><span>{{ npuSchedState.decision || '—' }}</span></div>
+          <div class="npu-sched-state-item"><span>Last Switch</span><span>{{ npuSchedState.lastSwitch || '—' }}</span></div>
         </div>
       </div>
     </div>
@@ -303,46 +303,46 @@
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             <line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/>
           </svg>
-          📖 参数参考
+          Parameter Reference
         </h3>
         <button class="btn btn-secondary btn-sm" @click="npuShowRef = !npuShowRef">
-          {{ npuShowRef ? '收起' : '展开' }}
+          {{ npuShowRef ? 'Collapse' : 'Expand' }}
         </button>
       </div>
       <div v-if="npuShowRef" class="npu-ref-content">
         <div class="npu-ref-section">
-          <div class="npu-ref-title">DVFS 模式说明</div>
+          <div class="npu-ref-title">DVFS Mode Description</div>
           <table class="npu-ref-table">
-            <thead><tr><th>模式</th><th>频率范围</th><th>适用场景</th></tr></thead>
+            <thead><tr><th>Mode</th><th>Frequency Range</th><th>Use Case</th></tr></thead>
             <tbody>
-              <tr><td><strong>PERFORMANCE</strong></td><td>固定 1400 MHz</td><td>批量推理、计算密集型任务</td></tr>
-              <tr><td><strong>ONDEMAND</strong></td><td>动态 200-1400 MHz</td><td>待机、空闲、低负载场景</td></tr>
+              <tr><td><strong>PERFORMANCE</strong></td><td>Fixed 1400 MHz</td><td>Batch inference, compute-intensive tasks</td></tr>
+              <tr><td><strong>ONDEMAND</strong></td><td>Dynamic 200-1400 MHz</td><td>Idle, low-load scenarios</td></tr>
             </tbody>
           </table>
         </div>
         <div class="npu-ref-section">
-          <div class="npu-ref-title">智能调度策略</div>
+          <div class="npu-ref-title">Smart Scheduler Policy</div>
           <table class="npu-ref-table">
-            <thead><tr><th>条件</th><th>动作</th></tr></thead>
+            <thead><tr><th>Condition</th><th>Action</th></tr></thead>
             <tbody>
-              <tr><td>利用率 &gt; {{ npuSchedSettings.utilHighPct }}%</td><td>切换至 PERFORMANCE</td></tr>
-              <tr><td>利用率 &lt; {{ npuSchedSettings.utilLowPct }}%</td><td>切换至 ONDEMAND</td></tr>
-              <tr><td>温度 &gt; {{ npuSchedSettings.tempWarnC }}°C</td><td>强制 ONDEMAND</td></tr>
-              <tr><td>温度 &gt; {{ npuSchedSettings.tempCritC }}°C</td><td>强制最低功耗模式</td></tr>
+              <tr><td>Utilization &gt; {{ npuSchedSettings.utilHighPct }}%</td><td>Switch to PERFORMANCE</td></tr>
+              <tr><td>Utilization &lt; {{ npuSchedSettings.utilLowPct }}%</td><td>Switch to ONDEMAND</td></tr>
+              <tr><td>Temp &gt; {{ npuSchedSettings.tempWarnC }}°C</td><td>Force ONDEMAND</td></tr>
+              <tr><td>Temp &gt; {{ npuSchedSettings.tempCritC }}°C</td><td>Force lowest power mode</td></tr>
             </tbody>
           </table>
         </div>
         <div class="npu-ref-section">
-          <div class="npu-ref-title">API 快速参考</div>
+          <div class="npu-ref-title">API Quick Reference</div>
           <table class="npu-ref-table">
-            <thead><tr><th>API</th><th>说明</th></tr></thead>
+            <thead><tr><th>API</th><th>Description</th></tr></thead>
             <tbody>
-              <tr><td>hm_sys_get_ipu_utili_rate</td><td>获取 IPU 整体利用率（0.0~1.0）</td></tr>
-              <tr><td>hm_sys_get_ipu_core_utili_rate</td><td>获取每核心利用率</td></tr>
-              <tr><td>hm_sys_get_temperature</td><td>获取芯片温度（°C）</td></tr>
-              <tr><td>hm_sys_get_board_power</td><td>获取板级功率（W）</td></tr>
-              <tr><td>hm_sys_get_ipu_frequency</td><td>获取 IPU 频率（Hz）</td></tr>
-              <tr><td>hm_sys_set_dvfs_mode</td><td>设置 DVFS 模式</td></tr>
+              <tr><td>hm_sys_get_ipu_utili_rate</td><td>Get IPU overall utilization (0.0~1.0)</td></tr>
+              <tr><td>hm_sys_get_ipu_core_utili_rate</td><td>Get per-core utilization</td></tr>
+              <tr><td>hm_sys_get_temperature</td><td>Get chip temperature (°C)</td></tr>
+              <tr><td>hm_sys_get_board_power</td><td>Get board power (W)</td></tr>
+              <tr><td>hm_sys_get_ipu_frequency</td><td>Get IPU frequency (Hz)</td></tr>
+              <tr><td>hm_sys_set_dvfs_mode</td><td>Set DVFS mode</td></tr>
             </tbody>
           </table>
         </div>
@@ -436,16 +436,7 @@ export default {
 
         const wailsReady = await waitForWails()
         if (wailsReady === 'timeout' || !window.go.main.App.GetNPUFullReport) {
-          this.npuDriverError = 'Wails backend not ready. Please restart the application.'
-          this.npuLoading = false
-          return
-        }
-
-        const report = await window.go.main.App.GetNPUFullReport()
-        console.log('[NPU] GetNPUFullReport result:', JSON.stringify(report))
-
-        if (!report) {
-          this.npuDriverError = 'NPU backend returned empty response. Try clicking Refresh.'
+          this.npuDriverError = 'Wails 后端未就绪，请重启应用'
           this.npuDeviceCount = 0
           this.npuDeviceList = []
           this.npuSDKInfo = {}
@@ -482,7 +473,7 @@ export default {
           })
 
           if (this.npuDeviceCount === 0) {
-            this.npuDriverError = '未检测到 NPU 设备。检查驱动是否安装、BIOS 中 NPU 是否启用，或是否有其他程序占用。'
+            this.npuDriverError = '未检测到 NPU 设备。请检查驱动是否安装、BIOS 中 NPU 是否启用，或是否有其他程序占用'
           } else if (this.npuDeviceCount > 0 && !this.npuPowerTimer) {
             this.startNPUPowerPolling(this.npuDeviceList[0].index)
           }
@@ -586,9 +577,9 @@ export default {
       this.npuShowDebug = true
       try {
         const report = await window.go.main.App.GetNPUREport()
-        this.npuRawProbe = report || 'No report available'
+        this.npuRawProbe = report || '无诊断报告'
       } catch(e) {
-        this.npuRawProbe = 'Error loading report: ' + String(e)
+        this.npuRawProbe = '加载报告失败: ' + String(e)
       }
     },
     async startNpuScheduler() {
@@ -604,7 +595,7 @@ export default {
         this.npuSchedRunning = true
         this.pollNpuSchedulerState()
       } catch(e) {
-        alert('调度器启动失败：' + String(e))
+        alert('启动调度器失败: ' + String(e))
       } finally {
         this.npuSchedStarting = false
       }
@@ -614,7 +605,7 @@ export default {
         await window.go.main.App.StopNPUScheduler()
         this.npuSchedRunning = false
       } catch(e) {
-        alert('调度器停止失败：' + String(e))
+        alert('停止调度器失败: ' + String(e))
       }
     },
     async pollNpuSchedulerState() {

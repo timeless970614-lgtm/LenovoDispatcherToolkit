@@ -30,22 +30,7 @@
                 <span class="theme-preview light"></span>
                 <span class="theme-name">{{ t.light }}</span>
               </button>
-              <button :class="['theme-btn', theme === 'blue' ? 'active' : '']" @click="setTheme('blue')">
-                <span class="theme-preview blue"></span>
-                <span class="theme-name">Blue</span>
-              </button>
-              <button :class="['theme-btn', theme === 'green' ? 'active' : '']" @click="setTheme('green')">
-                <span class="theme-preview green"></span>
-                <span class="theme-name">Green</span>
-              </button>
-              <button :class="['theme-btn', theme === 'purple' ? 'active' : '']" @click="setTheme('purple')">
-                <span class="theme-preview purple"></span>
-                <span class="theme-name">Purple</span>
-              </button>
-              <button :class="['theme-btn', theme === 'orange' ? 'active' : '']" @click="setTheme('orange')">
-                <span class="theme-preview orange"></span>
-                <span class="theme-name">Orange</span>
-              </button>
+
             </div>
           </div>
         </div>

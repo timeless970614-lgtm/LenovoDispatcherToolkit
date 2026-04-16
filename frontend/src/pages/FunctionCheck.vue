@@ -27,21 +27,35 @@
         </div>
         
         <div class="igpu-status">
-          <div class="status-item">
-            <span class="status-label">Current Status <span class="live-dot"></span></span>
-            <span :class="['status-value', gpuPref.available ? (gpuPref.value === 2 ? 'status-uma' : gpuPref.value === 1 ? 'status-dis' : 'status-smart') : 'status-na']">
-              {{ gpuPref.label }}
-            </span>
+          <div class="status-col-left">
+            <div class="status-item status-item-tall">
+              <span class="status-label">Current Status <span class="live-dot"></span></span>
+              <span :class="['status-value', gpuPref.available ? (gpuPref.value === 2 ? 'status-uma' : gpuPref.value === 1 ? 'status-dis' : 'status-smart') : 'status-na']">
+                {{ gpuPref.label }}
+              </span>
+            </div>
           </div>
-          <div class="status-item">
-            <span class="status-label">PCM_GPUStatus</span>
-            <span :class="['status-value mono', gpuPref.pcmStatusAvail ? 'status-ok' : 'status-na']">
-              {{ gpuPref.pcmStatusAvail ? gpuPref.pcmStatus + ' - ' + gpuPref.pcmLabel : 'N/A' }}
-            </span>
+          <div class="status-col-center">
+            <div class="status-item">
+              <span class="status-label">PCM_GPUStatus</span>
+              <span :class="['status-value mono', gpuPref.pcmStatusAvail ? 'status-ok' : 'status-na']">
+                {{ gpuPref.pcmStatusAvail ? gpuPref.pcmStatus + ' - ' + gpuPref.pcmLabel : 'N/A' }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Vantage_GPUStatus</span>
+              <span class="status-value mono">{{ gpuPref.vantageStatus !== undefined ? gpuPref.vantageStatus : 'N/A' }}</span>
+            </div>
           </div>
-          <div class="status-item">
-            <span class="status-label">PE_GPUPrefStatus</span>
-            <span class="status-value mono">{{ gpuPref.available ? gpuPref.value : (gpuPref.label === 'Dispatcher not Support' ? '0' : 'N/A') }}</span>
+          <div class="status-col-right">
+            <div class="status-item">
+              <span class="status-label">PE_GPUPrefStatus</span>
+              <span class="status-value mono">{{ gpuPref.available ? gpuPref.value : (gpuPref.label === 'Dispatcher not Support' ? '0' : 'N/A') }}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Vantage_2</span>
+              <span class="status-value mono">--</span>
+            </div>
           </div>
         </div>
 
@@ -88,16 +102,8 @@
             <span class="diag-value">{{ discreteCount }}</span>
           </div>
           <div class="diag-item">
-            <span class="diag-label">Integrated GPUs</span>
-            <span class="diag-value">{{ igpuCount }}</span>
-          </div>
-          <div class="diag-item">
             <span class="diag-label">GPU Processes</span>
             <span class="diag-value">{{ processList.length }}</span>
-          </div>
-          <div class="diag-item">
-            <span class="diag-label">WMI Available</span>
-            <span class="diag-value">{{ igpuStatus.available ? 'Yes' : 'No' }}</span>
           </div>
           <div class="diag-item">
             <span class="diag-label">NVIDIA Detected</span>
@@ -1298,15 +1304,40 @@ export default {
 /* IGPU Control */
 .igpu-status {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
   margin-bottom: 20px;
+}
+
+.status-col-left,
+.status-col-center,
+.status-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .status-item {
   background: var(--bg-tertiary);
   padding: 12px 16px;
   border-radius: 6px;
+}
+
+.status-item-tall {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.status-item-tall .status-label {
+  font-size: 11px;
+}
+
+.status-item-tall .status-value {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .status-label {
