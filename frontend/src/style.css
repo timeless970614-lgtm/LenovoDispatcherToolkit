@@ -30,8 +30,8 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 200px;
-  min-width: 200px;
+  width: 210px;
+  min-width: 210px;
   height: 100vh;
   background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   border-right: 1px solid var(--border-color);

@@ -670,7 +670,7 @@ export default {
       // Log
       logDir: 'C:\\ProgramData\\Lenovo\\LenovoDispatcher\\Logs',
       logFiles: [],
-      logSectionExpanded: false,
+      logSectionExpanded: true,
       logUnlocked: false,
       logPassword: '',
       logPasswordError: '',

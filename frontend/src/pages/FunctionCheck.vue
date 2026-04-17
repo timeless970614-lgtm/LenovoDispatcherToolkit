@@ -1338,14 +1338,18 @@ export default {
     async refreshPPMSettings() {
       this.ppmLoading = true
       this.ppmError = ''
+      console.log('[PPM] Refreshing PPM settings...')
       try {
         const settings = await GetPPMSettings()
+        console.log('[PPM] Raw settings:', settings)
         if (settings) {
           this.ppmSettings = settings
+          console.log('[PPM] Settings loaded:', this.ppmSettings)
         } else {
           this.ppmError = 'Failed to load PPM settings'
         }
       } catch (e) {
+        console.error('[PPM] Error:', e)
         this.ppmError = 'Error: ' + e
       } finally {
         this.ppmLoading = false
