@@ -225,7 +225,33 @@ func GetETLProfiles() []ETLProfile {
 // The cmd window runs wpr so the user can see the output.
 // If durationSecs > 0, the trace auto-stops after that many seconds.
 // duration=0 means the trace runs until the user clicks Stop Trace in the UI.
+func ForceStopWPR() {
+	// Cancel any running WPR sessions to ensure a clean start.
+	logFile := etlOutputDir + "\\wpr_cancel_log.txt"
+	os.MkdirAll(etlOutputDir, 0755)
+
+	// Call wpr -cancel directly (no cmd.exe layer)
+	cmd := wprCmd("wpr.exe", "-cancel", "-instancename", "dispatcher_trace")
+	out, err := cmd.CombinedOutput()
+
+	f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f.WriteString(fmt.Sprintf("[%s] ForceStopWPR cancel: err=%v out=%s\n",
+		time.Now().Format("15:04:05.000"), err, string(out)))
+	f.Close()
+
+	// Also try without instancename to cancel any session
+	cmd2 := wprCmd("wpr.exe", "-cancel")
+	out2, _ := cmd2.CombinedOutput()
+	f2, _ := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+	f2.WriteString(fmt.Sprintf("[%s] ForceStopWPR cancel (no instancename): out=%s\n",
+		time.Now().Format("15:04:05.000"), string(out2)))
+	f2.Close()
+}
+
 func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
+	// Clean up any stale sessions from previous runs first
+	ForceStopWPR()
+
 	if !isElevated() {
 		return ETLCaptureState{
 			IsCapturing: false,
@@ -250,19 +276,17 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 	if sleepSec <= 0 {
 		sleepSec = 30
 	}
-	// Correct WPR start syntax: wpr -start <profile> -instancename <session>
-	// -instancename MUST be the last parameter per WPR documentation
-	// Output file is specified at wpr -stop time, not at start time
-	// First, start WPR with hiddenCmd to capture output and verify success
-	startCmd := fmt.Sprintf(`wpr -start %s -filemode -recordtempto "%s" -instancename dispatcher_trace`, profile, etlOutputDir)
-	cmd := hiddenCmd("cmd.exe", "/C", startCmd)
-	cmd.Dir = etlOutputDir
+	// WPR start: use memory mode (default, no -filemode) to avoid temp dir issues.
+	// WPR start: memory mode (default, no -filemode) with named session.
+	// -instancename dispatcher_trace: name the session so -stop can find it.
+	// Use wprCmd (CREATE_NEW_CONSOLE) for reliable ETW session management.
+	cmd := wprCmd("wpr.exe", "-start", profile, "-instancename", "dispatcher_trace")
 	startOut, startErr := cmd.CombinedOutput()
 
 	// Log the start result
 	logFile := etlOutputDir + "\\wpr_goroutine_log.txt"
 	f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	f.WriteString(fmt.Sprintf("[%s] wpr -start command: %s\n", time.Now().Format("15:04:05.000"), startCmd))
+	f.WriteString(fmt.Sprintf("[%s] wpr -start: profile=%s -instancename dispatcher_trace\n", time.Now().Format("15:04:05.000"), profile))
 	f.WriteString(fmt.Sprintf("[%s] wpr -start exit: %v\n", time.Now().Format("15:04:05.000"), startErr))
 	f.WriteString(fmt.Sprintf("[%s] wpr -start output:\n%s\n", time.Now().Format("15:04:05.000"), string(startOut)))
 	f.Close()
@@ -319,13 +343,14 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 		captureMu.Unlock()
 
 		// Run wpr -stop outside the lock so UI doesn't block
-		// Correct WPR stop syntax: wpr -stop <output.etl> <description> -instancename <session>
-		// -instancename MUST be the last parameter per WPR documentation
-		stopScript := fmt.Sprintf(`wpr -stop "%s" "ETL_Trace_Capture" -force -instancename dispatcher_trace`, outputPath)
-		cmd := hiddenCmd("cmd.exe", "/C", stopScript)
-		cmd.Dir = etlOutputDir
+		// WPR stop syntax: wpr -stop <output.etl> -force -instancename <session>
+		// -force: skip warning about non-.etl extension
+		// -instancename must match the -start value
+		// Use wprCmd for reliable ETW session management
+		cmd := wprCmd("wpr.exe", "-stop", outputPath, "-force", "-instancename", "dispatcher_trace")
 		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
-		f.WriteString(fmt.Sprintf("[%s] stop command: %s\n", time.Now().Format("15:04:05.000"), stopScript))
+		f.WriteString(fmt.Sprintf("[%s] wpr -stop: path=%s -force -instancename dispatcher_trace\n",
+			time.Now().Format("15:04:05.000"), outputPath))
 		f.Close()
 		out, err := cmd.CombinedOutput()
 		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
@@ -348,10 +373,8 @@ func StopETLCapture() ETLTraceInfo {
 	outputPath := captureState.OutputPath
 
 	// Run wpr -stop and -merge silently (goroutine may have already done this)
-	// Correct WPR stop syntax: wpr -stop <output.etl> <description> -instancename <session> -force
-	stopScript := fmt.Sprintf(`wpr -stop "%s" "ETL_Trace_Capture" -instancename dispatcher_trace -force`, outputPath)
-	cmd := hiddenCmd("cmd.exe", "/C", stopScript)
-	cmd.Dir = etlOutputDir
+	// Use wprCmd for reliable ETW session management
+	cmd := wprCmd("wpr.exe", "-stop", outputPath, "-force", "-instancename", "dispatcher_trace")
 	cmd.Run() // ignore error — may already be stopped
 
 	captureState = ETLCaptureState{IsCapturing: false, Status: "stopped"}

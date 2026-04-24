@@ -90,11 +90,11 @@
 
         <!-- Action Buttons -->
         <div class="capture-actions">
-          <button v-if="!captureState.isCapturing" class="btn-start" @click="startCapture" :disabled="!isElevated || startingCapture">
+          <button class="btn-start" @click="startCapture" :disabled="!isElevated || startingCapture || captureState.isCapturing">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
             {{ startingCapture ? 'Starting...' : 'Start Trace' }}
           </button>
-          <button v-else class="btn-stop" @click="stopCapture" :disabled="stoppingCapture">
+          <button class="btn-stop" @click="stopCapture" :disabled="!captureState.isCapturing || stoppingCapture">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
             {{ stoppingCapture ? 'Stopping...' : 'Stop Trace' }}
           </button>

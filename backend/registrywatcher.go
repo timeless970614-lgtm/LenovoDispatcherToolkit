@@ -361,20 +361,8 @@ func readGPUStatusDirect() GPUPrefStatus {
 		result.PCMLabel = pcmStatusLabel(pcmStatus)
 		return result
 	} else if !pcmAvail {
-		// PCM_GPUStatus N/A (SmartEngine/电脑管家 uninstalled), but Dispatcher is running.
-		// GPU is in default Hybrid (DIS) mode — no SmartEngine to report iGPUStatus.
-		result.Label = "DIS (Hybrid)"
-		result.Value = 1
-		result.Available = true
-	} else if pcmAvail && pcmStatus == 1 {
-		result.Label = "UMA (IGPU)"
-		result.Value = 2
-		result.Available = true
-	} else if pcmAvail && pcmStatus == 3 {
-		result.Label = "DIS (Hybrid)"
-		result.Value = 1
-		result.Available = true
-	} else if pcmAvail && pcmStatus == 2 {
+		// PCM_GPUStatus N/A (SmartEngine not installed), but Dispatcher is running.
+		// Fall back to PE_GPUPrefStatus: 1=DIS, 2=UMA
 		if peAvail && peStatus == 1 {
 			result.Label = "DIS (Hybrid)"
 			result.Value = 1
@@ -389,13 +377,38 @@ func readGPUStatusDirect() GPUPrefStatus {
 			result.Value = 0
 			result.Available = false
 		}
-	} else if peAvail {
-		result.Value = peStatus
-		result.Label = gpuPrefStatusLabel(peStatus)
-		result.Available = true
 	} else {
-		result.Label = "Not Available"
-		result.Value = 0
+		if pcmAvail && pcmStatus == 1 {
+			result.Label = "UMA (IGPU)"
+			result.Value = 2
+			result.Available = true
+		} else if pcmAvail && pcmStatus == 3 {
+			result.Label = "DIS (Hybrid)"
+			result.Value = 1
+			result.Available = true
+		} else if pcmAvail && pcmStatus == 2 {
+			if peAvail && peStatus == 1 {
+				result.Label = "DIS (Hybrid)"
+				result.Value = 1
+				result.Available = true
+			} else if peAvail && peStatus == 2 {
+				result.Label = "UMA (IGPU)"
+				result.Value = 2
+				result.Available = true
+			} else {
+				// peStatus missing or 0: Dispatcher not controlling GPU
+				result.Label = "Dispatcher Service Stopped"
+				result.Value = 0
+				result.Available = false
+			}
+		} else if peAvail {
+			result.Value = peStatus
+			result.Label = gpuPrefStatusLabel(peStatus)
+			result.Available = true
+		} else {
+			result.Label = "Not Available"
+			result.Value = 0
+		}
 	}
 
 	result.PCMStatus = pcmStatus

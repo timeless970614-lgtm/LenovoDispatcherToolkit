@@ -5,8 +5,51 @@
       <p class="msr-subtitle">Intel Power Management & MSR Access Tool</p>
     </div>
 
+    <!-- MSR Settings - Password Protected -->
+    <div class="msr-card advanced-section">
+      <div class="card-header advanced-toggle" @click="toggleAdvanced">
+        <span class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          MSR Settings
+        </span>
+        <svg :class="['chevron-icon', { 'chevron-open': advancedUnlocked }]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+
+      <!-- Password Prompt (shown when collapsed & not unlocked) -->
+      <div v-if="!advancedUnlocked" class="password-prompt">
+        <div class="password-row">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; flex-shrink:0;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          <input 
+            type="password" 
+            class="password-input" 
+            v-model="advancedPassword" 
+            placeholder="Enter password to unlock"
+            @keydown.enter="unlockAdvanced"
+            ref="passwordInput"
+          />
+          <button class="btn-unlock" @click="unlockAdvanced">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Unlock
+          </button>
+        </div>
+        <div v-if="passwordError" class="password-error">{{ passwordError }}</div>
+      </div>
+
+      <!-- Unlocked Content -->
+      <div v-if="advancedUnlocked" class="advanced-content">
     <!-- MSR Status Card -->
-    <div class="msr-card">
+    <div class="msr-card status-card">
       <div class="card-header">
         <span class="card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -318,6 +361,8 @@
         </table>
       </div>
     </div>
+      </div>
+    </div>
 
     <!-- Install Help Modal -->
     <div class="modal-overlay" v-if="showInstallHelp" @click="showInstallHelp = false">
@@ -379,6 +424,11 @@ export default {
       
       // UI State
       showInstallHelp: false,
+      
+      // Password Protection
+      advancedUnlocked: false,
+      advancedPassword: '',
+      passwordError: '',
       
       // MSR Register List (from PPT)
       msrRegisters: [
@@ -463,6 +513,21 @@ export default {
     applyUncoreRatio() {
       console.log('Uncore ratio - Max:', this.uncoreMaxRatio, 'Min:', this.uncoreMinRatio)
       // Would call backend to write MSR
+    },
+    toggleAdvanced() {
+      if (this.advancedUnlocked) {
+        this.advancedUnlocked = !this.advancedUnlocked
+      }
+    },
+    unlockAdvanced() {
+      if (this.advancedPassword === 'Lenovo2026') {
+        this.advancedUnlocked = true
+        this.passwordError = ''
+        this.advancedPassword = ''
+      } else {
+        this.passwordError = 'Need Dispatcher owner check or contact zhoushang2'
+        setTimeout(() => { this.passwordError = '' }, 3000)
+      }
     }
   }
 }
@@ -978,5 +1043,98 @@ input:disabled + .toggle-slider {
   font-size: 12px;
   margin: 8px 0;
   word-break: break-all;
+}
+
+/* Advanced Section - Password Protected */
+.advanced-section {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.advanced-toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+  border-radius: var(--radius-lg);
+  margin: -16px -16px 0 -16px;
+  padding: 16px 20px;
+}
+
+.advanced-toggle:hover {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.chevron-icon {
+  transition: transform 0.25s ease;
+  color: var(--text-tertiary);
+}
+
+.chevron-icon.chevron-open {
+  transform: rotate(180deg);
+}
+
+.password-prompt {
+  padding: 16px 0 0 0;
+}
+
+.password-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.password-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'Consolas', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.password-input:focus {
+  border-color: #F59E0B;
+}
+
+.password-input::placeholder {
+  color: var(--text-tertiary);
+  font-family: inherit;
+}
+
+.btn-unlock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  color: #F59E0B;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-unlock:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #F59E0B;
+}
+
+.password-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #EF4444;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.advanced-content {
+  padding-top: 16px;
 }
 </style>
