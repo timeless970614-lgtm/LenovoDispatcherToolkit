@@ -27,15 +27,20 @@
         </div>
         
         <div class="igpu-status">
-          <div class="status-col-left">
-            <div class="status-item status-item-tall">
+          <div class="status-grid-2x4">
+            <!-- Row 1 -->
+            <div class="status-item status-item-span-rows">
               <span class="status-label">Current Status <span class="live-dot"></span></span>
               <span :class="['status-value', gpuPref.available ? (gpuPref.value === 2 ? 'status-uma' : gpuPref.value === 1 ? 'status-dis' : 'status-smart') : 'status-na']">
                 {{ gpuPref.label }}
               </span>
             </div>
-          </div>
-          <div class="status-col-center">
+            <div class="status-item">
+              <span class="status-label">PCM_Service</span>
+              <span :class="['status-value', 'mono', gpuPref.pcmServiceRunning ? 'status-ok' : 'status-na']">
+                {{ gpuPref.pcmServiceRunning ? 'Running' : 'Stopped' }}
+              </span>
+            </div>
             <div class="status-item">
               <span class="status-label">PCM_GPUStatus</span>
               <span :class="['status-value mono', gpuPref.pcmStatusAvail ? 'status-ok' : 'status-na']">
@@ -43,18 +48,27 @@
               </span>
             </div>
             <div class="status-item">
-              <span class="status-label">Vantage_GPUStatus</span>
-              <span class="status-value mono">{{ gpuPref.vantageStatus !== undefined ? gpuPref.vantageStatus : 'N/A' }}</span>
-            </div>
-          </div>
-          <div class="status-col-right">
-            <div class="status-item">
               <span class="status-label">PE_GPUPrefStatus</span>
               <span class="status-value mono">{{ gpuPref.available ? gpuPref.value : (gpuPref.label === 'Dispatcher not Support' ? '0' : 'N/A') }}</span>
             </div>
+            <!-- Row 2 -->
             <div class="status-item">
-              <span class="status-label">Vantage_2</span>
-              <span class="status-value mono">--</span>
+              <span class="status-label">Vantage_Service</span>
+              <span :class="['status-value', 'mono', gpuPref.vantageServiceRunning ? 'status-ok' : 'status-na']">
+                {{ gpuPref.vantageServiceRunning ? 'Running' : 'Stopped' }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Vantage_GPUStatus</span>
+              <span :class="['status-value', 'mono', gpuPref.vantageGPUStatusAvail ? 'status-ok' : 'status-na']">
+                {{ gpuPref.vantageGPUStatusAvail ? (gpuPref.vantageGPUStatus + ' - ' + vantageGPULabel(gpuPref.vantageGPUStatus)) : 'N/A' }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Vantage_DefaultMode</span>
+              <span :class="['status-value', 'mono', gpuPref.vantageDefaultModeAvail ? 'status-ok' : 'status-na']">
+                {{ gpuPref.vantageDefaultModeAvail ? gpuPref.vantageDefaultMode : 'N/A' }}
+              </span>
             </div>
           </div>
         </div>
@@ -912,7 +926,13 @@ export default {
       gpuPref: {
         available: false,
         value: -1,
-        label: 'Not Available'
+        label: 'Not Available',
+        vantageGPUStatus: 0,
+        vantageGPUStatusAvail: false,
+        vantageDefaultMode: 0,
+        vantageDefaultModeAvail: false,
+        pcmServiceRunning: false,
+        vantageServiceRunning: false,
       },
       intelGPU: {
         available: false,
@@ -1278,6 +1298,15 @@ export default {
       }
     },
 
+    vantageGPULabel(val) {
+      switch(val) {
+        case 1: return 'UMA'
+        case 2: return 'PE_Fallback'
+        case 3: return 'DIS'
+        default: return 'Unknown'
+      }
+    },
+
     async loadGearStatus() {
       try {
         this.gearStatus = await GetGPUAutoGear()
@@ -1611,9 +1640,7 @@ export default {
 
 /* IGPU Control */
 .igpu-status {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
+  padding: 16px;
   margin-bottom: 20px;
 }
 
@@ -1623,6 +1650,20 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.status-grid-2x4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 16px;
+}
+
+.status-item-span-rows {
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .status-item {

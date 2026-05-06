@@ -647,6 +647,12 @@ export namespace backend {
 	    pcmStatus: number;
 	    pcmStatusAvail: boolean;
 	    pcmLabel: string;
+	    vantageGPUStatus: number;
+	    vantageGPUStatusAvail: boolean;
+	    vantageDefaultMode: number;
+	    vantageDefaultModeAvail: boolean;
+	    pcmServiceRunning: boolean;
+	    vantageServiceRunning: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new GPUPrefStatus(source);
@@ -660,6 +666,12 @@ export namespace backend {
 	        this.pcmStatus = source["pcmStatus"];
 	        this.pcmStatusAvail = source["pcmStatusAvail"];
 	        this.pcmLabel = source["pcmLabel"];
+	        this.vantageGPUStatus = source["vantageGPUStatus"];
+	        this.vantageGPUStatusAvail = source["vantageGPUStatusAvail"];
+	        this.vantageDefaultMode = source["vantageDefaultMode"];
+	        this.vantageDefaultModeAvail = source["vantageDefaultModeAvail"];
+	        this.pcmServiceRunning = source["pcmServiceRunning"];
+	        this.vantageServiceRunning = source["vantageServiceRunning"];
 	    }
 	}
 	export class GPUProcess {

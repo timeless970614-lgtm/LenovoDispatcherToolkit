@@ -315,8 +315,17 @@ func readGPUStatusDirect() GPUPrefStatus {
 		Available: false,
 	}
 
-	// First check if Dispatcher service is running
-	if !isDispatcherServiceRunning() {
+	// ── Step 0: Service availability check ──────────────────────────────────
+	// Priority: LenovoPCManagerService > LenovoVantageService > Dispatcher
+	pcManagerRunning := isServiceRunning("LenovoPCManagerService")
+	vantageRunning := isServiceRunning("LenovoVantageService")
+	dispatcherRunning := isDispatcherServiceRunning()
+
+	// Store service status for UI display
+	result.PCMServiceRunning = pcManagerRunning
+	result.VantageServiceRunning = vantageRunning
+
+	if !pcManagerRunning && !vantageRunning && !dispatcherRunning {
 		result.Available = false
 		result.Label = "Dispatcher Service Stopped"
 		result.Value = 0
@@ -325,6 +334,57 @@ func readGPUStatusDirect() GPUPrefStatus {
 		result.PCMLabel = "N/A"
 		return result
 	}
+
+	// ── Step 1: Vantage path (no LenovoPCManagerService) ─────────────────────
+	if !pcManagerRunning && vantageRunning {
+		vantageGPU, vantageAvail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+			"SYSTEM\\CurrentControlSet\\Services\\LenovoProcessManagement\\Performance\\PowerSlider",
+			"Vantage_GPUMode")
+
+		vantageDefault, vantageDefaultAvail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+			"SYSTEM\\CurrentControlSet\\Services\\LenovoProcessManagement\\Performance\\PowerSlider",
+			"Vantage_DefaultMode")
+
+		result.VantageGPUStatus = vantageGPU
+		result.VantageGPUStatusAvail = vantageAvail
+		result.VantageDefaultMode = vantageDefault
+		result.VantageDefaultModeAvail = vantageDefaultAvail
+
+		if vantageAvail && vantageGPU == 1 {
+			result.Available = true
+			result.Label = "UMA (IGPU)"
+			result.Value = 2
+			return result
+		} else if vantageAvail && vantageGPU == 3 {
+			result.Available = true
+			result.Label = "DIS (Hybrid)"
+			result.Value = 1
+			return result
+		} else if vantageAvail && vantageGPU == 2 {
+			// Vantage_GPUMode == 2: fall through to PE_GPUPrefStatus
+			// (continue below, no early return)
+		} else {
+			// Vantage_GPUMode not available or unexpected value
+			result.Available = false
+			result.Label = "Dispatcher Service Stopped"
+			result.Value = 0
+			return result
+		}
+	}
+
+	// ── Step 2: PCM_GPUStatus + PE_GPUPrefStatus (PCManager or Vantage→PE) ──
+	// Always read Vantage_GPUMode and Vantage_DefaultMode from registry for the UI display
+	vantageGPU, vantageAvail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Services\\LenovoProcessManagement\\Performance\\PowerSlider",
+		"Vantage_GPUMode")
+	result.VantageGPUStatus = vantageGPU
+	result.VantageGPUStatusAvail = vantageAvail
+
+	vantageDefault, vantageDefaultAvail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Services\\LenovoProcessManagement\\Performance\\PowerSlider",
+		"Vantage_DefaultMode")
+	result.VantageDefaultMode = vantageDefault
+	result.VantageDefaultModeAvail = vantageDefaultAvail
 
 	// Read iGPUStatus from SmartEngine (PCM_GPUStatus)
 	pcmStatus, pcmAvail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
@@ -344,15 +404,12 @@ func readGPUStatusDirect() GPUPrefStatus {
 			"SOFTWARE\\Lenovo\\PowerManagement", "ITS_GPUHybridModeSetting")
 	}
 
-	// Determine final label - check PE_GPUPrefStatus first
-	// PE_GPUPrefStatus not existing (=0) means no Dispatcher service controlling GPU
-	// Even if PE_GPUPrefStatus is missing from registry, treat as Dispatcher not active
+	// Determine final label
 	if !pcmAvail && !peAvail {
 		result.Available = false
 		result.Label = "Not Available"
 		result.Value = 0
 	} else if !peAvail || peStatus == 0 {
-		// PE_GPUPrefStatus missing or = 0: Dispatcher not controlling GPU
 		result.Available = false
 		result.Label = "Dispatcher Service Stopped"
 		result.Value = 0
@@ -361,8 +418,6 @@ func readGPUStatusDirect() GPUPrefStatus {
 		result.PCMLabel = pcmStatusLabel(pcmStatus)
 		return result
 	} else if !pcmAvail {
-		// PCM_GPUStatus N/A (SmartEngine not installed), but Dispatcher is running.
-		// Fall back to PE_GPUPrefStatus: 1=DIS, 2=UMA
 		if peAvail && peStatus == 1 {
 			result.Label = "DIS (Hybrid)"
 			result.Value = 1
@@ -372,7 +427,6 @@ func readGPUStatusDirect() GPUPrefStatus {
 			result.Value = 2
 			result.Available = true
 		} else {
-			// peStatus missing or 0: Dispatcher not controlling GPU
 			result.Label = "Dispatcher Service Stopped"
 			result.Value = 0
 			result.Available = false
@@ -396,7 +450,6 @@ func readGPUStatusDirect() GPUPrefStatus {
 				result.Value = 2
 				result.Available = true
 			} else {
-				// peStatus missing or 0: Dispatcher not controlling GPU
 				result.Label = "Dispatcher Service Stopped"
 				result.Value = 0
 				result.Available = false
@@ -420,15 +473,19 @@ func readGPUStatusDirect() GPUPrefStatus {
 
 // isDispatcherServiceRunning checks if LenovoProcessManagement service is running
 func isDispatcherServiceRunning() bool {
-	// Use syscall to check service status directly (faster than PowerShell)
+	return isServiceRunning("LenovoProcessManagement")
+}
+
+// isServiceRunning checks if a given Windows service is in Running state
+func isServiceRunning(serviceName string) bool {
 	scm, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
 	if err != nil {
 		return false
 	}
 	defer windows.CloseServiceHandle(scm)
 
-	serviceName, _ := windows.UTF16PtrFromString("LenovoProcessManagement")
-	hService, err := windows.OpenService(scm, serviceName, windows.SERVICE_QUERY_STATUS)
+	namePtr, _ := windows.UTF16PtrFromString(serviceName)
+	hService, err := windows.OpenService(scm, namePtr, windows.SERVICE_QUERY_STATUS)
 	if err != nil {
 		return false
 	}

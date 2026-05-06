@@ -52,12 +52,18 @@ type IGPUStatus struct {
 
 // GPUPrefStatus represents the real-time GPU mode status from multiple sources
 type GPUPrefStatus struct {
-	Available       bool   `json:"available"`
-	Value           uint32 `json:"value"`
-	Label           string `json:"label"`
-	PCMStatus       uint32 `json:"pcmStatus"`
-	PCMStatusAvail  bool   `json:"pcmStatusAvail"`
-	PCMLabel        string `json:"pcmLabel"`
+	Available              bool   `json:"available"`
+	Value                 uint32 `json:"value"`
+	Label                 string `json:"label"`
+	PCMStatus             uint32 `json:"pcmStatus"`
+	PCMStatusAvail        bool   `json:"pcmStatusAvail"`
+	PCMLabel              string `json:"pcmLabel"`
+	VantageGPUStatus      uint32 `json:"vantageGPUStatus"`
+	VantageGPUStatusAvail bool   `json:"vantageGPUStatusAvail"`
+	VantageDefaultMode    uint32 `json:"vantageDefaultMode"`
+	VantageDefaultModeAvail bool `json:"vantageDefaultModeAvail"`
+	PCMServiceRunning     bool   `json:"pcmServiceRunning"`
+	VantageServiceRunning bool   `json:"vantageServiceRunning"`
 }
 
 // GPUAutoGear represents the auto gear setting for GPU hybrid mode
