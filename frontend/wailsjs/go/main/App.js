@@ -130,6 +130,14 @@ export function GetModeCheckInfo() {
   return window['go']['main']['App']['GetModeCheckInfo']();
 }
 
+export function GetNPOSchedulerSettings() {
+  return window['go']['main']['App']['GetNPOSchedulerSettings']();
+}
+
+export function GetNPOSchedulerState() {
+  return window['go']['main']['App']['GetNPOSchedulerState']();
+}
+
 export function GetNPUDeviceInfo() {
   return window['go']['main']['App']['GetNPUDeviceInfo']();
 }
@@ -282,6 +290,10 @@ export function SetNPUMode(arg1, arg2) {
   return window['go']['main']['App']['SetNPUMode'](arg1, arg2);
 }
 
+export function SetNPUPowerLimit(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetNPUPowerLimit'](arg1, arg2, arg3);
+}
+
 export function SetODV(arg1, arg2) {
   return window['go']['main']['App']['SetODV'](arg1, arg2);
 }
@@ -306,6 +318,10 @@ export function StartMLScenarioCapture() {
   return window['go']['main']['App']['StartMLScenarioCapture']();
 }
 
+export function StartNPUScheduler(arg1, arg2) {
+  return window['go']['main']['App']['StartNPUScheduler'](arg1, arg2);
+}
+
 export function StartService() {
   return window['go']['main']['App']['StartService']();
 }
@@ -320,6 +336,10 @@ export function StopGPUStatusWatcher() {
 
 export function StopMLScenarioCapture() {
   return window['go']['main']['App']['StopMLScenarioCapture']();
+}
+
+export function StopNPUScheduler() {
+  return window['go']['main']['App']['StopNPUScheduler']();
 }
 
 export function StopService() {

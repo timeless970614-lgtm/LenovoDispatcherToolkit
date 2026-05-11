@@ -879,6 +879,58 @@ export namespace backend {
 		    return a;
 		}
 	}
+	export class NPOSchedulerSettings {
+	    tempWarnC: number;
+	    tempCritC: number;
+	    utilHighPct: number;
+	    utilLowPct: number;
+	    checkSec: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPOSchedulerSettings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.tempWarnC = source["tempWarnC"];
+	        this.tempCritC = source["tempCritC"];
+	        this.utilHighPct = source["utilHighPct"];
+	        this.utilLowPct = source["utilLowPct"];
+	        this.checkSec = source["checkSec"];
+	    }
+	}
+	export class NPOSchedulerState {
+	    running: boolean;
+	    devIndex: number;
+	    curMode: string;
+	    curUtilPct: number;
+	    curTempC: number;
+	    curPowerW: number;
+	    curFreqMHz: number;
+	    curLockMaxMHz: number;
+	    curLockMinMHz: number;
+	    decision: string;
+	    lastSwitch: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NPOSchedulerState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.running = source["running"];
+	        this.devIndex = source["devIndex"];
+	        this.curMode = source["curMode"];
+	        this.curUtilPct = source["curUtilPct"];
+	        this.curTempC = source["curTempC"];
+	        this.curPowerW = source["curPowerW"];
+	        this.curFreqMHz = source["curFreqMHz"];
+	        this.curLockMaxMHz = source["curLockMaxMHz"];
+	        this.curLockMinMHz = source["curLockMinMHz"];
+	        this.decision = source["decision"];
+	        this.lastSwitch = source["lastSwitch"];
+	    }
+	}
 	export class NPUCTCPHYInfo {
 	    groupId: number;
 	    chipId: number;

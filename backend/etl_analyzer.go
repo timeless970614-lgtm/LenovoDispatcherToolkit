@@ -226,31 +226,54 @@ func GetETLProfiles() []ETLProfile {
 // If durationSecs > 0, the trace auto-stops after that many seconds.
 // duration=0 means the trace runs until the user clicks Stop Trace in the UI.
 func ForceStopWPR() {
-	// Cancel any running WPR sessions to ensure a clean start.
+	// ForceStopWPR cancels any running WPR sessions to ensure a clean start.
+	// Since the WPR ETW subsystem runs in a detached process tree, a single -cancel
+	// may not fully clean up before the next -start races in. We retry up to 3 times
+	// with a short pause between each attempt, then verify with -status before
+	// returning so the caller (StartETLCapture) can safely call -start.
 	logFile := etlOutputDir + "\\wpr_cancel_log.txt"
 	os.MkdirAll(etlOutputDir, 0755)
 
-	// Call wpr -cancel directly (no cmd.exe layer)
-	cmd := wprCmd("wpr.exe", "-cancel", "-instancename", "dispatcher_trace")
-	out, err := cmd.CombinedOutput()
+	cancelSession := func(name string, args ...string) (string, error) {
+		cmd := wprCmd(name, args...)
+		out, err := cmd.CombinedOutput()
+		return string(out), err
+	}
 
-	f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	f.WriteString(fmt.Sprintf("[%s] ForceStopWPR cancel: err=%v out=%s\n",
-		time.Now().Format("15:04:05.000"), err, string(out)))
-	f.Close()
+	log := func(msg string) {
+		f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		f.WriteString(fmt.Sprintf("[%s] %s\n", time.Now().Format("15:04:05.000"), msg))
+		f.Close()
+	}
 
-	// Also try without instancename to cancel any session
-	cmd2 := wprCmd("wpr.exe", "-cancel")
-	out2, _ := cmd2.CombinedOutput()
-	f2, _ := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
-	f2.WriteString(fmt.Sprintf("[%s] ForceStopWPR cancel (no instancename): out=%s\n",
-		time.Now().Format("15:04:05.000"), string(out2)))
-	f2.Close()
+	// Retry cancel up to 3 times — the ETW subsystem may need a moment to fully stop
+	for attempt := 1; attempt <= 3; attempt++ {
+		out1, err1 := cancelSession("wpr.exe", "-cancel", "-instancename", "dispatcher_trace")
+		log(fmt.Sprintf("ForceStopWPR attempt %d: cancel dispatcher_trace err=%v out=%s", attempt, err1, out1))
+
+		out2, err2 := cancelSession("wpr.exe", "-cancel")
+		log(fmt.Sprintf("ForceStopWPR attempt %d: cancel (all) err=%v out=%s", attempt, err2, out2))
+
+		// Give the ETW subsystem a moment to fully tear down the session
+		time.Sleep(500 * time.Millisecond)
+
+		// Verify — if -status says not recording, we're done
+		statusOut, _ := cancelSession("wpr.exe", "-status")
+		log(fmt.Sprintf("ForceStopWPR attempt %d: status=%s", attempt, statusOut))
+		if strings.Contains(strings.ToLower(statusOut), "wpr is not recording") {
+			log("ForceStopWPR: verified clean (not recording)")
+			return
+		}
+	}
+
+	log(fmt.Sprintf("ForceStopWPR: WARNING — sessions may still be running after 3 attempts. User may need to run 'wpr -cancel' manually or reboot."))
 }
 
 func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 	// Clean up any stale sessions from previous runs first
 	ForceStopWPR()
+	// Extra safety margin: give the ETW subsystem a moment to fully release resources
+	time.Sleep(300 * time.Millisecond)
 
 	if !isElevated() {
 		return ETLCaptureState{

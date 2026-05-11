@@ -66,6 +66,10 @@ export function GetMLLogStatus():Promise<backend.MLLogStatus>;
 
 export function GetModeCheckInfo():Promise<backend.ModeCheckInfo>;
 
+export function GetNPOSchedulerSettings():Promise<backend.NPOSchedulerSettings>;
+
+export function GetNPOSchedulerState():Promise<backend.NPOSchedulerState>;
+
 export function GetNPUDeviceInfo():Promise<backend.NPUDeviceInfo>;
 
 export function GetNPUDeviceInfoWrapper():Promise<backend.NPUDeviceInfo|string>;
@@ -142,6 +146,8 @@ export function SetNPUClockLock(arg1:number,arg2:number,arg3:number):Promise<bac
 
 export function SetNPUMode(arg1:number,arg2:string):Promise<backend.NPUPowerAction>;
 
+export function SetNPUPowerLimit(arg1:number,arg2:number,arg3:number):Promise<backend.NPUPowerAction>;
+
 export function SetODV(arg1:number,arg2:number):Promise<string>;
 
 export function SetPowerSettingRaw(arg1:string,arg2:number,arg3:number):Promise<string>;
@@ -154,6 +160,8 @@ export function StartGPUStatusWatcher():Promise<void>;
 
 export function StartMLScenarioCapture():Promise<backend.MLLogStatus>;
 
+export function StartNPUScheduler(arg1:number,arg2:backend.NPOSchedulerSettings):Promise<void>;
+
 export function StartService():Promise<string>;
 
 export function StopETLCapture():Promise<backend.ETLTraceInfo>;
@@ -161,6 +169,8 @@ export function StopETLCapture():Promise<backend.ETLTraceInfo>;
 export function StopGPUStatusWatcher():Promise<void>;
 
 export function StopMLScenarioCapture():Promise<backend.MLLogStatus>;
+
+export function StopNPUScheduler():Promise<void>;
 
 export function StopService():Promise<string>;
 

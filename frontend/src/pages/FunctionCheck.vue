@@ -36,36 +36,36 @@
               </span>
             </div>
             <div class="status-item">
-              <span class="status-label">PCM_Service</span>
+              <span class="status-label no-transform">PCM_Service</span>
               <span :class="['status-value', 'mono', gpuPref.pcmServiceRunning ? 'status-ok' : 'status-na']">
                 {{ gpuPref.pcmServiceRunning ? 'Running' : 'Stopped' }}
               </span>
             </div>
             <div class="status-item">
-              <span class="status-label">PCM_GPUStatus</span>
+              <span class="status-label no-transform">PCM_GPUStatus</span>
               <span :class="['status-value mono', gpuPref.pcmStatusAvail ? 'status-ok' : 'status-na']">
                 {{ gpuPref.pcmStatusAvail ? gpuPref.pcmStatus + ' - ' + gpuPref.pcmLabel : 'N/A' }}
               </span>
             </div>
             <div class="status-item">
-              <span class="status-label">PE_GPUPrefStatus</span>
+              <span class="status-label no-transform">PE_GPUPrefStatus</span>
               <span class="status-value mono">{{ gpuPref.available ? gpuPref.value : (gpuPref.label === 'Dispatcher not Support' ? '0' : 'N/A') }}</span>
             </div>
             <!-- Row 2 -->
             <div class="status-item">
-              <span class="status-label">Vantage_Service</span>
+              <span class="status-label no-transform">Vantage_Service</span>
               <span :class="['status-value', 'mono', gpuPref.vantageServiceRunning ? 'status-ok' : 'status-na']">
                 {{ gpuPref.vantageServiceRunning ? 'Running' : 'Stopped' }}
               </span>
             </div>
             <div class="status-item">
-              <span class="status-label">Vantage_GPUStatus</span>
+              <span class="status-label no-transform">Vantage_GPUStatus</span>
               <span :class="['status-value', 'mono', gpuPref.vantageGPUStatusAvail ? 'status-ok' : 'status-na']">
                 {{ gpuPref.vantageGPUStatusAvail ? (gpuPref.vantageGPUStatus + ' - ' + vantageGPULabel(gpuPref.vantageGPUStatus)) : 'N/A' }}
               </span>
             </div>
             <div class="status-item">
-              <span class="status-label">Vantage_DefaultMode</span>
+              <span class="status-label no-transform">Vantage_DefaultMode</span>
               <span :class="['status-value', 'mono', gpuPref.vantageDefaultModeAvail ? 'status-ok' : 'status-na']">
                 {{ gpuPref.vantageDefaultModeAvail ? gpuPref.vantageDefaultMode : 'N/A' }}
               </span>
@@ -911,7 +911,7 @@ export default {
     return {
       activeTab: 'gpu',
       functionTabs: [
-        { id: 'gpu', label: 'DGPU Function', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
+        { id: 'gpu', label: 'Dynamic DGPU', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
         { id: 'd', label: 'Auto Gear', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
         { id: 'a', label: 'SSD Turbo', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h2"/></svg>' },
         { id: 'c', label: 'IGPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="4" x2="12" y2="1"/></svg>' },
@@ -1397,10 +1397,11 @@ export default {
 .func-tabs {
   display: flex;
   gap: 8px;
-  padding: 16px 20px;
+  padding: 16px 40px 16px 20px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
+  justify-content: flex-start;
 }
 
 .func-tab {
@@ -1440,7 +1441,7 @@ export default {
 }
 
 .func-content {
-  padding: 20px;
+  padding: 20px 20px 20px 2px;
 }
 
 .card {
@@ -1449,6 +1450,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
+  width: calc(100% + 18px);
 }
 
 .placeholder-card {
@@ -1696,6 +1698,8 @@ export default {
   text-transform: uppercase;
   margin-bottom: 4px;
 }
+
+.no-transform { text-transform: none; }
 
 .status-value {
   font-size: 14px;

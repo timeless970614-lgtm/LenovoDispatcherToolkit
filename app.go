@@ -571,6 +571,43 @@ func (a *App) GetNPUDeviceOverview(devIndex int) backend.NPUDeviceOverview {
 	return overview
 }
 
+// SetNPUPowerLimit sets power limits for a device.
+func (a *App) SetNPUPowerLimit(devIndex int, maxW, minW float64) backend.NPUPowerAction {
+	result, err := backend.SetNPUPowerLimit(devIndex, maxW, minW)
+	if err != nil {
+		return backend.NPUPowerAction{Success: false, Message: err.Error()}
+	}
+	return result
+}
+
+// StartNPUScheduler starts the background NPU scheduler for the given device.
+func (a *App) StartNPUScheduler(devIndex int, settings backend.NPOSchedulerSettings) error {
+	return backend.StartNPUScheduler(devIndex, settings)
+}
+
+// StopNPUScheduler stops the running NPU scheduler.
+func (a *App) StopNPUScheduler() error {
+	return backend.StopNPUScheduler()
+}
+
+// GetNPOSchedulerState returns the current scheduler state.
+func (a *App) GetNPOSchedulerState() backend.NPOSchedulerState {
+	state, err := backend.GetNPOSchedulerState()
+	if err != nil {
+		return backend.NPOSchedulerState{}
+	}
+	return state
+}
+
+// GetNPOSchedulerSettings returns the current scheduler settings.
+func (a *App) GetNPOSchedulerSettings() backend.NPOSchedulerSettings {
+	settings, err := backend.GetNPOSchedulerSettings()
+	if err != nil {
+		return backend.NPOSchedulerSettings{}
+	}
+	return settings
+}
+
 // ============ ETL Trace Analyzer ============
 
 // IsElevated returns whether the current process has administrator privileges

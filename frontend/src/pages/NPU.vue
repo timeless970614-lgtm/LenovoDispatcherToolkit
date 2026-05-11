@@ -441,6 +441,7 @@ export default {
           this.npuDeviceList = []
           this.npuSDKInfo = {}
         } else {
+          const report = await window.go.main.App.GetNPUFullReport()
           this.npuSDKInfo = report.sdkInfo || {}
           this.npuDeviceCount = report.deviceCount || 0
           this.npuDeviceList = (report.devices || []).map(d => ({
@@ -585,13 +586,13 @@ export default {
     async startNpuScheduler() {
       this.npuSchedStarting = true
       try {
-        await window.go.main.App.StartNPUScheduler(this.npuSchedDev, JSON.stringify({
-          utilHighPct: this.npuSchedSettings.utilHighPct || 85,
-          utilLowPct: this.npuSchedSettings.utilLowPct || 20,
-          tempWarnC: this.npuSchedSettings.tempWarnC || 80,
-          tempCritC: this.npuSchedSettings.tempCritC || 90,
-          checkSec: this.npuSchedSettings.checkSec || 5,
-        }))
+        await window.go.main.App.StartNPUScheduler(this.npuSchedDev, {
+          UtilHighPct: this.npuSchedSettings.utilHighPct || 85,
+          UtilLowPct: this.npuSchedSettings.utilLowPct || 20,
+          TempWarnC: this.npuSchedSettings.tempWarnC || 80,
+          TempCritC: this.npuSchedSettings.tempCritC || 90,
+          CheckSec: this.npuSchedSettings.checkSec || 5,
+        })
         this.npuSchedRunning = true
         this.pollNpuSchedulerState()
       } catch(e) {
