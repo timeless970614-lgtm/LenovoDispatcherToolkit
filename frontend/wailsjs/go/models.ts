@@ -1420,6 +1420,38 @@ export namespace backend {
 	        this.MemoryType = source["MemoryType"];
 	    }
 	}
+	export class SystemPowerInfo {
+	    cpuPowerWatts: number;
+	    gpuPowerWatts: number;
+	    npuPowerWatts: number;
+	    sysPowerWatts: number;
+	    ipfPowerMW: number;
+	    cpuUtilPct: number;
+	    pl1Watts: number;
+	    pl2Watts: number;
+	    pl4Watts: number;
+	    cpuFreqMHz: number;
+	    cpuTempC: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SystemPowerInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cpuPowerWatts = source["cpuPowerWatts"];
+	        this.gpuPowerWatts = source["gpuPowerWatts"];
+	        this.npuPowerWatts = source["npuPowerWatts"];
+	        this.sysPowerWatts = source["sysPowerWatts"];
+	        this.ipfPowerMW = source["ipfPowerMW"];
+	        this.cpuUtilPct = source["cpuUtilPct"];
+	        this.pl1Watts = source["pl1Watts"];
+	        this.pl2Watts = source["pl2Watts"];
+	        this.pl4Watts = source["pl4Watts"];
+	        this.cpuFreqMHz = source["cpuFreqMHz"];
+	        this.cpuTempC = source["cpuTempC"];
+	    }
+	}
 	export class ToolkitInstallProgress {
 	    toolId: string;
 	    status: string;

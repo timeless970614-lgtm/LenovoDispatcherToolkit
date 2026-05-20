@@ -54,6 +54,10 @@ export function GetCachedGPUStatus() {
   return window['go']['main']['App']['GetCachedGPUStatus']();
 }
 
+export function GetCachedSystemPower() {
+  return window['go']['main']['App']['GetCachedSystemPower']();
+}
+
 export function GetDYTCInfo() {
   return window['go']['main']['App']['GetDYTCInfo']();
 }
@@ -192,6 +196,10 @@ export function GetServiceStatus() {
 
 export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
+}
+
+export function GetSystemPowerInfo() {
+  return window['go']['main']['App']['GetSystemPowerInfo']();
 }
 
 export function GetToolkitInstallDir() {
@@ -368,4 +376,8 @@ export function UninstallToolkitTool(arg1) {
 
 export function UnpinDYTCMode() {
   return window['go']['main']['App']['UnpinDYTCMode']();
+}
+
+export function UpdateCachedSystemPower() {
+  return window['go']['main']['App']['UpdateCachedSystemPower']();
 }

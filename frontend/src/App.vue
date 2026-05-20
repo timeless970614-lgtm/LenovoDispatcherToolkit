@@ -71,7 +71,7 @@
             </svg>
           </div>
         </div>
-        <div class="version-tag">v1.0.18</div>
+        <div class="version-tag">v1.0.19</div>
       </div>
     </aside>
 

@@ -28,6 +28,8 @@ export function EnumerateGPUs():Promise<Array<backend.GPUInfo>>;
 
 export function GetCachedGPUStatus():Promise<number>;
 
+export function GetCachedSystemPower():Promise<backend.SystemPowerInfo>;
+
 export function GetDYTCInfo():Promise<backend.DYTCInfo>;
 
 export function GetDispatcherInfo():Promise<backend.DispatcherInfo>;
@@ -97,6 +99,8 @@ export function GetSSDInfo():Promise<Array<backend.SSDInfo>>;
 export function GetServiceStatus():Promise<string>;
 
 export function GetSystemInfo():Promise<backend.SystemInfo>;
+
+export function GetSystemPowerInfo():Promise<backend.SystemPowerInfo>;
 
 export function GetToolkitInstallDir():Promise<string>;
 
@@ -185,3 +189,5 @@ export function UninstallDispatcher():Promise<backend.UninstallResult>;
 export function UninstallToolkitTool(arg1:string):Promise<string>;
 
 export function UnpinDYTCMode():Promise<void>;
+
+export function UpdateCachedSystemPower():Promise<backend.SystemPowerInfo>;

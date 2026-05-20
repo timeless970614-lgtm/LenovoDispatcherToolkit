@@ -608,6 +608,21 @@ func (a *App) GetNPOSchedulerSettings() backend.NPOSchedulerSettings {
 	return settings
 }
 
+// GetSystemPowerInfo returns real-time power consumption data (HWInfo-style).
+func (a *App) GetSystemPowerInfo() backend.SystemPowerInfo {
+	return backend.GetSystemPowerInfo()
+}
+
+// GetCachedSystemPower returns the most recent cached power reading.
+func (a *App) GetCachedSystemPower() backend.SystemPowerInfo {
+	return backend.GetCachedSystemPower()
+}
+
+// UpdateCachedSystemPower refreshes the power cache and returns the new value.
+func (a *App) UpdateCachedSystemPower() backend.SystemPowerInfo {
+	return backend.UpdateCachedSystemPower()
+}
+
 // ============ ETL Trace Analyzer ============
 
 // IsElevated returns whether the current process has administrator privileges

@@ -459,288 +459,159 @@
     </div>
 
     <!-- Tab B Content - Power Management -->
-    <div v-if="activeTab === 'b'" class="func-content">
-      <div class="ppm-container">
-        <!-- Header with refresh -->
-        <div class="ppm-header">
-          <h3>PPM Power Settings</h3>
-          <div class="ppm-actions">
-            <span class="ppm-scheme" v-if="ppmSettings">
+    <div v-if="activeTab === 'power'" class="func-content">
+
+        <!-- Real-time Power Consumption Section -->
+        <div class="ppm-container">
+          <div class="ppm-header">
+            <h3>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              {{ ppmSettings.schemeName }}
-            </span>
-            <button class="btn btn-outline btn-sm" @click="refreshPPMSettings" :disabled="ppmLoading">
-              <span v-if="ppmLoading">Loading...</span>
-              <span v-else>Refresh</span>
-            </button>
+              Real-time Power Consumption
+            </h3>
+            <div class="ppm-actions">
+              <button class="btn btn-outline btn-sm" @click="refreshSysPower" :disabled="sysPowerLoading">
+                <span v-if="sysPowerLoading">Reading...</span>
+                <span v-else>Refresh</span>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <!-- Error message -->
-        <div v-if="ppmError" class="error-box">
-          {{ ppmError }}
-        </div>
+          <div v-if="sysPowerLoading && !sysPower" class="loading-placeholder">
+            <div class="spinner"></div>
+            <span>Reading power sensors...</span>
+          </div>
 
-        <!-- Loading state -->
-        <div v-if="ppmLoading && !ppmSettings" class="loading-placeholder">
-          <div class="spinner"></div>
-          <span>Loading PPM settings...</span>
-        </div>
-
-        <!-- PPM Settings Grid -->
-        <div v-if="ppmSettings" class="ppm-grid">
-          <!-- Performance State Section -->
-          <div class="ppm-section">
-            <h4 class="ppm-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Processor Performance
-            </h4>
-            <div class="ppm-cards">
-              <!-- Min Performance State -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Min Performance State</span>
-                  <span class="ppm-badge" :class="ppmSettings.minPerf.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.minPerf.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.minPerf.found ? (ppmSettings.minPerf.ACValue / 100) + '%' : '-' }}</span>
+          <div v-if="sysPower" class="ppm-grid power-inline-grid">
+            <!-- System Total Power -->
+            <div class="ppm-section">
+              <h4 class="ppm-section-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="13" x2="23" y2="11"/></svg>
+                System Power
+              </h4>
+              <div class="ppm-cards">
+                <div class="ppm-card">
+                  <div class="ppm-card-header">
+                    <span class="ppm-card-label">Total System</span>
+                    <span class="ppm-badge badge-success" v-if="sysPower.sysPowerWatts > 0">Live</span>
+                    <span class="ppm-badge badge-warning" v-else>N/A</span>
                   </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.minPerf.found ? (ppmSettings.minPerf.DCValue / 100) + '%' : '-' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Max Performance State -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Max Performance State</span>
-                  <span class="ppm-badge" :class="ppmSettings.maxPerf.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.maxPerf.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.maxPerf.found ? (ppmSettings.maxPerf.ACValue / 100) + '%' : '-' }}</span>
-                  </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.maxPerf.found ? (ppmSettings.maxPerf.DCValue / 100) + '%' : '-' }}</span>
+                  <div class="ppm-values">
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Power</span>
+                      <span class="ppm-value power-highlight">{{ sysPower.sysPowerWatts > 0 ? sysPower.sysPowerWatts.toFixed(1) + ' W' : '-' }}</span>
+                    </div>
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">IPF</span>
+                      <span class="ppm-value">{{ sysPower.ipfPowerMW > 0 ? (sysPower.ipfPowerMW / 1000).toFixed(1) + ' W' : '-' }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Processor Cores Section -->
-          <div class="ppm-section">
-            <h4 class="ppm-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
-              Processor Cores
-            </h4>
-            <div class="ppm-cards">
-              <!-- Min Processor Cores -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Min Processor Cores</span>
-                  <span class="ppm-badge" :class="ppmSettings.cpMinCores.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.cpMinCores.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.cpMinCores.found ? ppmSettings.cpMinCores.ACValue : '-' }}</span>
+            <!-- CPU Power -->
+            <div class="ppm-section cpu-power-wide">
+              <h4 class="ppm-section-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg>
+                CPU Power
+              </h4>
+              <div class="ppm-cards">
+                <div class="ppm-card">
+                  <div class="ppm-card-header">
+                    <span class="ppm-card-label">Package Power</span>
+                    <span class="ppm-badge badge-success" v-if="sysPower.cpuPowerWatts > 0">Live</span>
+                    <span class="ppm-badge badge-warning" v-else>N/A</span>
                   </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.cpMinCores.found ? ppmSettings.cpMinCores.DCValue : '-' }}</span>
+                  <div class="ppm-values">
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Power</span>
+                      <span class="ppm-value power-highlight">{{ sysPower.cpuPowerWatts > 0 ? sysPower.cpuPowerWatts.toFixed(1) + ' W' : '-' }}</span>
+                    </div>
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Util</span>
+                      <span class="ppm-value">{{ sysPower.cpuUtilPct >= 0 ? sysPower.cpuUtilPct.toFixed(0) + '%' : '-' }}</span>
+                    </div>
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Freq</span>
+                      <span class="ppm-value">{{ sysPower.cpuFreqMHz > 0 ? sysPower.cpuFreqMHz.toFixed(0) + ' MHz' : '-' }}</span>
+                    </div>
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Temp</span>
+                      <span class="ppm-value" :class="sysPower.cpuTempC > 85 ? 'temp-high' : ''">{{ sysPower.cpuTempC > 0 ? sysPower.cpuTempC.toFixed(0) + '°C' : '-' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- PL Limits -->
+                <div class="ppm-card">
+                  <div class="ppm-card-header">
+                    <span class="ppm-card-label">Power Limits</span>
+                    <span class="ppm-badge badge-success" v-if="sysPower.pl1Watts > 0">Active</span>
+                    <span class="ppm-badge badge-warning" v-else>N/A</span>
+                  </div>
+                  <div class="ppm-values">
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">PL1</span>
+                      <span class="ppm-value">{{ sysPower.pl1Watts > 0 ? sysPower.pl1Watts.toFixed(1) + ' W' : '-' }}</span>
+                    </div>
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">PL2</span>
+                      <span class="ppm-value">{{ sysPower.pl2Watts > 0 ? sysPower.pl2Watts.toFixed(1) + ' W' : '-' }}</span>
+                    </div>
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">PL4</span>
+                      <span class="ppm-value">{{ sysPower.pl4Watts > 0 ? sysPower.pl4Watts.toFixed(1) + ' W' : '-' }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- EPP Section -->
-          <div class="ppm-section">
-            <h4 class="ppm-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              Energy Performance Preference
-            </h4>
-            <div class="ppm-cards">
-              <!-- EPP P-Core -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">EPP (P-Core)</span>
-                  <span class="ppm-badge" :class="ppmSettings.epp.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.epp.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.epp.found ? ppmSettings.epp.ACValue : '-' }}</span>
+            <!-- GPU Power -->
+            <div class="ppm-section">
+              <h4 class="ppm-section-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M7 12h10"/></svg>
+                GPU Power
+              </h4>
+              <div class="ppm-cards">
+                <div class="ppm-card">
+                  <div class="ppm-card-header">
+                    <span class="ppm-card-label">GPU Package</span>
+                    <span class="ppm-badge badge-success" v-if="sysPower.gpuPowerWatts > 0">Live</span>
+                    <span class="ppm-badge badge-warning" v-else>N/A</span>
                   </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.epp.found ? ppmSettings.epp.DCValue : '-' }}</span>
-                  </div>
-                </div>
-                <div class="ppm-bar-container">
-                  <div class="ppm-bar" :style="{width: ppmSettings.epp.found ? (ppmSettings.epp.ACValue) + '%' : '0%'}"></div>
-                </div>
-              </div>
-
-              <!-- EPP E-Core -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">EPP (E-Core)</span>
-                  <span class="ppm-badge" :class="ppmSettings.epp1.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.epp1.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.epp1.found ? ppmSettings.epp1.ACValue : '-' }}</span>
-                  </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.epp1.found ? ppmSettings.epp1.DCValue : '-' }}</span>
-                  </div>
-                </div>
-                <div class="ppm-bar-container">
-                  <div class="ppm-bar" :style="{width: ppmSettings.epp1.found ? (ppmSettings.epp1.ACValue) + '%' : '0%'}"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Heterogeneous Scheduling Section -->
-          <div class="ppm-section">
-            <h4 class="ppm-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Heterogeneous Scheduling
-            </h4>
-            <div class="ppm-cards">
-              <!-- Increase Threshold -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Increase Threshold</span>
-                  <span class="ppm-badge" :class="ppmSettings.heteroInc.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.heteroInc.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.heteroInc.found ? ppmSettings.heteroInc.ACValue : '-' }}</span>
-                  </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.heteroInc.found ? ppmSettings.heteroInc.DCValue : '-' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Decrease Threshold -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Decrease Threshold</span>
-                  <span class="ppm-badge" :class="ppmSettings.heteroDec.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.heteroDec.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.heteroDec.found ? ppmSettings.heteroDec.ACValue : '-' }}</span>
-                  </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.heteroDec.found ? ppmSettings.heteroDec.DCValue : '-' }}</span>
+                  <div class="ppm-values">
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Power</span>
+                      <span class="ppm-value power-highlight">{{ sysPower.gpuPowerWatts > 0 ? sysPower.gpuPowerWatts.toFixed(1) + ' W' : '-' }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Frequency Limits Section -->
-          <div class="ppm-section">
-            <h4 class="ppm-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
-              Frequency Limits
-            </h4>
-            <div class="ppm-cards">
-              <!-- Max Frequency P-Core -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Max Freq (P-Core)</span>
-                  <span class="ppm-badge" :class="ppmSettings.maxFreq.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.maxFreq.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.maxFreq.found ? (ppmSettings.maxFreq.ACValue / 100) + '%' : '-' }}</span>
+            <!-- NPU Power -->
+            <div class="ppm-section" v-if="sysPower.npuPowerWatts > 0">
+              <h4 class="ppm-section-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M20 12a8 8 0 1 1-8-8"/></svg>
+                NPU Power
+              </h4>
+              <div class="ppm-cards">
+                <div class="ppm-card">
+                  <div class="ppm-card-header">
+                    <span class="ppm-card-label">Board Power</span>
+                    <span class="ppm-badge badge-success">Live</span>
                   </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.maxFreq.found ? (ppmSettings.maxFreq.DCValue / 100) + '%' : '-' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Max Frequency E-Core -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Max Freq (E-Core)</span>
-                  <span class="ppm-badge" :class="ppmSettings.maxFreq1.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.maxFreq1.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.maxFreq1.found ? (ppmSettings.maxFreq1.ACValue / 100) + '%' : '-' }}</span>
-                  </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.maxFreq1.found ? (ppmSettings.maxFreq1.DCValue / 100) + '%' : '-' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Soft Park Latency -->
-              <div class="ppm-card">
-                <div class="ppm-card-header">
-                  <span class="ppm-card-label">Soft Park Latency</span>
-                  <span class="ppm-badge" :class="ppmSettings.softPark.found ? 'badge-success' : 'badge-warning'">
-                    {{ ppmSettings.softPark.found ? 'Active' : 'N/A' }}
-                  </span>
-                </div>
-                <div class="ppm-values">
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">AC</span>
-                    <span class="ppm-value">{{ ppmSettings.softPark.found ? ppmSettings.softPark.ACValue : '-' }}</span>
-                  </div>
-                  <div class="ppm-value-item">
-                    <span class="ppm-value-label">DC</span>
-                    <span class="ppm-value">{{ ppmSettings.softPark.found ? ppmSettings.softPark.DCValue : '-' }}</span>
+                  <div class="ppm-values">
+                    <div class="ppm-value-item">
+                      <span class="ppm-value-label">Power</span>
+                      <span class="ppm-value power-highlight">{{ sysPower.npuPowerWatts.toFixed(1) + ' W' }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
     </div>
 
     <!-- Tab C Content - GPU Frequency -->
@@ -903,7 +774,7 @@
 </template>
 <script>
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
-import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI, GetPPMSettings } from '../../wailsjs/go/main/App'
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI, GetPPMSettings, GetSystemPowerInfo, UpdateCachedSystemPower } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'FunctionCheck',
@@ -990,6 +861,10 @@ export default {
       ppmSettings: null,
       ppmLoading: false,
       ppmError: '',
+      // System Power (real-time)
+      sysPower: null,
+      sysPowerLoading: false,
+      sysPowerTimer: null,
     }
   },
   computed: {
@@ -1029,6 +904,11 @@ export default {
       if (newTab === 'power' && !this.ppmSettings) {
         this.refreshPPMSettings()
       }
+      if (newTab === 'power') {
+        this.startSysPowerPolling()
+      } else {
+        this.stopSysPowerPolling()
+      }
     }
   },
   async mounted() {
@@ -1043,6 +923,7 @@ export default {
   beforeUnmount() {
     this.stopGPUStatusWatcher()
     this.stopUtilPolling()
+    this.stopSysPowerPolling()
   },
   methods: {
     formatMemory(bytes) {
@@ -1383,7 +1264,36 @@ export default {
       } finally {
         this.ppmLoading = false
       }
-    }
+    },
+
+    async refreshSysPower() {
+      this.sysPowerLoading = true
+      try {
+        const info = await GetSystemPowerInfo()
+        this.sysPower = info
+      } catch (e) {
+        console.error('[SysPower] Error:', e)
+      } finally {
+        this.sysPowerLoading = false
+      }
+    },
+
+    startSysPowerPolling() {
+      if (this.sysPowerTimer) return
+      this.refreshSysPower()
+      this.sysPowerTimer = setInterval(() => {
+        UpdateCachedSystemPower().then(info => {
+          this.sysPower = info
+        }).catch(() => {})
+      }, 3000)
+    },
+
+    stopSysPowerPolling() {
+      if (this.sysPowerTimer) {
+        clearInterval(this.sysPowerTimer)
+        this.sysPowerTimer = null
+      }
+    },
   }
 }
 </script>
@@ -2371,6 +2281,21 @@ export default {
   gap: 20px;
 }
 
+.power-inline-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.power-inline-grid .ppm-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.power-inline-grid .cpu-power-wide {
+  flex: 2;
+}
+
 .ppm-section {
   background: var(--bg-secondary);
   border-radius: 8px;
@@ -2496,4 +2421,13 @@ export default {
   }
 }
 
+.power-highlight {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #3b82f6;
+}
+.temp-high {
+  color: #ef4444 !important;
+  font-weight: 700;
+}
 </style>
