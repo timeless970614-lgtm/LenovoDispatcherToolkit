@@ -104,7 +104,6 @@
             <span class="mode-dot"></span>
             <span class="mode-label">Current Mode</span>
             <span class="mode-value">{{ pinnedMode || currentMode }}</span>
-            <span v-if="pinnedMode" class="pin-indicator">??</span>
           </div>
           <!-- Uninstall Button -->
           <button class="btn-uninstall" @click="handleUninstall" :disabled="uninstalling" title="Uninstall Dispatcher Driver">

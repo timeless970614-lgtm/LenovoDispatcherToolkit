@@ -1,11 +1,40 @@
 <template>
   <div class="ppm-page">
-    <!-- PPM Parameters Card - Comprehensive Analysis -->
+    <!-- PPM Parameters Card -->
     <div class="card params-card">
-      <div class="card-header">
+      <!-- Header -->
+      <div class="card-header ppm-header">
         <div class="card-title-info">
-          <h2>PPM Parameters (Arrow Lake HX)</h2>
-          <p class="card-subtitle">PPM-ARL-v1007.20250118 | Family 6 Model 198</p>
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;vertical-align:middle;color:#3b82f6;">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            PPM Parameters
+          </h2>
+          <p class="card-subtitle">Arrow Lake HX · PPMP-ARL-v1007.20250118 · Family 6 Model 198</p>
+        </div>
+        <div class="cpu-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+          </svg>
+          {{ platformInfo.cpuName || 'Intel Core Ultra' }}
+        </div>
+      </div>
+
+      <!-- Current Active Indicator -->
+      <div class="active-indicator-bar">
+        <div class="indicator-left">
+          <span class="indicator-dot"></span>
+          <span class="indicator-label">Current Viewing:</span>
+          <span class="indicator-scheme">{{ activeScheme }}</span>
+          <span class="indicator-arrow">/</span>
+          <span class="indicator-profile">{{ activeProfile }}</span>
+        </div>
+        <div class="indicator-right">
+          <span class="indicator-hint">AC Power</span>
+          <span class="indicator-sep">|</span>
+          <span class="indicator-hint">DC Power</span>
         </div>
       </div>
 
@@ -18,12 +47,17 @@
             :class="['scheme-tab', { active: activeScheme === scheme.id }]"
             @click="activeScheme = scheme.id; activeProfile = 'Default'"
           >
+            <span class="scheme-icon" v-if="scheme.id === 'Balanced'">⚖</span>
+            <span class="scheme-icon" v-else-if="scheme.id === 'HighPerformance'">⚡</span>
+            <span class="scheme-icon" v-else-if="scheme.id === 'BetterBatteryLifeOverlay'">🔋</span>
+            <span class="scheme-icon" v-else>🚀</span>
             {{ scheme.name }}
           </button>
         </div>
 
         <!-- Profile Tabs -->
         <div class="profile-tabs">
+          <span class="profile-tabs-label">Profile:</span>
           <button 
             v-for="profile in getProfilesForScheme(activeScheme)" 
             :key="profile"
@@ -39,22 +73,31 @@
           <table class="params-table">
             <thead>
               <tr>
-                <th class="col-param">Parameter</th>
-                <th class="col-ac">AC</th>
-                <th class="col-dc">DC</th>
+                <th class="col-param">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                  </svg>
+                  Parameter
+                </th>
+                <th class="col-ac">
+                  <span class="th-ac-dot"></span> AC
+                </th>
+                <th class="col-dc">
+                  <span class="th-dc-dot"></span> DC
+                </th>
                 <th class="col-desc">Description</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="param in getCurrentParams" :key="param.key">
+              <tr v-for="(param, idx) in getCurrentParams" :key="param.key" :class="['param-row', { 'row-alt': idx % 2 === 1 }]">
                 <td class="col-param">
                   <span class="param-key">{{ param.key }}</span>
                 </td>
                 <td class="col-ac">
-                  <span :class="['value', { highlight: param.ac && param.ac !== '-' }]">{{ formatValue(param.ac) }}</span>
+                  <span :class="['value-pill', 'ac-pill', { filled: param.ac && param.ac !== '-' }]">{{ formatValue(param.ac) }}</span>
                 </td>
                 <td class="col-dc">
-                  <span :class="['value', { highlight: param.dc && param.dc !== '-' }]">{{ formatValue(param.dc) }}</span>
+                  <span :class="['value-pill', 'dc-pill', { filled: param.dc && param.dc !== '-' }]">{{ formatValue(param.dc) }}</span>
                 </td>
                 <td class="col-desc">{{ param.desc }}</td>
               </tr>
@@ -64,24 +107,37 @@
 
         <!-- Definitions Section -->
         <div class="definitions-section">
-          <div class="defs-header">Definitions (Hetero Thresholds)</div>
+          <div class="defs-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;color:#8b5cf6;">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            Hetero Thresholds
+          </div>
           <div class="defs-grid">
             <div class="def-item">
               <span class="def-key">HeteroDecreaseThreshold</span>
               <span class="def-value">1347440720</span>
-              <span class="def-desc">P-Core→E-Core downgrade threshold</span>
+              <span class="def-desc">P-Core → E-Core downgrade threshold</span>
             </div>
             <div class="def-item">
               <span class="def-key">HeteroIncreaseThreshold</span>
               <span class="def-value">2139259522</span>
-              <span class="def-desc">E-Core→P-Core upgrade threshold</span>
+              <span class="def-desc">E-Core → P-Core upgrade threshold</span>
             </div>
           </div>
         </div>
 
         <!-- Scheme Summary -->
         <div class="scheme-summary">
-          <div class="summary-header">Scheme Summary</div>
+          <div class="summary-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;color:#3b82f6;">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Scheme Summary
+          </div>
           <div class="summary-grid">
             <div class="summary-item" v-for="s in schemeSummaries" :key="s.id">
               <div class="summary-name">{{ s.name }}</div>
@@ -444,223 +500,231 @@ export default {
 .ppm-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
   height: calc(100vh - 140px);
   overflow-y: auto;
 }
 
+/* ===== Card ===== */
 .card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  background: var(--bg-card, #1e1e2e);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #2e2e42);
   overflow: hidden;
 }
 
-.card-header {
+.ppm-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
-}
-
-.card-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: rgba(230, 63, 50, 0.1);
-  color: var(--lenovo-red);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(139, 92, 246, 0.06) 100%);
+  border-bottom: 1px solid var(--border-color, #2e2e42);
 }
 
 .card-title-info h2 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #e0e0e8);
+  display: flex;
+  align-items: center;
 }
 
 .card-title-info .card-subtitle {
-  margin: 3px 0 0 0;
-  font-size: 13px;
-  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+  font-family: 'Consolas', 'Monaco', monospace;
+  letter-spacing: 0.02em;
 }
 
-.btn-refresh {
-  margin-left: auto;
+.cpu-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 11px;
+  padding: 8px 14px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
+  color: #3b82f6;
+  white-space: nowrap;
 }
 
-.btn-refresh:hover:not(:disabled) {
-  border-color: var(--lenovo-red);
-  color: var(--lenovo-red);
+/* ===== Active Indicator Bar ===== */
+.active-indicator-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  background: rgba(139, 92, 246, 0.06);
+  border-bottom: 1px solid var(--border-color, #2e2e42);
 }
 
-.btn-refresh:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.info-card {
-  flex-shrink: 0;
-}
-
-.info-content {
-  padding: 16px 20px;
-}
-
-.section {
+.indicator-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
-.cpu-info-row {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  animation: pulse-dot 2s ease-in-out infinite;
 }
 
-.cpu-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+  50% { box-shadow: 0 0 12px rgba(34, 197, 94, 0.8); }
 }
 
-.cpu-cores {
+.indicator-label {
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+}
+
+.indicator-scheme {
   font-size: 13px;
-  color: var(--text-secondary);
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.indicator-arrow {
+  color: var(--text-tertiary, #666);
+  font-weight: 300;
+}
+
+.indicator-profile {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.indicator-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indicator-hint {
+  font-size: 11px;
+  color: var(--text-tertiary, #666);
   font-weight: 500;
 }
 
-.drivers-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+.indicator-sep {
+  color: var(--border-color, #2e2e42);
+  font-weight: 300;
 }
 
-.drivers-table th {
-  padding: 10px 16px;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-}
-
-.drivers-table td {
-  padding: 10px 16px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent-green);
-  font-family: 'Consolas', monospace;
-  border: 1px solid var(--border-color);
-}
-
+/* ===== Content ===== */
 .params-card {
   flex: 1;
   min-height: 400px;
 }
 
 .params-content {
-  padding: 12px 16px;
+  padding: 16px 20px 20px;
 }
 
+/* ===== Scheme Tabs ===== */
 .scheme-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .scheme-tab {
-  padding: 8px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: 1px solid var(--border-color, #2e2e42);
+  border-radius: 8px;
+  background: var(--bg-secondary, #1a1a2e);
+  color: var(--text-secondary, #888);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.25s ease;
+}
+
+.scheme-icon {
+  font-size: 14px;
 }
 
 .scheme-tab:hover {
-  border-color: var(--lenovo-red);
-  color: var(--lenovo-red);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.05);
 }
 
 .scheme-tab.active {
-  background: var(--lenovo-red);
-  border-color: var(--lenovo-red);
-  color: white;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
 }
 
+/* ===== Profile Tabs ===== */
 .profile-tabs {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #2e2e42);
+}
+
+.profile-tabs-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
 }
 
 .profile-tab {
-  padding: 5px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #666);
   font-size: 10px;
   font-weight: 500;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s ease;
 }
 
 .profile-tab:hover {
-  border-color: var(--text-secondary);
-  color: var(--text-secondary);
+  color: var(--text-secondary, #888);
+  background: var(--bg-tertiary, #252540);
 }
 
 .profile-tab.active {
-  background: var(--bg-tertiary);
-  border-color: var(--accent-green);
-  color: var(--accent-green);
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
+  font-weight: 700;
 }
 
+/* ===== Parameters Table ===== */
 .params-table-container {
   overflow-x: auto;
   margin-bottom: 16px;
+  border: 1px solid var(--border-color, #2e2e42);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .params-table {
@@ -669,147 +733,213 @@ export default {
   font-size: 11px;
 }
 
+.params-table thead {
+  background: linear-gradient(180deg, var(--bg-tertiary, #222240), var(--bg-secondary, #1a1a2e));
+}
+
 .params-table th {
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: left;
   font-weight: 700;
-  color: var(--text-tertiary);
-  background: var(--bg-tertiary);
+  color: var(--text-secondary, #888);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border-color);
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  border-bottom: 2px solid var(--border-color, #2e2e42);
 }
 
 .params-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-color, #2e2e42);
   vertical-align: middle;
 }
 
-.params-table tr:last-child td {
+.param-row:last-child td {
   border-bottom: none;
 }
 
+.row-alt {
+  background: rgba(255, 255, 255, 0.015);
+}
+
 .col-param {
-  width: 180px;
+  width: 200px;
 }
 
 .col-ac, .col-dc {
-  width: 80px;
+  width: 70px;
   text-align: center;
 }
 
 .col-desc {
-  width: auto;
+  font-size: 11px;
+  color: var(--text-tertiary, #666);
 }
 
 .param-key {
-  font-family: 'Consolas', monospace;
+  font-family: 'Consolas', 'Monaco', monospace;
   font-weight: 700;
-  color: var(--lenovo-red);
+  color: #a78bfa;
   font-size: 10px;
 }
 
-.value {
+/* ===== Value Pills ===== */
+.value-pill {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'Consolas', monospace;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
   font-weight: 600;
   font-size: 10px;
+  min-width: 40px;
 }
 
-.value.highlight {
-  background: rgba(230, 63, 50, 0.1);
-  color: var(--lenovo-red);
+.value-pill.filled.ac-pill {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
+.value-pill.filled.dc-pill {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.value-pill:not(.filled) {
+  color: var(--text-tertiary, #666);
+}
+
+.th-ac-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.th-dc-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* ===== Definitions ===== */
 .definitions-section {
   margin-bottom: 16px;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  padding: 16px;
+  background: rgba(139, 92, 246, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.15);
 }
 
 .defs-header {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+  color: #a78bfa;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 }
 
 .defs-grid {
-  display: flex;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
 }
 
 .def-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding: 12px;
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #2e2e42);
 }
 
 .def-key {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #666);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Consolas', 'Monaco', monospace;
 }
 
 .def-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--lenovo-red);
-  font-family: 'Consolas', monospace;
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Consolas', 'Monaco', monospace;
 }
 
 .def-desc {
-  font-size: 9px;
-  color: var(--text-tertiary);
+  font-size: 10px;
+  color: var(--text-tertiary, #666);
 }
 
+/* ===== Scheme Summary ===== */
 .scheme-summary {
-  padding: 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  padding: 16px;
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #2e2e42);
 }
 
 .summary-header {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
+  color: #60a5fa;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
 }
 
 .summary-item {
-  padding: 8px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--bg-tertiary, #252540);
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #2e2e42);
+  transition: all 0.2s ease;
+}
+
+.summary-item:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
 }
 
 .summary-name {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  color: var(--text-primary, #e0e0e8);
+  margin-bottom: 6px;
 }
 
 .summary-details {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .summary-details span {
   font-size: 9px;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #666);
+  font-family: 'Consolas', 'Monaco', monospace;
 }
 </style>

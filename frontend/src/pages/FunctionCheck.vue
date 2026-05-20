@@ -489,7 +489,7 @@
                 System Power
               </h4>
               <div class="ppm-cards">
-                <div class="ppm-card">
+                <div class="ppm-card sys-power-card">
                   <div class="ppm-card-header">
                     <span class="ppm-card-label">Total System</span>
                     <span class="ppm-badge badge-success" v-if="sysPower.sysPowerWatts > 0">Live</span>
@@ -2223,15 +2223,24 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
 }
 
 .ppm-header h3 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ppm-header h3 svg {
+  color: #3b82f6;
 }
 
 .ppm-actions {
@@ -2285,12 +2294,39 @@ export default {
   display: flex;
   flex-direction: row;
   gap: 16px;
+  align-items: stretch;
 }
 
 .power-inline-grid .ppm-section {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
+
+.power-inline-grid .ppm-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 0;
+}
+
+.power-inline-grid .ppm-section:hover::before {
+  opacity: 1;
+}
+
+.power-inline-grid .ppm-section:nth-child(1)::before { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+.power-inline-grid .ppm-section:nth-child(2)::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+.power-inline-grid .ppm-section:nth-child(3)::before { background: linear-gradient(90deg, #10b981, #06b6d4); }
+.power-inline-grid .ppm-section:nth-child(4)::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
 
 .power-inline-grid .cpu-power-wide {
   flex: 2;
@@ -2298,21 +2334,30 @@ export default {
 
 .ppm-section {
   background: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 18px;
   border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.ppm-section:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .ppm-section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   margin: 0 0 14px 0;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .ppm-section-title svg {
@@ -2323,75 +2368,95 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
+  flex: 1;
 }
 
 .ppm-card {
   background: var(--bg-tertiary);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 14px;
   border: 1px solid var(--border-subtle);
-  transition: all 0.2s;
+  transition: all 0.25s ease;
 }
 
 .ppm-card:hover {
-  border-color: var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.ppm-card.sys-power-card {
+  max-width: 260px;
 }
 
 .ppm-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .ppm-card-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .ppm-badge {
   padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  animation: badge-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 
 .badge-success {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--success-color);
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .badge-warning {
-  background: rgba(234, 179, 8, 0.15);
-  color: var(--warning-color);
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  animation: none;
 }
 
 .ppm-values {
   display: flex;
-  gap: 16px;
-  margin-bottom: 8px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .ppm-value-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .ppm-value-label {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
 }
 
 .ppm-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
+  line-height: 1.2;
 }
 
 .ppm-bar-container {
@@ -2419,15 +2484,30 @@ export default {
   .ppm-cards {
     grid-template-columns: 1fr;
   }
+
+  .power-inline-grid {
+    flex-direction: column;
+  }
+
+  .power-inline-grid .ppm-section,
+  .power-inline-grid .cpu-power-wide {
+    flex: 1;
+  }
 }
 
 .power-highlight {
-  font-size: 1.1em;
-  font-weight: 700;
-  color: #3b82f6;
+  font-size: 1.15em;
+  font-weight: 800;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .temp-high {
-  color: #ef4444 !important;
-  font-weight: 700;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
 }
 </style>
