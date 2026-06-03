@@ -133,6 +133,30 @@
             </div>
           </div>
 
+          <!-- FUNC_CAP & NIT_GET Card -->
+          <div class="sub-card">
+            <div class="sub-card-header">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                DLL Capabilities
+              </span>
+            </div>
+            <div class="dytc-display">
+              <div class="dytc-value">
+                <span class="dytc-label">FUNC_CAP</span>
+                <span class="dytc-hex">{{ info.funcCap !== undefined && info.funcCap !== null ? '0x' + info.funcCap.toString(16).toUpperCase().padStart(8, '0') + ' (' + info.funcCap + ')' : 'N/A' }}</span>
+              </div>
+              <div class="dytc-value">
+                <span class="dytc-label">NIT_GET</span>
+                <span class="dytc-hex">{{ info.nits !== undefined && info.nits !== null ? info.nits + ' nits' : 'N/A' }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Features Card -->
           <div class="sub-card" v-if="info.features && info.features.length">
             <div class="sub-card-header">

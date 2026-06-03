@@ -21,6 +21,7 @@ var (
 	procGetDYTCCmdDispatcherFUNC = modDYTCDll.NewProc("Get_DYTC_CMD_MODE_DISPATCHERFUNCTION")
 	procGetDYTCCmdFuncCap     = modDYTCDll.NewProc("Get_DYTC_CMD_FUNC_CAP")
 	procGetDYTCCmdNITThreshold = modDYTCDll.NewProc("Get_DYTC_CMD_MODE_NIT_DISPATCHERTHRESHOLD")
+	procGetDYTCCmdNITGet       = modDYTCDll.NewProc("Get_DYTC_CMD_MODE_NIT_GET")
 )
 
 // DYTC Mode constants
@@ -45,6 +46,8 @@ type DYTCInfo struct {
 	DispatcherFunction   uint32               `json:"dispatcherFunction"`
 	DispatcherThreshold  uint32               `json:"dispatcherThreshold"`
 	EnableFunc           uint32               `json:"enableFunc"`
+	FuncCap              uint32               `json:"funcCap"`
+	Nits                 uint32               `json:"nits"`
 	DispatcherFeatures   []DispatcherFeature  `json:"dispatcherFeatures"`
 }
 
@@ -174,6 +177,12 @@ func GetDYTCCmdNITThreshold() uint32 {
 	return uint32(ret)
 }
 
+// GetDYTCCmdNITGet gets NIT value
+func GetDYTCCmdNITGet() uint32 {
+	ret, _, _ := procGetDYTCCmdNITGet.Call()
+	return uint32(ret)
+}
+
 // GetDYTCModeName returns human-readable name for DYTC mode
 func GetDYTCModeName(mode uint32) string {
 	names := map[uint32]string{
@@ -252,6 +261,10 @@ func GetDYTCInfo() (*DYTCInfo, error) {
 	} else {
 		info.AIEngineMode = "CPU Engine"
 	}
+
+	// Read FUNC_CAP and NITS via DLL calls
+	info.FuncCap = GetDYTCCmdFuncCap()
+	info.Nits = GetDYTCCmdNITGet()
 
 	return info, nil
 }
