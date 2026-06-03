@@ -370,7 +370,7 @@ export default {
       try {
         await PinDYTCMode(this.selectedMode)
         this.pinnedMode = this.selectedMode
-        this.pinResult = { success: true, message: `Mode fixed to ${this.selectedMode}. Dispatcher stopped, hardware mode applied via DLL.` }
+        this.pinResult = { success: true, message: `Dispatcher stopped, Mode fixed to ${this.selectedMode} Successfully` }
       } catch (e) {
         this.pinResult = { success: false, message: 'Failed to pin mode: ' + e }
       } finally {
