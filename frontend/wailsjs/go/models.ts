@@ -389,6 +389,8 @@ export namespace backend {
 	    dispatcherFunction: number;
 	    dispatcherThreshold: number;
 	    enableFunc: number;
+	    funcCap: number;
+	    nits: number;
 	    dispatcherFeatures: DispatcherFeature[];
 	
 	    static createFrom(source: any = {}) {
@@ -405,6 +407,8 @@ export namespace backend {
 	        this.dispatcherFunction = source["dispatcherFunction"];
 	        this.dispatcherThreshold = source["dispatcherThreshold"];
 	        this.enableFunc = source["enableFunc"];
+	        this.funcCap = source["funcCap"];
+	        this.nits = source["nits"];
 	        this.dispatcherFeatures = this.convertValues(source["dispatcherFeatures"], DispatcherFeature);
 	    }
 	
