@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPU Status</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+      user-select: none;
+    }
+    #app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-card {
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px 16px;
+      width: 260px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .mini-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .mini-title {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mini-live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      margin-left: 4px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .mini-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+    }
+    .mini-label { color: #888; font-size: 12px; }
+    .mini-value { font-weight: 600; font-size: 13px; }
+    .status-uma { color: #10B981; }
+    .status-dis { color: #3B82F6; }
+    .status-smart { color: #F59E0B; }
+    .status-na { color: #555; }
+    .status-ok { color: #10B981; }
+    .mini-divider { height: 1px; background: #333; margin: 8px 0; }
+    .mini-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .mini-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mini-btn:hover { background: #333; border-color: #555; }
+    .mini-btn.restore { border-color: #3B82F6; color: #3B82F6; }
+    .mini-btn.restore:hover { background: rgba(59,130,246,0.15); }
+    .mini-btn.quit { border-color: #EF4444; color: #EF4444; }
+    .mini-btn.quit:hover { background: rgba(239,68,68,0.15); }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="mini-card">
+      <div class="mini-header">
+        <span class="mini-title">GPU Status <span class="mini-live-dot"></span></span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">Current Status</span>
+        <span id="gpuLabel" class="mini-value status-na">Loading...</span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">PCM_GPUStatus</span>
+        <span id="pcmStatus" class="mini-value status-na">N/A</span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">PE_GPUPrefStatus</span>
+        <span id="peStatus" class="mini-value status-na">N/A</span>
+      </div>
+      <div class="mini-divider"></div>
+      <div class="mini-actions">
+        <button class="mini-btn restore" id="btnRestore">Restore UI</button>
+        <button class="mini-btn quit" id="btnQuit">Quit</button>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { EventsOn, WindowSetAlwaysOnTop } from '../../wailsjs/runtime/runtime.js';
+    import { RestoreMainWindow } from '../../wailsjs/go/main/App.js';
+
+    WindowSetAlwaysOnTop(true);
+
+    document.getElementById('btnRestore').addEventListener('click', async () => {
+      await RestoreMainWindow();
+    });
+    document.getElementById('btnQuit').addEventListener('click', () => {
+      window.runtime.Quit();
+    });
+
+    EventsOn('gpu-status-update', (data) => {
+      const label = document.getElementById('gpuLabel');
+      const pcm = document.getElementById('pcmStatus');
+      const pe = document.getElementById('peStatus');
+
+      label.textContent = data.label || 'N/A';
+      label.className = 'mini-value ' + (data.available
+        ? (data.value === 2 ? 'status-uma' : data.value === 1 ? 'status-dis' : 'status-smart')
+        : 'status-na');
+
+      if (data.pcmStatusAvail) {
+        pcm.textContent = data.pcmLabel || String(data.pcmStatus);
+        pcm.className = 'mini-value status-ok';
+      } else {
+        pcm.textContent = 'N/A';
+        pcm.className = 'mini-value status-na';
+      }
+
+      if (data.available) {
+        pe.textContent = String(data.value);
+        pe.className = 'mini-value status-ok';
+      } else {
+        pe.textContent = 'N/A';
+        pe.className = 'mini-value status-na';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+=== NPU DIAGNOSTIC ===
+dllPath: C:\LenovoDispatcher\LenovoDispatcherToolkit\backend\dynamic_npu\libhal_xh2a.dll
+diagPath: C:\LenovoDispatcher\LenovoDispatcherToolkit\backend\dynamic_npu\npu_diag.txt
+
+[NPU Load] DLL found at: C:\LenovoDispatcher\LenovoDispatcherToolkit\backend\dynamic_npu\libhal_xh2a.dll
+
+[Function resolution]
+
+
+=== NPU LOAD COMPLETE ===

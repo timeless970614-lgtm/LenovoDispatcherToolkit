@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSRDriver.vcxproj - Visual Studio Kernel Driver Project
+  =========================================================
+  Based on: C:\Users\Zhou\OneDrive - Lenovo\MSR.pptx
+  
+  Build Instructions:
+  1. Install Windows Driver Kit (WDK)
+  2. Open this solution in Visual Studio 2022
+  3. Select appropriate target (x64 Debug/Release)
+  4. Build solution
+  
+  Deployment:
+  1. Copy driver to target machine
+  2. Sign driver (or enable test signing)
+  3. Install using: sc create MSRDriver type= kernel binPath= MSRDriver.sys
+-->
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B5A7C8D1-E2F4-4A9B-8C3D-123456789ABC}</ProjectGuid>
+    <Template>{8CC9D77C-5B15-4B8F-9E2D-123456789ABC}</Template>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+    <KMDF_VERSION_MINOR>11</KMDF_VERSION_MINOR>
+    <Configuration>Debug</Configuration>
+    <Platform>x64</Platform>
+    <RootNamespace>MSRDriver</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <DriverType>WDM</DriverType>
+    <DriverTargetPlatform>Legacy</DriverTargetPlatform>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <DriverType>WDM</DriverType>
+    <DriverTargetPlatform>Legacy</DriverTargetPlatform>
+  </PropertyGroup>
+  
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <PropertyPageSchema>{thorne}\CPPLcppPropertyPage.xaa</PropertyPageSchema>
+  </ImportGroup>
+  
+  <PropertyGroup Label="UserMacros" />
+  
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>MSRDriver</TargetName>
+    <CertificateFilter></CertificateFilter>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>MSRDriver</TargetName>
+    <CertificateFilter></CertificateFilter>
+  </PropertyGroup>
+  
+  <PropertyGroup Label="DebuggerSettings">
+    <DebuggerType>nativewizard</DebuggerType>
+  </PropertyGroup>
+  
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_DEBUG;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ntoskrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>DriverEntry</EntryPointSymbol>
+      <AdditionalOptions>/merger:.text=.data /merger:.rdata=.text %(AdditionalOptions)</AdditionalOptions>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapExports>true</MapExports>
+    </Link>
+    <Inf>
+      <TimeStamp>04/11/2026</TimeStamp>
+      <Version>1.0</Version>
+    </Inf>
+  </ItemDefinitionGroup>
+  
+  <ItemGroup>
+    <ClCompile Include="MSRDriver.c" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ClInclude Include="MSRDriver.h" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Inf Include="MSRDriver.inf" />
+  </ItemGroup>
+  
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<wap-provisioningdoc>
+  <characteristic type="MCSF">
+    <characteristic type="Power">
+      <characteristic type="Policy">
+        <characteristic type="Settings">
+          <characteristic type="Processor">
+            <characteristic type="SchemePersonality">
+              <characteristic type="ded574b5-45a0-4f42-8737-46345c09c238">
+                <characteristic type="c04a802d-2205-4910-ae98-3b51e3bb72f2">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="0" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+            </characteristic>
+          </characteristic>
+        </characteristic>
+      </characteristic>
+    </characteristic>
+  </characteristic>
+</wap-provisioningdoc>

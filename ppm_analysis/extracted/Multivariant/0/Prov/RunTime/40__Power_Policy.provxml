@@ -1,0 +1,559 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<wap-provisioningdoc>
+  <characteristic type="MCSF">
+    <characteristic type="Power">
+      <characteristic type="Policy">
+        <characteristic type="Settings">
+          <characteristic type="Processor">
+            <characteristic type="SchemePersonality">
+              <characteristic type="381b4222-f694-41f0-9685-ff5bb260df2e">
+                <characteristic type="0c3d5326-944b-4aab-8ad8-fe422a0e50e0">
+                  <characteristic type="MaxFrequency">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="MaxFrequency1">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="0da965dc-8fcf-4c0b-8efe-8dd5e7bc959a">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="336c7511-f109-4172-bb3a-3ea51f815ada">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="33cc3a0d-45ee-43ca-86c4-695bfc9a313b">
+                  <characteristic type="MaxFrequency">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="MaxFrequency1">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="DefaultPowerSchemeValues">
+                  <characteristic type="CPConcurrency">
+                    <parm name="AcValue" value="95" datatype="integer" />
+                    <parm name="DcValue" value="95" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPDecreaseTime">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPHeadroom">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPIncreaseTime">
+                    <parm name="AcValue" value="1" datatype="integer" />
+                    <parm name="DcValue" value="1" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CpLatencyHintUnpark1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPMinCores">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroClass1InitialPerf">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroDecreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroIncreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroPolicy">
+                    <parm name="AcValue" value="0" datatype="integer" />
+                    <parm name="DcValue" value="0" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="IdleDemoteThreshold">
+                    <parm name="DcValue" value="40" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="IdlePromoteThreshold">
+                    <parm name="DcValue" value="60" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ModuleUnparkPolicy">
+                    <parm name="AcValue" value="1" datatype="integer" />
+                    <parm name="DcValue" value="2" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="45" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="45" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfLatencyHint1">
+                    <parm name="AcValue" value="99" datatype="integer" />
+                    <parm name="DcValue" value="99" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SoftParkLatency">
+                    <parm name="AcValue" value="1000" datatype="integer" />
+                    <parm name="DcValue" value="1000" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="c04a802d-2205-4910-ae98-3b51e3bb72f2">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="ee1e4f72-e368-46b1-b3c6-5048b11c2dbd">
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="DcValue" value="70" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+              <characteristic type="8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c">
+                <characteristic type="DefaultPowerSchemeValues">
+                  <characteristic type="CPConcurrency">
+                    <parm name="AcValue" value="95" datatype="integer" />
+                    <parm name="DcValue" value="95" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPDecreaseTime">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPHeadroom">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPIncreaseTime">
+                    <parm name="AcValue" value="1" datatype="integer" />
+                    <parm name="DcValue" value="1" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CpLatencyHintUnpark1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPMinCores">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroClass1InitialPerf">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroDecreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroIncreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroPolicy">
+                    <parm name="AcValue" value="0" datatype="integer" />
+                    <parm name="DcValue" value="0" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfLatencyHint1">
+                    <parm name="AcValue" value="99" datatype="integer" />
+                    <parm name="DcValue" value="99" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SoftParkLatency">
+                    <parm name="AcValue" value="1000" datatype="integer" />
+                    <parm name="DcValue" value="1000" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+              <characteristic type="961cc777-2547-4f9d-8174-7d86181b8a7a">
+                <characteristic type="0c3d5326-944b-4aab-8ad8-fe422a0e50e0">
+                  <characteristic type="MaxFrequency">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="MaxFrequency1">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="0da965dc-8fcf-4c0b-8efe-8dd5e7bc959a">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="336c7511-f109-4172-bb3a-3ea51f815ada">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="33cc3a0d-45ee-43ca-86c4-695bfc9a313b">
+                  <characteristic type="MaxFrequency">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="MaxFrequency1">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="DefaultPowerSchemeValues">
+                  <characteristic type="CPConcurrency">
+                    <parm name="AcValue" value="95" datatype="integer" />
+                    <parm name="DcValue" value="95" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPDecreaseTime">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPHeadroom">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPIncreaseTime">
+                    <parm name="AcValue" value="1" datatype="integer" />
+                    <parm name="DcValue" value="1" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CpLatencyHintUnpark1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPMinCores">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroClass1InitialPerf">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroDecreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroIncreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroPolicy">
+                    <parm name="AcValue" value="0" datatype="integer" />
+                    <parm name="DcValue" value="0" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="IdleDemoteThreshold">
+                    <parm name="DcValue" value="40" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="IdlePromoteThreshold">
+                    <parm name="DcValue" value="60" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ModuleUnparkPolicy">
+                    <parm name="AcValue" value="1" datatype="integer" />
+                    <parm name="DcValue" value="2" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="60" datatype="integer" />
+                    <parm name="DcValue" value="72" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="60" datatype="integer" />
+                    <parm name="DcValue" value="72" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfLatencyHint1">
+                    <parm name="AcValue" value="99" datatype="integer" />
+                    <parm name="DcValue" value="99" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SoftParkLatency">
+                    <parm name="AcValue" value="1000" datatype="integer" />
+                    <parm name="DcValue" value="1000" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="a4a61b5f-f42c-4d23-b3ab-5c27df9f0f18">
+                  <characteristic type="MaxFrequency">
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="MaxFrequency1">
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="c04a802d-2205-4910-ae98-3b51e3bb72f2">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="70" datatype="integer" />
+                    <parm name="DcValue" value="77" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+              <characteristic type="ded574b5-45a0-4f42-8737-46345c09c238">
+                <characteristic type="0c3d5326-944b-4aab-8ad8-fe422a0e50e0">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="0da965dc-8fcf-4c0b-8efe-8dd5e7bc959a">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="10" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="336c7511-f109-4172-bb3a-3ea51f815ada">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="33cc3a0d-45ee-43ca-86c4-695bfc9a313b">
+                  <characteristic type="MaxFrequency">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="MaxFrequency1">
+                    <parm name="AcValue" value="1500" datatype="integer" />
+                    <parm name="DcValue" value="1500" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="DefaultPowerSchemeValues">
+                  <characteristic type="CPConcurrency">
+                    <parm name="AcValue" value="95" datatype="integer" />
+                    <parm name="DcValue" value="95" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPDecreaseTime">
+                    <parm name="AcValue" value="3" datatype="integer" />
+                    <parm name="DcValue" value="3" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPHeadroom">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPIncreaseTime">
+                    <parm name="AcValue" value="1" datatype="integer" />
+                    <parm name="DcValue" value="1" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CpLatencyHintUnpark1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="CPMinCores">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroClass1InitialPerf">
+                    <parm name="AcValue" value="100" datatype="integer" />
+                    <parm name="DcValue" value="100" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroDecreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroIncreaseThreshold">
+                    <parm name="AcValue" value="254" datatype="integer" />
+                    <parm name="DcValue" value="254" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="HeteroPolicy">
+                    <parm name="AcValue" value="0" datatype="integer" />
+                    <parm name="DcValue" value="0" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="IdleDemoteThreshold">
+                    <parm name="DcValue" value="40" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="IdlePromoteThreshold">
+                    <parm name="DcValue" value="60" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="25" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="25" datatype="integer" />
+                    <parm name="DcValue" value="33" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfLatencyHint1">
+                    <parm name="AcValue" value="99" datatype="integer" />
+                    <parm name="DcValue" value="99" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SoftParkLatency">
+                    <parm name="AcValue" value="10" datatype="integer" />
+                    <parm name="DcValue" value="1000" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+                <characteristic type="c04a802d-2205-4910-ae98-3b51e3bb72f2">
+                  <characteristic type="PerfEnergyPreference">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="PerfEnergyPreference1">
+                    <parm name="AcValue" value="50" datatype="integer" />
+                    <parm name="DcValue" value="50" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="SchedulingPolicy">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                  <characteristic type="ShortSchedulingPolicy">
+                    <parm name="AcValue" value="4" datatype="integer" />
+                    <parm name="DcValue" value="4" datatype="integer" />
+                  </characteristic>
+                </characteristic>
+              </characteristic>
+            </characteristic>
+          </characteristic>
+        </characteristic>
+      </characteristic>
+    </characteristic>
+  </characteristic>
+</wap-provisioningdoc>
