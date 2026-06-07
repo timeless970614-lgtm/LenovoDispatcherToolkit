@@ -118,13 +118,13 @@
       </header>
       
       <div class="content-body">
-        <Dashboard v-if="currentPage === 'dashboard'" :theme="theme" :service-running="serviceRunning" @service-changed="updateMode" />
+        <Dashboard v-if="currentPage === 'dashboard'" :theme="theme" :service-running="serviceRunning" :poll-interval="refreshInterval" @service-changed="updateMode" />
         <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
         <AIAgent v-else-if="currentPage === 'aiagent'" :theme="theme" />
         <FunctionCheck v-else-if="currentPage === 'funccheck'" :theme="theme" />
-        <ModeCheck v-else-if="currentPage === 'modecheck'" :theme="theme" />
+        <ModeCheck v-else-if="currentPage === 'modecheck'" :theme="theme" :poll-interval="refreshInterval" />
         <AIAnalysis v-else-if="currentPage === 'aianalysis'" :theme="theme" />
-        <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" @update:theme="setTheme" @update:lang="setLang" />
+        <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" :poll-interval="refreshInterval" @update:theme="setTheme" @update:lang="setLang" @update:poll-interval="setRefreshInterval" />
         <About v-else-if="currentPage === 'about'" :theme="theme" />
       </div>
     </main>
@@ -158,6 +158,7 @@ export default {
   data() {
     return {
       currentPage: 'dashboard',
+      refreshInterval: parseInt(localStorage.getItem('lenovo-toolkit-refresh') || '5000'),
       theme: 'dark',
       lang: 'en',
       currentTime: '',

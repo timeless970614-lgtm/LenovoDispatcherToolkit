@@ -391,6 +391,12 @@ export default {
       return fanModes[this.itsFanMode] || `Unknown (${this.itsFanMode})`
     }
   },
+  watch: {
+    pollInterval() {
+      this.stopServiceWatcher()
+      this.startServiceWatcher()
+    }
+  },
   async mounted() {
     await this.refresh()
     this.startServiceWatcher()
@@ -523,7 +529,7 @@ export default {
     
     startServiceWatcher() {
       // Poll every 1 second
-      this.serviceInterval = setInterval(() => this.pollServiceAndMode(), 10000)
+      this.serviceInterval = setInterval(() => this.pollServiceAndMode(), this.pollInterval)
       // Initial poll
       this.pollServiceAndMode()
     },

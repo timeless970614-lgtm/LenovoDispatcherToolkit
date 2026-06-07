@@ -393,7 +393,7 @@ export default {
       activeFeatureGroup: 'Core',
       statusMsg: '',
       statusOk: true,
-      refreshInterval: null,
+      _timer: null,
       pinnedMode: '',
       // confirm dialog state
       confirmVisible: false,
@@ -404,7 +404,7 @@ export default {
   async mounted() {
     await this.refreshAll()
     await this.loadPinnedMode()
-    this.refreshInterval = setInterval(this.refreshStatus, 30000)
+    this._timer = setInterval(this.refreshStatus, this.pollInterval)
   },
   computed: {
     filteredFeatures() {
@@ -413,8 +413,8 @@ export default {
     }
   },
   beforeUnmount() {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval)
+    if (this._timer) {
+      clearInterval(this._timer)
     }
   },
   methods: {

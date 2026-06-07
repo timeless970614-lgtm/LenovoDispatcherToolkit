@@ -142,7 +142,7 @@ export default {
     return {
       sysInfo: null,
       deviceInfo: null,
-      refreshInterval: null,
+      _timer: null,
       enablingLog: false,
       logEnabled: false,
 
@@ -154,12 +154,18 @@ export default {
       return this.serviceRunning ? 'Running' : 'Stopped'
     }
   },
+  watch: {
+    pollInterval() {
+      if (this._timer) clearInterval(this._timer)
+      this._timer = setInterval(this.refresh, this.pollInterval)
+    }
+  },
   async mounted() {
     await this.refresh()
-    this.refreshInterval = setInterval(this.refresh, 30000)
+    this._timer = setInterval(this.refresh, this.pollInterval)
   },
   beforeUnmount() {
-    if (this.refreshInterval) clearInterval(this.refreshInterval)
+    if (this._timer) clearInterval(this._timer)
   },
   methods: {
     async refresh() {
