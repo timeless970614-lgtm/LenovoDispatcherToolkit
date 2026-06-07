@@ -16,7 +16,7 @@
           <p class="hero-subtitle">Power Management & Thermal Control Utility</p>
           <div class="hero-meta">
             <span class="version-chip">v1.0.20</span>
-            <span class="build-chip">Build 2026.1</span>
+            <span class="build-chip">Build 2026.06.07</span>
           </div>
         </div>
       </div>
@@ -97,31 +97,6 @@
           <div class="req-item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             4 GB RAM minimum, 8 GB recommended
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Features Card -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;">
-            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-          </svg>
-          Features
-        </span>
-      </div>
-      <div class="feature-grid">
-        <div class="feature-card" v-for="f in features" :key="f.icon + f.title">
-          <div class="feat-icon" :style="{ background: f.color }">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-              <path :d="f.icon"/>
-            </svg>
-          </div>
-          <div class="feat-body">
-            <div class="feat-title">{{ f.title }}</div>
-            <div class="feat-desc">{{ f.desc }}</div>
           </div>
         </div>
       </div>
@@ -214,80 +189,6 @@ export default {
   name: 'About',
   data() {
     return {
-      features: [
-        {
-          title: 'DYTC Thermal Modes',
-          desc: 'Switch between BSM / IBSM / AQM / STD / APM / IEPM / EPM / DCC / GEEK modes with real-time capability detection via FUNC_CAP bitmap.',
-          icon: 'M14 4v10.54a4 4 0 11-4 0V4a2 2 0 014 0Z',
-          color: '#E63F32'
-        },
-        {
-          title: 'Mode Pinning (ODV33)',
-          desc: 'Pin a preferred thermal mode to survive reboots. Writes Policy_Override + ODV33 UserScenario to the Dispatcher driver.',
-          icon: 'M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z',
-          color: '#3B82F6'
-        },
-        {
-          title: 'Dispatcher Service Control',
-          desc: 'Start, stop, and restart the LenovoProcessManagement Windows service directly from the UI.',
-          icon: 'M12 3v4m0 10v4m-7-7h4m10 0h4',
-          color: '#F59E0B'
-        },
-        {
-          title: 'Real-time System Info',
-          desc: 'Live CPU name, code name, BIOS version, total memory, and OS info via WMI — no manual refresh needed.',
-          icon: 'M4 4h16v16H4z',
-          color: '#10B981'
-        },
-        {
-          title: 'IGPU Frequency Control',
-          desc: 'Read and adjust Intel GPU frequency ranges (min/max) via the Intel Graphics Control API.',
-          icon: 'M12 18V6m0 0l-4 4m4-4l4 4',
-          color: '#8B5CF6'
-        },
-        {
-          title: 'NPU Management',
-          desc: 'Monitor and control Horizon Robotics NPUs: DVFS mode, power limits, clock lock, and scheduler.',
-          icon: 'M9 3v18m6-18v18M3 9h18M3 15h18',
-          color: '#EC4899'
-        },
-        {
-          title: 'SSD Mode Control',
-          desc: 'Switch SSD power modes (Standard / Performance / Power Saving) for each physical drive.',
-          icon: 'M4 7h16M4 12h16M4 17h16',
-          color: '#14B8A6'
-        },
-        {
-          title: 'ETL Trace & Analysis',
-          desc: 'Capture Windows Performance Recorder (WPR) traces and analyze them directly in WPA from within the tool.',
-          icon: 'M12 8v4l3 3',
-          color: '#F97316'
-        },
-        {
-          title: 'Function Check',
-          desc: 'Diagnose DGPU status, Auto Gear, SSD Turbo, IGPU frequency, and power management — all in one tabbed view.',
-          icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-          color: '#6366F1'
-        },
-        {
-          title: 'AI Agent + Analysis',
-          desc: 'Built-in AI agent for system Q&A, plus AI-powered log analysis for Dispatcher diagnostics.',
-          icon: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
-          color: '#0EA5E9'
-        },
-        {
-          title: 'Dynamic Log Capture',
-          desc: 'Enable Dispatcher dynamic logging and capture ML Scenario events (LOG + CSV) with one click.',
-          icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z',
-          color: '#A855F7'
-        },
-        {
-          title: 'One-Click Toolkit',
-          desc: 'Install HWiNFO64, CPU-Z, GPU-Z, CrystalDiskInfo, FurMark, Prime95, ThrottleStop and more via winget.',
-          icon: 'M4 16v2a2 2 002 2h12a2 2 002-2v-2M7 10l5 5 5-5M12 15V3',
-          color: '#84CC16'
-        }
-      ],
       technologies: [
         'Wails v2.12.0',
         'Go 1.22',
@@ -474,55 +375,6 @@ export default {
 .req-item svg {
   color: var(--accent-green);
   flex-shrink: 0;
-}
-
-/* ── Feature Grid ─────────────────────────── */
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-@media (max-width: 1100px) {
-  .feature-grid { grid-template-columns: 1fr; }
-}
-.feature-card {
-  display: flex;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  transition: var(--transition);
-}
-.feature-card:hover {
-  border-color: var(--border-light);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-.feat-icon {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-.feat-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.feat-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.feat-desc {
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-  line-height: 1.5;
 }
 
 /* ── About Body ───────────────────────────── */
