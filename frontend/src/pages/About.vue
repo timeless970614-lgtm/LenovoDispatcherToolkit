@@ -15,7 +15,7 @@
           <h2 class="hero-title">Lenovo Dispatcher Toolkit</h2>
           <p class="hero-subtitle">Power Management & Thermal Control Utility</p>
           <div class="hero-meta">
-            <span class="version-chip">v1.0.20</span>
+            <span class="version-chip">v1.0.21</span>
             <span class="build-chip">Build 2026.06.07</span>
           </div>
         </div>
@@ -38,7 +38,7 @@
         <div class="info-list">
           <div class="info-row">
             <span class="info-key">Version</span>
-            <span class="info-val">1.0.20</span>
+            <span class="info-val">1.0.21</span>
           </div>
           <div class="info-row">
             <span class="info-key">Build Date</span>

@@ -99,6 +99,20 @@ func (a *App) RestartService() string {
 	return "Service restarted successfully"
 }
 
+// SendServiceControl sends a custom control code to the service (sc control <code>)
+func (a *App) SendServiceControl(code uint32) string {
+	result, err := backend.SendServiceControl(code)
+	if err != nil {
+		return "Error: " + err.Error()
+	}
+	return result
+}
+
+// GetServiceControlCodes returns the known service control code map for UI display
+func (a *App) GetServiceControlCodes() map[uint32]string {
+	return backend.GetServiceControlCodes()
+}
+
 // ============ PPM Settings ============
 
 // GetPPMPlatformInfo returns platform info for PPM page

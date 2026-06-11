@@ -246,6 +246,10 @@ export function GetSSDInfo() {
   return window['go']['main']['App']['GetSSDInfo']();
 }
 
+export function GetServiceControlCodes() {
+  return window['go']['main']['App']['GetServiceControlCodes']();
+}
+
 export function GetServiceStatus() {
   return window['go']['main']['App']['GetServiceStatus']();
 }
@@ -364,6 +368,10 @@ export function RunToolkitTool(arg1) {
 
 export function SaveNVIDIAConfig(arg1) {
   return window['go']['main']['App']['SaveNVIDIAConfig'](arg1);
+}
+
+export function SendServiceControl(arg1) {
+  return window['go']['main']['App']['SendServiceControl'](arg1);
 }
 
 export function SetDYTCMode(arg1) {

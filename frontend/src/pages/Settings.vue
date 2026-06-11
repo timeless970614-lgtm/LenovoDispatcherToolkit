@@ -133,7 +133,7 @@
           </div>
           <div class="about-info">
             <div class="about-name">Lenovo Dispatcher Toolkit</div>
-            <div class="about-version">v1.0.20</div>
+            <div class="about-version">v1.0.21</div>
           </div>
         </div>
       </div>

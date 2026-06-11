@@ -741,11 +741,117 @@
       </div>
     </div>
 
+    <!-- Tab svcctrl Content - Service Control -->
+    <div v-if="activeTab === 'svcctrl'" class="func-content">
+
+        <!-- Service Status Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Service Status
+            </h3>
+            <button class="btn btn-secondary btn-sm" @click="refreshSvcStatus" :disabled="svcStatusLoading">
+              <span v-if="svcStatusLoading" class="spinner-small"></span>
+              <span v-else>Refresh</span>
+            </button>
+          </div>
+          <div class="svc-status-row">
+            <span class="status-label no-transform">LenovoProcessManagement</span>
+            <span :class="['status-value', 'mono', svcCurrentStatus === 'Running' ? 'status-ok' : svcCurrentStatus === 'Stopped' ? 'status-na' : '']">
+              {{ svcCurrentStatus || 'Unknown' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Custom Control Code Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+              </svg>
+              Send Service Control
+            </h3>
+          </div>
+
+          <div class="svc-control-section">
+            <div class="svc-cmd-preview">
+              <span class="svc-cmd-label">Command:</span>
+              <code class="svc-cmd-code">sc control LenovoProcessManagement {{ svcCtrlCode || '___' }}</code>
+            </div>
+
+            <div class="svc-input-group">
+              <label class="svc-input-label">Control Code (Decimal)</label>
+              <div class="svc-input-row">
+                <input
+                  type="number"
+                  v-model.number="svcCtrlCode"
+                  class="svc-code-input"
+                  placeholder="e.g. 165"
+                  min="0"
+                  max="255"
+                  @keyup.enter="sendSvcControl"
+                />
+                <span class="svc-hex-badge" v-if="svcCtrlCode !== null && svcCtrlCode !== ''">
+                  0x{{ (svcCtrlCode >>> 0).toString(16).toUpperCase() }}
+                </span>
+                <button
+                  class="btn btn-primary btn-sm"
+                  @click="sendSvcControl"
+                  :disabled="svcSending || svcCtrlCode === null || svcCtrlCode === ''"
+                >
+                  <span v-if="svcSending" class="spinner-small"></span>
+                  <span v-else>Send</span>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="svcResult" :class="['result-message', svcResult.success ? 'success' : 'error']">
+              {{ svcResult.message }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Control Code Reference Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Control Code Reference
+            </h3>
+          </div>
+          <div class="svc-ref-table">
+            <div class="svc-ref-header">
+              <span class="svc-ref-col">Dec</span>
+              <span class="svc-ref-col">Hex</span>
+              <span class="svc-ref-col-name">Name</span>
+            </div>
+            <div
+              v-for="ref in svcCodeRef"
+              :key="ref.code"
+              class="svc-ref-row"
+              @click="svcCtrlCode = ref.code"
+              :title="'Click to fill code ' + ref.code"
+            >
+              <span class="svc-ref-col mono">{{ ref.code }}</span>
+              <span class="svc-ref-col mono">0x{{ ref.code.toString(16).toUpperCase() }}</span>
+              <span class="svc-ref-col-name">{{ ref.name }}</span>
+            </div>
+          </div>
+        </div>
+
+    </div>
+
   </div>
 </template>
 <script>
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
-import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI, GetPPMSettings, GetSystemPowerInfo, UpdateCachedSystemPower } from '../../wailsjs/go/main/App'
+import { EnumerateGPUs, EnumerateGPUProcesses, GetIGPUMode, SetIGPUMode, CheckNVIDIAStatus, GetSSDInfo, SetSSDMode, GetGPUPrefStatus, GetIntelGPUFrequency, SetIntelGPUFrequencyRange, TestIntelGPUFrequency, GetIntelDriverDownloadURL, GetIntelGPUUtilization, StartGPUStatusWatcher, StopGPUStatusWatcher, GetGPUPrefStatusFromCache, GetGPUAutoGear, SetGPUAutoGear, GetEPOTStatus, UninstallDTT, UninstallDTTUI, GetPPMSettings, GetSystemPowerInfo, UpdateCachedSystemPower, GetServiceStatus, SendServiceControl } from '../../wailsjs/go/main/App'
 
 export default {
   name: 'FunctionCheck',
@@ -758,6 +864,7 @@ export default {
         { id: 'a', label: 'SSD Turbo', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h2"/></svg>' },
         { id: 'c', label: 'IGPU Frequency', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="4" x2="12" y2="1"/></svg>' },
         { id: 'power', label: 'Power Management', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+        { id: 'svcctrl', label: 'Service Control', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>' },
       ],
       gpuList: [],
       processList: [],
@@ -837,6 +944,42 @@ export default {
       sysPowerLoading: false,
       powerMinimized: false,
       sysPowerTimer: null,
+      // Service Control
+      svcCurrentStatus: '',
+      svcStatusLoading: false,
+      svcCtrlCode: null,
+      svcSending: false,
+      svcResult: null,
+      svcCodeRef: [
+        { code: 0x94, name: 'OEM_EXTRA_PERFORMANCE_MODE — Group 2/3/4 Turbo' },
+        { code: 0xA3, name: 'SET_INTELLIGENT' },
+        { code: 0xA4, name: 'SET_BSM' },
+        { code: 0xA5, name: 'SET_EPM' },
+        { code: 0xA7, name: 'SET_GPU_OC_ON' },
+        { code: 0xA9, name: 'SET_GPU_OC_OFF' },
+        { code: 0xAA, name: 'SET_iEPM_ENABLE' },
+        { code: 0xAB, name: 'SET_iEPM_DISABLE' },
+        { code: 0xAC, name: 'SET_iGEEK_ENABLE' },
+        { code: 0xAD, name: 'SET_AUTO_MAXPERFORMANCE_ON' },
+        { code: 0xAE, name: 'SET_AUTO_MAXPERFORMANCE_OFF' },
+        { code: 0xAF, name: 'SET_AUTO_MAXBATTERYLIFE_ON' },
+        { code: 0xA6, name: 'SET_AUTO_MAXBATTERYLIFE_OFF' },
+        { code: 0xB2, name: 'OEM_FGAPP_CHANGE — Foreground mode' },
+        { code: 0xB3, name: 'OEM_FOCUSUI_CHANGE — Focus UI change' },
+        { code: 0xB4, name: 'OEM_AQM_BACKGROUND — Foreground mode' },
+        { code: 0xB7, name: 'OEM_CAMERAINUSE — Not whitelist mode' },
+        { code: 0xB8, name: 'OEM_CAMERANOTINUSE — Not whitelist mode' },
+        { code: 0xB9, name: 'OEM_AUDIO_MIC_INUSE — Microphone' },
+        { code: 0xBA, name: 'OEM_AUDIO_MIC_NOTINUSE — Microphone' },
+        { code: 0xBB, name: 'SET_QUIETPERFORMANCE_ON' },
+        { code: 0xBC, name: 'SET_QUIETPERFORMANCE_OFF' },
+        { code: 0xBD, name: 'SET_IGPUPRIORITYMODE_ON' },
+        { code: 0xBE, name: 'SET_AUTOIGPUONBATTERY_ON' },
+        { code: 0xBF, name: 'SET_HYBRIDGRAPHICMODE_ON' },
+        { code: 0xC0, name: 'SET_EPMGEEK' },
+        { code: 0xC1, name: 'SET_GEEKCUSTOMIZE' },
+        { code: 0xC3, name: 'SET_ADAPTIVEGRAPHICMODE_RESTORE_ON' },
+      ],
     }
   },
   computed: {
@@ -880,6 +1023,9 @@ export default {
         this.startSysPowerPolling()
       } else {
         this.stopSysPowerPolling()
+      }
+      if (newTab === 'svcctrl' && !this.svcCurrentStatus) {
+        this.refreshSvcStatus()
       }
     }
   },
@@ -1265,6 +1411,32 @@ export default {
         clearInterval(this.sysPowerTimer)
         this.sysPowerTimer = null
       }
+    },
+
+    // ── Service Control ────────────────────────────
+    async refreshSvcStatus() {
+      this.svcStatusLoading = true
+      try {
+        this.svcCurrentStatus = await GetServiceStatus()
+      } catch (e) {
+        this.svcCurrentStatus = 'Error: ' + e
+      }
+      this.svcStatusLoading = false
+    },
+
+    async sendSvcControl() {
+      if (this.svcCtrlCode === null || this.svcCtrlCode === '') return
+      this.svcSending = true
+      this.svcResult = null
+      try {
+        const msg = await SendServiceControl(this.svcCtrlCode)
+        this.svcResult = { success: !msg.startsWith('Error'), message: msg }
+      } catch (e) {
+        this.svcResult = { success: false, message: 'Error: ' + e }
+      }
+      this.svcSending = false
+      // Refresh status after sending control
+      this.refreshSvcStatus()
     },
   }
 }
@@ -2520,5 +2692,124 @@ export default {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 800;
+}
+
+/* ═══════════════════════════════════════════════════
+   Service Control Tab Styles
+   ═══════════════════════════════════════════════════ */
+.svc-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-hover, rgba(255,255,255,0.03));
+  border-radius: 8px;
+  margin-top: 4px;
+}
+.svc-control-section {
+  padding: 4px 0;
+}
+.svc-cmd-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 13px;
+}
+.svc-cmd-label {
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+}
+.svc-cmd-code {
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+}
+.svc-input-group {
+  margin-bottom: 8px;
+}
+.svc-input-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-bottom: 6px;
+}
+.svc-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.svc-code-input {
+  flex: 1;
+  max-width: 200px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.15));
+  border-radius: 6px;
+  color: #fff;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.svc-code-input:focus {
+  border-color: #3b82f6;
+}
+.svc-code-input::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+.svc-hex-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 4px;
+  color: #a78bfa;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+/* Reference table */
+.svc-ref-table {
+  font-size: 12px;
+}
+.svc-ref-header {
+  display: grid;
+  grid-template-columns: 50px 60px 1fr;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px 4px 0 0;
+  color: var(--text-muted, #888);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.svc-ref-row {
+  display: grid;
+  grid-template-columns: 50px 60px 1fr;
+  gap: 4px;
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.svc-ref-row:hover {
+  background: rgba(59,130,246,0.08);
+}
+.svc-ref-col {
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+}
+.svc-ref-col-name {
+  font-size: 12px;
+  color: var(--text-secondary, #ccc);
 }
 </style>

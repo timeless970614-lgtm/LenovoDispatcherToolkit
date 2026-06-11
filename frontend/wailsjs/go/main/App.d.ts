@@ -125,6 +125,8 @@ export function GetPowerStatus():Promise<Record<string, boolean>>;
 
 export function GetSSDInfo():Promise<Array<backend.SSDInfo>>;
 
+export function GetServiceControlCodes():Promise<Record<number, string>>;
+
 export function GetServiceStatus():Promise<string>;
 
 export function GetSystemInfo():Promise<backend.SystemInfo>;
@@ -184,6 +186,8 @@ export function RestoreDefaults():Promise<string>;
 export function RunToolkitTool(arg1:string):Promise<string>;
 
 export function SaveNVIDIAConfig(arg1:backend.NVIDIAAPIConfig):Promise<void>;
+
+export function SendServiceControl(arg1:number):Promise<string>;
 
 export function SetDYTCMode(arg1:string):Promise<string>;
 
