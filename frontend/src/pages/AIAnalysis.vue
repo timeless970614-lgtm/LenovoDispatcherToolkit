@@ -36,6 +36,12 @@
         </svg>
         WMI
       </button>
+      <button :class="['ai-tab', { active: activeAIType === 'ppm' }]" @click="switchToPPM">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        PPM Driver
+      </button>
     </div>
 
     <!-- ETL Trace Tab -->
@@ -729,6 +735,11 @@
       <WMI :theme="theme" />
     </div>
 
+    <!-- PPM Driver Tab -->
+    <div v-if="activeAIType === 'ppm'" class="ppm-section">
+      <PPMDriver :theme="theme" />
+    </div>
+
   </div>
 </template>
 
@@ -736,6 +747,7 @@
 import { OpenFolder, OpenETLFileDialog, OpenETLInWPA } from '../../wailsjs/go/main/App'
 import MSR from './MSR.vue'
 import WMI from './WMI.vue'
+import PPMDriver from './PPMDriver.vue'
 
 export default {
   name: 'AIAnalysis',
@@ -745,6 +757,7 @@ export default {
   components: {
     MSR,
     WMI,
+    PPMDriver,
   },
   beforeDestroy() {
     this._capturePollTimer && clearInterval(this._capturePollTimer)
@@ -974,6 +987,9 @@ export default {
     },
     async switchToWMI() {
       this.activeAIType = 'wmi'
+    },
+    async switchToPPM() {
+      this.activeAIType = 'ppm'
     },
     async installTool(toolId) {
       if (!window.go?.main?.App) return
@@ -1324,7 +1340,7 @@ export default {
 .spinning { animation: spin 0.8s linear infinite; }
 
 /* Toolkit Styles */
-.toolkit-section { display: flex; flex-direction: column; gap: 16px; }
+.toolkit-section, .ppm-section { display: flex; flex-direction: column; gap: 16px; }
 .toolkit-path { font-size: 12px; color: var(--text-tertiary); padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; font-family: 'Consolas', monospace; }
 
 .category-filter { display: flex; gap: 8px; flex-wrap: wrap; }
