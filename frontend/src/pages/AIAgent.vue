@@ -21,7 +21,7 @@
     <div v-if="showSettings" class="settings-overlay" @click.self="showSettings = false">
       <div class="settings-panel card">
       <div class="settings-header">
-        <strong>☁️ NVIDIA API 配置</strong>
+        <strong>☁️ API 配置</strong>
         <button class="btn-sm" @click="showSettings = false">✕</button>
       </div>
       <div class="settings-body">
