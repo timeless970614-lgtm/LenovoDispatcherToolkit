@@ -150,13 +150,31 @@ func GetSystemInfo() (SystemInfo, error) {
 		display, _, _ := k.GetStringValue("DisplayVersion")
 		build, _, _ := k.GetStringValue("CurrentBuildNumber")
 		k.Close()
+
+		// Fix Windows 11 detection: registry ProductName may still show "Windows 10"
+		// Windows 11 has build number >= 22000
+		buildNum := 0
+		if build != "" {
+			fmt.Sscanf(strings.TrimSpace(build), "%d", &buildNum)
+		}
+		isWin11 := buildNum >= 22000
+
 		if product != "" {
-			info.OSCaption = strings.TrimSpace(product)
+			product = strings.TrimSpace(product)
+			// Replace "Windows 10" with "Windows 11" if build >= 22000
+			if isWin11 && strings.Contains(product, "Windows 10") {
+				product = strings.Replace(product, "Windows 10", "Windows 11", 1)
+			}
+			info.OSCaption = product
 			if display != "" {
 				info.OSCaption += " " + strings.TrimSpace(display)
 			}
 		} else {
-			info.OSCaption = "Windows"
+			if isWin11 {
+				info.OSCaption = "Windows 11"
+			} else {
+				info.OSCaption = "Windows 10"
+			}
 		}
 		if build != "" {
 			info.OSVersion = fmt.Sprintf("Build %s", strings.TrimSpace(build))
