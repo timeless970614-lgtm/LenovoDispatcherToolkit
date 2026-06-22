@@ -17,6 +17,12 @@ export function AskAIAgent(arg1:string):Promise<string>;
 
 export function AskNVIDIACloud(arg1:string):Promise<string>;
 
+export function BatchGPUInit():Promise<backend.BatchGPUResult>;
+
+export function BatchLaunchApps(arg1:Array<string>):Promise<Array<Record<string, any>>>;
+
+export function BatchLaunchAutoLaunchItems(arg1:Array<string>):Promise<Array<backend.AutoLaunchResult>>;
+
 export function CheckAllToolkitInstalled():Promise<Array<backend.ToolkitInstallStatus>>;
 
 export function CheckDYTCCapabilities():Promise<Record<string, boolean>>;
@@ -41,6 +47,8 @@ export function GenerateWMIQueryCode(arg1:string):Promise<string>;
 
 export function GetAIAgentSystemInfo():Promise<backend.AIAgentSystemInfo>;
 
+export function GetAutoLaunchItems():Promise<Array<backend.AutoLaunchItem>|backend.AutoLaunchFolderConfig>;
+
 export function GetCachedGPUStatus():Promise<number>;
 
 export function GetCachedSystemPower():Promise<backend.SystemPowerInfo>;
@@ -64,6 +72,8 @@ export function GetETLProfiles():Promise<Array<backend.ETLProfile>>;
 export function GetETLTraceList():Promise<Array<backend.ETLTraceInfo>>;
 
 export function GetEventClasses():Promise<string>;
+
+export function GetFolderFiles():Promise<Array<backend.AutoLaunchItem>>;
 
 export function GetGPUAutoGear():Promise<backend.GPUAutoGear>;
 
@@ -155,6 +165,10 @@ export function IsNVIDIAEnabled():Promise<boolean>;
 
 export function IsToolkitBusy(arg1:string):Promise<boolean>;
 
+export function LaunchAllEnabledItems():Promise<Array<backend.AutoLaunchResult>>;
+
+export function LaunchAutoLaunchItem(arg1:string):Promise<backend.AutoLaunchResult>;
+
 export function LoadNVIDIAConfig():Promise<backend.NVIDIAAPIConfig>;
 
 export function NPUGetDVFSMode(arg1:number):Promise<string>;
@@ -188,6 +202,10 @@ export function RunToolkitTool(arg1:string):Promise<string>;
 export function SaveNVIDIAConfig(arg1:backend.NVIDIAAPIConfig):Promise<void>;
 
 export function SendServiceControl(arg1:number):Promise<string>;
+
+export function SetAutoLaunchFolderConfig(arg1:backend.AutoLaunchFolderConfig):Promise<void>;
+
+export function SetAutoLaunchItemWait(arg1:string,arg2:number):Promise<void>;
 
 export function SetDYTCMode(arg1:string):Promise<string>;
 
@@ -242,6 +260,8 @@ export function TestIntelGPUFrequency(arg1:string):Promise<backend.IntelGPUFreqT
 export function TestModeSwitch():Promise<Record<string, any>>;
 
 export function TestNVIDIAConnection(arg1:string,arg2:string):Promise<string>;
+
+export function ToggleAutoLaunchItem(arg1:string,arg2:boolean):Promise<void>;
 
 export function UninstallDTT():Promise<string>;
 

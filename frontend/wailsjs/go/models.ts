@@ -216,6 +216,256 @@ export namespace backend {
 		    return a;
 		}
 	}
+	export class AutoLaunchFolderConfig {
+	    path: string;
+	    excludes: string[];
+	    waitSec: number;
+	    enabled: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new AutoLaunchFolderConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.excludes = source["excludes"];
+	        this.waitSec = source["waitSec"];
+	        this.enabled = source["enabled"];
+	    }
+	}
+	export class AutoLaunchItem {
+	    id: string;
+	    name: string;
+	    category: string;
+	    launchType: string;
+	    launchValue: string;
+	    waitSec: number;
+	    enabled: boolean;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AutoLaunchItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.category = source["category"];
+	        this.launchType = source["launchType"];
+	        this.launchValue = source["launchValue"];
+	        this.waitSec = source["waitSec"];
+	        this.enabled = source["enabled"];
+	        this.description = source["description"];
+	    }
+	}
+	export class AutoLaunchResult {
+	    itemId: string;
+	    name: string;
+	    success: boolean;
+	    error?: string;
+	    waitSec: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new AutoLaunchResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.itemId = source["itemId"];
+	        this.name = source["name"];
+	        this.success = source["success"];
+	        this.error = source["error"];
+	        this.waitSec = source["waitSec"];
+	    }
+	}
+	export class IntelGPUFrequency {
+	    available: boolean;
+	    minFreq: number;
+	    maxFreq: number;
+	    currentMin: number;
+	    currentMax: number;
+	    requestedMHz: number;
+	    actualMHz: number;
+	    tdpMHz: number;
+	    efficientMHz: number;
+	    gpuUtilization: number;
+	    gpuName: string;
+	    driverVersion: string;
+	    driverDate: string;
+	    minDriverVersion: string;
+	    driverOK: boolean;
+	    adapterIndex: number;
+	    regKeyPath: string;
+	    error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IntelGPUFrequency(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.minFreq = source["minFreq"];
+	        this.maxFreq = source["maxFreq"];
+	        this.currentMin = source["currentMin"];
+	        this.currentMax = source["currentMax"];
+	        this.requestedMHz = source["requestedMHz"];
+	        this.actualMHz = source["actualMHz"];
+	        this.tdpMHz = source["tdpMHz"];
+	        this.efficientMHz = source["efficientMHz"];
+	        this.gpuUtilization = source["gpuUtilization"];
+	        this.gpuName = source["gpuName"];
+	        this.driverVersion = source["driverVersion"];
+	        this.driverDate = source["driverDate"];
+	        this.minDriverVersion = source["minDriverVersion"];
+	        this.driverOK = source["driverOK"];
+	        this.adapterIndex = source["adapterIndex"];
+	        this.regKeyPath = source["regKeyPath"];
+	        this.error = source["error"];
+	    }
+	}
+	export class GPUPrefStatus {
+	    available: boolean;
+	    value: number;
+	    label: string;
+	    pcmStatus: number;
+	    pcmStatusAvail: boolean;
+	    pcmLabel: string;
+	    vantageGPUStatus: number;
+	    vantageGPUStatusAvail: boolean;
+	    vantageDefaultMode: number;
+	    vantageDefaultModeAvail: boolean;
+	    pcmServiceRunning: boolean;
+	    vantageServiceRunning: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new GPUPrefStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.value = source["value"];
+	        this.label = source["label"];
+	        this.pcmStatus = source["pcmStatus"];
+	        this.pcmStatusAvail = source["pcmStatusAvail"];
+	        this.pcmLabel = source["pcmLabel"];
+	        this.vantageGPUStatus = source["vantageGPUStatus"];
+	        this.vantageGPUStatusAvail = source["vantageGPUStatusAvail"];
+	        this.vantageDefaultMode = source["vantageDefaultMode"];
+	        this.vantageDefaultModeAvail = source["vantageDefaultModeAvail"];
+	        this.pcmServiceRunning = source["pcmServiceRunning"];
+	        this.vantageServiceRunning = source["vantageServiceRunning"];
+	    }
+	}
+	export class NVIDIAStatus {
+	    detected: boolean;
+	    nvmlLoaded: boolean;
+	    serviceRunning: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new NVIDIAStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.detected = source["detected"];
+	        this.nvmlLoaded = source["nvmlLoaded"];
+	        this.serviceRunning = source["serviceRunning"];
+	    }
+	}
+	export class IGPUStatus {
+	    available: boolean;
+	    mode: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new IGPUStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.available = source["available"];
+	        this.mode = source["mode"];
+	    }
+	}
+	export class GPUInfo {
+	    name: string;
+	    vendorId: number;
+	    deviceId: number;
+	    subVendorId: number;
+	    subSystemId: number;
+	    revisionId: number;
+	    driverVersion: string;
+	    driverDate: string;
+	    dedicatedMemory: number;
+	    sharedMemory: number;
+	    totalMemory: number;
+	    isDiscrete: boolean;
+	    hardwareId: string;
+	    busNumber: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new GPUInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.vendorId = source["vendorId"];
+	        this.deviceId = source["deviceId"];
+	        this.subVendorId = source["subVendorId"];
+	        this.subSystemId = source["subSystemId"];
+	        this.revisionId = source["revisionId"];
+	        this.driverVersion = source["driverVersion"];
+	        this.driverDate = source["driverDate"];
+	        this.dedicatedMemory = source["dedicatedMemory"];
+	        this.sharedMemory = source["sharedMemory"];
+	        this.totalMemory = source["totalMemory"];
+	        this.isDiscrete = source["isDiscrete"];
+	        this.hardwareId = source["hardwareId"];
+	        this.busNumber = source["busNumber"];
+	    }
+	}
+	export class BatchGPUResult {
+	    gpuList: GPUInfo[];
+	    igpuStatus: IGPUStatus;
+	    nvidiaStatus: NVIDIAStatus;
+	    gpuPrefStatus: GPUPrefStatus;
+	    intelGPU: IntelGPUFrequency;
+	
+	    static createFrom(source: any = {}) {
+	        return new BatchGPUResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.gpuList = this.convertValues(source["gpuList"], GPUInfo);
+	        this.igpuStatus = this.convertValues(source["igpuStatus"], IGPUStatus);
+	        this.nvidiaStatus = this.convertValues(source["nvidiaStatus"], NVIDIAStatus);
+	        this.gpuPrefStatus = this.convertValues(source["gpuPrefStatus"], GPUPrefStatus);
+	        this.intelGPU = this.convertValues(source["intelGPU"], IntelGPUFrequency);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class CPUProcessItem {
 	    processName: string;
 	    pid: number;
@@ -887,78 +1137,8 @@ export namespace backend {
 	    }
 	}
 	
-	export class GPUInfo {
-	    name: string;
-	    vendorId: number;
-	    deviceId: number;
-	    subVendorId: number;
-	    subSystemId: number;
-	    revisionId: number;
-	    driverVersion: string;
-	    driverDate: string;
-	    dedicatedMemory: number;
-	    sharedMemory: number;
-	    totalMemory: number;
-	    isDiscrete: boolean;
-	    hardwareId: string;
-	    busNumber: number;
 	
-	    static createFrom(source: any = {}) {
-	        return new GPUInfo(source);
-	    }
 	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.vendorId = source["vendorId"];
-	        this.deviceId = source["deviceId"];
-	        this.subVendorId = source["subVendorId"];
-	        this.subSystemId = source["subSystemId"];
-	        this.revisionId = source["revisionId"];
-	        this.driverVersion = source["driverVersion"];
-	        this.driverDate = source["driverDate"];
-	        this.dedicatedMemory = source["dedicatedMemory"];
-	        this.sharedMemory = source["sharedMemory"];
-	        this.totalMemory = source["totalMemory"];
-	        this.isDiscrete = source["isDiscrete"];
-	        this.hardwareId = source["hardwareId"];
-	        this.busNumber = source["busNumber"];
-	    }
-	}
-	export class GPUPrefStatus {
-	    available: boolean;
-	    value: number;
-	    label: string;
-	    pcmStatus: number;
-	    pcmStatusAvail: boolean;
-	    pcmLabel: string;
-	    vantageGPUStatus: number;
-	    vantageGPUStatusAvail: boolean;
-	    vantageDefaultMode: number;
-	    vantageDefaultModeAvail: boolean;
-	    pcmServiceRunning: boolean;
-	    vantageServiceRunning: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new GPUPrefStatus(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.available = source["available"];
-	        this.value = source["value"];
-	        this.label = source["label"];
-	        this.pcmStatus = source["pcmStatus"];
-	        this.pcmStatusAvail = source["pcmStatusAvail"];
-	        this.pcmLabel = source["pcmLabel"];
-	        this.vantageGPUStatus = source["vantageGPUStatus"];
-	        this.vantageGPUStatusAvail = source["vantageGPUStatusAvail"];
-	        this.vantageDefaultMode = source["vantageDefaultMode"];
-	        this.vantageDefaultModeAvail = source["vantageDefaultModeAvail"];
-	        this.pcmServiceRunning = source["pcmServiceRunning"];
-	        this.vantageServiceRunning = source["vantageServiceRunning"];
-	    }
-	}
 	export class GPUProcess {
 	    pid: number;
 	    name: string;
@@ -975,20 +1155,7 @@ export namespace backend {
 	        this.memory = source["memory"];
 	    }
 	}
-	export class IGPUStatus {
-	    available: boolean;
-	    mode: number;
 	
-	    static createFrom(source: any = {}) {
-	        return new IGPUStatus(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.available = source["available"];
-	        this.mode = source["mode"];
-	    }
-	}
 	export class IntelGPUFreqTestResult {
 	    success: boolean;
 	    message: string;
@@ -1007,52 +1174,7 @@ export namespace backend {
 	        this.maxFreq = source["maxFreq"];
 	    }
 	}
-	export class IntelGPUFrequency {
-	    available: boolean;
-	    minFreq: number;
-	    maxFreq: number;
-	    currentMin: number;
-	    currentMax: number;
-	    requestedMHz: number;
-	    actualMHz: number;
-	    tdpMHz: number;
-	    efficientMHz: number;
-	    gpuUtilization: number;
-	    gpuName: string;
-	    driverVersion: string;
-	    driverDate: string;
-	    minDriverVersion: string;
-	    driverOK: boolean;
-	    adapterIndex: number;
-	    regKeyPath: string;
-	    error: string;
 	
-	    static createFrom(source: any = {}) {
-	        return new IntelGPUFrequency(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.available = source["available"];
-	        this.minFreq = source["minFreq"];
-	        this.maxFreq = source["maxFreq"];
-	        this.currentMin = source["currentMin"];
-	        this.currentMax = source["currentMax"];
-	        this.requestedMHz = source["requestedMHz"];
-	        this.actualMHz = source["actualMHz"];
-	        this.tdpMHz = source["tdpMHz"];
-	        this.efficientMHz = source["efficientMHz"];
-	        this.gpuUtilization = source["gpuUtilization"];
-	        this.gpuName = source["gpuName"];
-	        this.driverVersion = source["driverVersion"];
-	        this.driverDate = source["driverDate"];
-	        this.minDriverVersion = source["minDriverVersion"];
-	        this.driverOK = source["driverOK"];
-	        this.adapterIndex = source["adapterIndex"];
-	        this.regKeyPath = source["regKeyPath"];
-	        this.error = source["error"];
-	    }
-	}
 	
 	export class LogFileInfo {
 	    name: string;
@@ -1557,22 +1679,7 @@ export namespace backend {
 	        this.baseUrl = source["baseUrl"];
 	    }
 	}
-	export class NVIDIAStatus {
-	    detected: boolean;
-	    nvmlLoaded: boolean;
-	    serviceRunning: boolean;
 	
-	    static createFrom(source: any = {}) {
-	        return new NVIDIAStatus(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.detected = source["detected"];
-	        this.nvmlLoaded = source["nvmlLoaded"];
-	        this.serviceRunning = source["serviceRunning"];
-	    }
-	}
 	
 	
 	

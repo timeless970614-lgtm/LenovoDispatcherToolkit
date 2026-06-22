@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 // GPUInfo represents a single GPU's information
@@ -531,78 +532,67 @@ foreach ($path in $paths) {
 }
 
 // GetGPUAutoGear reads the ITS_GPUHybridModeSetting value from registry
+// Uses Go native registry API (instant, no PowerShell process spawn)
 func GetGPUAutoGear() GPUAutoGear {
 	result := GPUAutoGear{}
-	script := `
-$ErrorActionPreference = 'SilentlyContinue'
-try {
-    $key = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider' -Name ITS_GPUHybridModeSetting -ErrorAction Stop
-    Write-Host "Value:$($key.ITS_GPUHybridModeSetting)"
-} catch {
-    Write-Host "NotFound"
-}
-`
-	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
-	output, err := cmd.Output()
-	if err != nil {
+
+	// Try PowerSlider path first
+	val, avail := readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+		"SYSTEM\\CurrentControlSet\\Services\\LenovoProcessManagement\\Performance\\PowerSlider",
+		"ITS_GPUHybridModeSetting")
+	if avail {
+		result.Available = true
+		result.Value = val
 		return result
 	}
-	outputStr := string(output)
-	if strings.Contains(outputStr, "NotFound") || outputStr == "" {
+
+	// Fallback to GameZone
+	val, avail = readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+		"SOFTWARE\\Lenovo\\GameZone",
+		"ITS_GPUHybridModeSetting")
+	if avail {
+		result.Available = true
+		result.Value = val
 		return result
 	}
-	for _, line := range strings.Split(outputStr, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "Value:") {
-			var v uint32
-			_, scanErr := fmt.Sscanf(line, "Value:%d", &v)
-			if scanErr == nil {
-				result.Available = true
-				result.Value = v
-				return result
-			}
-		}
+
+	// Fallback to PowerManagement
+	val, avail = readDWordFromRegistry(windows.HKEY_LOCAL_MACHINE,
+		"SOFTWARE\\Lenovo\\PowerManagement",
+		"ITS_GPUHybridModeSetting")
+	if avail {
+		result.Available = true
+		result.Value = val
 	}
+
 	return result
 }
 
 // SetGPUAutoGear sets the ITS_GPUHybridModeSetting value
+// Uses Go registry package (instant, no PowerShell process spawn)
 func SetGPUAutoGear(value uint32) SetResult {
 	result := SetResult{Success: false}
-	script := fmt.Sprintf(`
-$ErrorActionPreference = 'SilentlyContinue'
-$paths = @(
-    'HKLM:\SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider',
-    'HKLM:\SOFTWARE\Lenovo\GameZone',
-    'HKLM:\SOFTWARE\Lenovo\PowerManagement'
-)
-$success = $false
-foreach ($path in $paths) {
-    if (Test-Path $path) {
-        try {
-            Set-ItemProperty -Path $path -Name ITS_GPUHybridModeSetting -Value %d -Type DWord -Force
-            $success = $true
-            break
-        } catch {}
-    }
-}
-if ($success) {
-    Write-Host "Success"
-} else {
-    Write-Host "Failed"
-}
-`, value)
-	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
-	output, err := cmd.Output()
-	if err != nil {
-		result.Message = "Failed to execute PowerShell command"
-		return result
+
+	paths := []string{
+		`SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider`,
+		`SOFTWARE\Lenovo\GameZone`,
+		`SOFTWARE\Lenovo\PowerManagement`,
 	}
-	if strings.Contains(string(output), "Success") {
-		result.Success = true
-		result.Message = "Auto Gear setting applied successfully"
-	} else {
-		result.Message = "Failed to set Auto Gear"
+
+	for _, path := range paths {
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, path, registry.SET_VALUE)
+		if err != nil {
+			continue
+		}
+		err = k.SetDWordValue("ITS_GPUHybridModeSetting", value)
+		k.Close()
+		if err == nil {
+			result.Success = true
+			result.Message = "Auto Gear setting applied successfully"
+			return result
+		}
 	}
+
+	result.Message = "Failed to set Auto Gear (no writable registry path)"
 	return result
 }

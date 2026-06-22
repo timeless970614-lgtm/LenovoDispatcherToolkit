@@ -327,7 +327,7 @@ func readGPUStatusDirect() GPUPrefStatus {
 
 	if !pcManagerRunning && !vantageRunning && !dispatcherRunning {
 		result.Available = false
-		result.Label = "Dispatcher Service Stopped"
+		result.Label = "Dispatcher not supported"
 		result.Value = 0
 		result.PCMStatus = 0
 		result.PCMStatusAvail = false
@@ -366,7 +366,7 @@ func readGPUStatusDirect() GPUPrefStatus {
 		} else {
 			// Vantage_GPUMode not available or unexpected value
 			result.Available = false
-			result.Label = "Dispatcher Service Stopped"
+			result.Label = "Dispatcher not supported"
 			result.Value = 0
 			return result
 		}
@@ -411,7 +411,7 @@ func readGPUStatusDirect() GPUPrefStatus {
 		result.Value = 0
 	} else if !peAvail || peStatus == 0 {
 		result.Available = false
-		result.Label = "Dispatcher Service Stopped"
+		result.Label = "Dispatcher not supported"
 		result.Value = 0
 		result.PCMStatus = pcmStatus
 		result.PCMStatusAvail = pcmAvail
@@ -427,7 +427,7 @@ func readGPUStatusDirect() GPUPrefStatus {
 			result.Value = 2
 			result.Available = true
 		} else {
-			result.Label = "Dispatcher Service Stopped"
+			result.Label = "Dispatcher not supported"
 			result.Value = 0
 			result.Available = false
 		}
@@ -450,7 +450,7 @@ func readGPUStatusDirect() GPUPrefStatus {
 				result.Value = 2
 				result.Available = true
 			} else {
-				result.Label = "Dispatcher Service Stopped"
+				result.Label = "Dispatcher not supported"
 				result.Value = 0
 				result.Available = false
 			}

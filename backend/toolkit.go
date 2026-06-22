@@ -449,3 +449,31 @@ func ToolkitJSON() string {
 	data, _ := json.MarshalIndent(toolkitTools, "", "  ")
 	return string(data)
 }
+
+// BatchLaunchApps launches multiple installed tools by their IDs.
+// Returns per-tool results (success/error).
+func BatchLaunchApps(toolIDs []string) []map[string]interface{} {
+	var results []map[string]interface{}
+	for _, id := range toolIDs {
+		result := map[string]interface{}{"toolId": id}
+		status := CheckToolkitInstalled(id)
+		if !status.Installed {
+			result["success"] = false
+			result["error"] = "not installed"
+			results = append(results, result)
+			continue
+		}
+		cmd := visibleCmd(status.InstallPath)
+		err := cmd.Start()
+		if err != nil {
+			result["success"] = false
+			result["error"] = err.Error()
+		} else {
+			result["success"] = true
+		}
+		results = append(results, result)
+		// Small delay between launches to avoid overwhelming the system
+		time.Sleep(500 * time.Millisecond)
+	}
+	return results
+}

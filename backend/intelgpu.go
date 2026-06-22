@@ -106,6 +106,12 @@ func readDWORD(k registry.Key, name string) uint32 {
 
 // GetIntelGPUFrequency reads iGPU frequency limits from the Intel driver registry key.
 func GetIntelGPUFrequency() IntelGPUFrequency {
+	return GetIntelGPUFrequencyWithUtil(-1)
+}
+
+// GetIntelGPUFrequencyWithUtil skips the internal readGPUUtilization() PS call
+// if a pre-fetched utilization value (>= 0) is provided.
+func GetIntelGPUFrequencyWithUtil(prefetchedUtil float64) IntelGPUFrequency {
 	result := IntelGPUFrequency{
 		MinDriverVersion: MinIntelDriverVersion,
 	}
@@ -155,8 +161,12 @@ func GetIntelGPUFrequency() IntelGPUFrequency {
 		result.CurrentMax = hwMax
 	}
 
-	// GPU utilization from Windows Performance Counter (3D engine, same LUID as Intel GPU)
-	result.GPUUtilization = readGPUUtilization()
+	// GPU utilization: use pre-fetched value if available, otherwise fall back to PS call
+	if prefetchedUtil >= 0 {
+		result.GPUUtilization = prefetchedUtil
+	} else {
+		result.GPUUtilization = readGPUUtilization()
+	}
 
 	return result
 }
@@ -295,39 +305,48 @@ func GetIntelDriverDownloadURL() string { return IntelDriverDownloadURL }
 
 // ── WMI fallback ──────────────────────────────────────────────────────────────
 
+// fillGPUInfoFromWMI fills GPU name, driver version and date from registry
+// Uses Go native registry API (instant, no PowerShell process spawn)
 func fillGPUInfoFromWMI(result *IntelGPUFrequency) {
-	script := `
-$ErrorActionPreference = 'SilentlyContinue'
-$gpu = Get-WmiObject Win32_VideoController |
-       Where-Object { $_.Name -match 'Intel|Arc' } |
-       Select-Object -First 1
-if ($gpu) {
-    Write-Host "NAME:$($gpu.Name)"
-    Write-Host "DRIVER:$($gpu.DriverVersion)"
-    $d = $gpu.DriverDate
-    if ($d -and $d.Length -ge 8) {
-        Write-Host "DATE:$($d.Substring(0,4))-$($d.Substring(4,2))-$($d.Substring(6,2))"
-    }
-} else {
-    Write-Host "NA:No Intel GPU found"
-}
-`
-	cmd := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
-	out, err := cmd.Output()
+	base, err := registry.OpenKey(registry.LOCAL_MACHINE, intelGPURegBase, registry.READ)
 	if err != nil {
 		return
 	}
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		line = strings.TrimRight(line, "\r")
-		switch {
-		case strings.HasPrefix(line, "NAME:"):
-			result.GPUName = strings.TrimPrefix(line, "NAME:")
-		case strings.HasPrefix(line, "DRIVER:"):
-			result.DriverVersion = strings.TrimPrefix(line, "DRIVER:")
-			result.DriverOK = compareDriverVersion(result.DriverVersion, MinIntelDriverVersion) >= 0
-		case strings.HasPrefix(line, "DATE:"):
-			result.DriverDate = strings.TrimPrefix(line, "DATE:")
+	defer base.Close()
+
+	subkeys, err := base.ReadSubKeyNames(-1)
+	if err != nil {
+		return
+	}
+
+	for _, sub := range subkeys {
+		if len(sub) != 4 {
+			continue
 		}
+		subPath := intelGPURegBase + `\` + sub
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, subPath, registry.READ)
+		if err != nil {
+			continue
+		}
+
+		desc, _, err := k.GetStringValue("DriverDesc")
+		if err != nil || !strings.Contains(strings.ToLower(desc), "intel") {
+			k.Close()
+			continue
+		}
+
+		// Found Intel GPU adapter
+		result.GPUName = desc
+		if ver, _, err := k.GetStringValue("DriverVersion"); err == nil {
+			result.DriverVersion = ver
+			result.DriverOK = compareDriverVersion(ver, MinIntelDriverVersion) >= 0
+		}
+		if date, _, err := k.GetStringValue("DriverDate"); err == nil && len(date) >= 10 {
+			// DriverDate format: YYYY-MM-DD or similar
+			result.DriverDate = date[:10]
+		}
+		k.Close()
+		return
 	}
 }
 

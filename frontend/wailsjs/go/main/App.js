@@ -30,6 +30,18 @@ export function AskNVIDIACloud(arg1) {
   return window['go']['main']['App']['AskNVIDIACloud'](arg1);
 }
 
+export function BatchGPUInit() {
+  return window['go']['main']['App']['BatchGPUInit']();
+}
+
+export function BatchLaunchApps(arg1) {
+  return window['go']['main']['App']['BatchLaunchApps'](arg1);
+}
+
+export function BatchLaunchAutoLaunchItems(arg1) {
+  return window['go']['main']['App']['BatchLaunchAutoLaunchItems'](arg1);
+}
+
 export function CheckAllToolkitInstalled() {
   return window['go']['main']['App']['CheckAllToolkitInstalled']();
 }
@@ -78,6 +90,10 @@ export function GetAIAgentSystemInfo() {
   return window['go']['main']['App']['GetAIAgentSystemInfo']();
 }
 
+export function GetAutoLaunchItems() {
+  return window['go']['main']['App']['GetAutoLaunchItems']();
+}
+
 export function GetCachedGPUStatus() {
   return window['go']['main']['App']['GetCachedGPUStatus']();
 }
@@ -124,6 +140,10 @@ export function GetETLTraceList() {
 
 export function GetEventClasses() {
   return window['go']['main']['App']['GetEventClasses']();
+}
+
+export function GetFolderFiles() {
+  return window['go']['main']['App']['GetFolderFiles']();
 }
 
 export function GetGPUAutoGear() {
@@ -306,6 +326,14 @@ export function IsToolkitBusy(arg1) {
   return window['go']['main']['App']['IsToolkitBusy'](arg1);
 }
 
+export function LaunchAllEnabledItems() {
+  return window['go']['main']['App']['LaunchAllEnabledItems']();
+}
+
+export function LaunchAutoLaunchItem(arg1) {
+  return window['go']['main']['App']['LaunchAutoLaunchItem'](arg1);
+}
+
 export function LoadNVIDIAConfig() {
   return window['go']['main']['App']['LoadNVIDIAConfig']();
 }
@@ -372,6 +400,14 @@ export function SaveNVIDIAConfig(arg1) {
 
 export function SendServiceControl(arg1) {
   return window['go']['main']['App']['SendServiceControl'](arg1);
+}
+
+export function SetAutoLaunchFolderConfig(arg1) {
+  return window['go']['main']['App']['SetAutoLaunchFolderConfig'](arg1);
+}
+
+export function SetAutoLaunchItemWait(arg1, arg2) {
+  return window['go']['main']['App']['SetAutoLaunchItemWait'](arg1, arg2);
 }
 
 export function SetDYTCMode(arg1) {
@@ -480,6 +516,10 @@ export function TestModeSwitch() {
 
 export function TestNVIDIAConnection(arg1, arg2) {
   return window['go']['main']['App']['TestNVIDIAConnection'](arg1, arg2);
+}
+
+export function ToggleAutoLaunchItem(arg1, arg2) {
+  return window['go']['main']['App']['ToggleAutoLaunchItem'](arg1, arg2);
 }
 
 export function UninstallDTT() {

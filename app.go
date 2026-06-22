@@ -251,6 +251,11 @@ func (a *App) OpenTestMode() map[string]interface{} {
 
 // ============ Function Check (GPU & System Diagnostics) ============
 
+// BatchGPUInit performs all GPU initialization in a single PowerShell call
+func (a *App) BatchGPUInit() backend.BatchGPUResult {
+	return backend.BatchGPUInit()
+}
+
 // EnumerateGPUs returns a list of all GPUs using WMI
 func (a *App) EnumerateGPUs() []backend.GPUInfo {
 	return backend.EnumerateGPUs()
@@ -819,6 +824,53 @@ func (a *App) IsToolkitBusy(toolID string) bool {
 // GetInstalledToolkitTools returns list of installed tool IDs
 func (a *App) GetInstalledToolkitTools() []string {
 	return backend.GetInstalledToolkitTools()
+}
+
+// BatchLaunchApps launches multiple installed tools by their IDs
+func (a *App) BatchLaunchApps(toolIDs []string) []map[string]interface{} {
+	return backend.BatchLaunchApps(toolIDs)
+}
+
+// ============ Auto Launch (open_all_files.bat replacement) ============
+
+// GetAutoLaunchItems returns built-in launch items and folder config
+func (a *App) GetAutoLaunchItems() ([]backend.AutoLaunchItem, backend.AutoLaunchFolderConfig) {
+	return backend.GetAutoLaunchItems()
+}
+
+// GetFolderFiles returns files in the configured folder
+func (a *App) GetFolderFiles() ([]backend.AutoLaunchItem, error) {
+	return backend.GetFolderFiles()
+}
+
+// LaunchAutoLaunchItem launches a single item by ID
+func (a *App) LaunchAutoLaunchItem(itemID string) backend.AutoLaunchResult {
+	return backend.LaunchAutoLaunchItem(itemID)
+}
+
+// BatchLaunchAutoLaunchItems launches multiple items sequentially
+func (a *App) BatchLaunchAutoLaunchItems(itemIDs []string) []backend.AutoLaunchResult {
+	return backend.BatchLaunchAutoLaunchItems(itemIDs)
+}
+
+// LaunchAllEnabledItems launches all enabled items
+func (a *App) LaunchAllEnabledItems() []backend.AutoLaunchResult {
+	return backend.LaunchAllEnabledItems()
+}
+
+// ToggleAutoLaunchItem enables/disables a launch item
+func (a *App) ToggleAutoLaunchItem(itemID string, enabled bool) {
+	backend.ToggleAutoLaunchItem(itemID, enabled)
+}
+
+// SetAutoLaunchItemWait updates wait time for a launch item
+func (a *App) SetAutoLaunchItemWait(itemID string, waitSec int) {
+	backend.SetAutoLaunchItemWait(itemID, waitSec)
+}
+
+// SetAutoLaunchFolderConfig updates folder scanning config
+func (a *App) SetAutoLaunchFolderConfig(cfg backend.AutoLaunchFolderConfig) {
+	backend.SetAutoLaunchFolderConfig(cfg)
 }
 
 // ============ AI Agent ============

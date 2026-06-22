@@ -196,6 +196,109 @@
       </div>
     </div>
 
+    <!-- Auto Launch (open_all_files.bat replacement) -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          自动化打开应用
+        </h3>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm" @click="toggleSelectAll" :disabled="autoLaunch.running">
+            {{ allSelected ? '取消全选' : '全选' }}
+          </button>
+          <button class="btn btn-primary btn-sm" @click="launchSelected" :disabled="autoLaunch.running">
+            <span v-if="autoLaunch.running" class="spinner-small"></span>
+            <span v-else>▶ 启动选中</span>
+          </button>
+        </div>
+      </div>
+      <div class="test-body">
+        <!-- Browser section -->
+        <div v-if="autoLaunch.browserItems.length" class="launch-section">
+          <div class="section-label">🌐 浏览器标签页</div>
+          <div class="launch-grid">
+            <div v-for="item in autoLaunch.browserItems" :key="item.id"
+              :class="['launch-item', item.enabled ? 'enabled' : 'disabled']"
+              @click="toggleItem(item)">
+              <div class="launch-check">
+                <span :class="['check-box', item.enabled ? 'checked' : '']">✓</span>
+              </div>
+              <div class="launch-info">
+                <span class="launch-name">{{ item.name }}</span>
+                <span class="launch-desc">{{ item.description }}</span>
+              </div>
+              <div class="launch-wait">{{ item.waitSec }}s</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Protocol/App section -->
+        <div v-if="autoLaunch.appItems.length" class="launch-section">
+          <div class="section-label">📱 应用与协议</div>
+          <div class="launch-grid">
+            <div v-for="item in autoLaunch.appItems" :key="item.id"
+              :class="['launch-item', item.enabled ? 'enabled' : 'disabled']"
+              @click="toggleItem(item)">
+              <div class="launch-check">
+                <span :class="['check-box', item.enabled ? 'checked' : '']">✓</span>
+              </div>
+              <div class="launch-info">
+                <span class="launch-name">{{ item.name }}</span>
+                <span class="launch-desc">{{ item.description }}</span>
+              </div>
+              <div class="launch-wait">{{ item.waitSec }}s</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Folder section -->
+        <div v-if="autoLaunch.folderItems.length" class="launch-section">
+          <div class="section-label">
+            📂 文件夹文件
+            <span class="section-hint">（自动扫描目录下的文件）</span>
+          </div>
+          <div class="launch-grid">
+            <div v-for="item in autoLaunch.folderItems" :key="item.id"
+              :class="['launch-item', item.enabled ? 'enabled' : 'disabled']"
+              @click="toggleItem(item)">
+              <div class="launch-check">
+                <span :class="['check-box', item.enabled ? 'checked' : '']">✓</span>
+              </div>
+              <div class="launch-info">
+                <span class="launch-name">{{ item.name }}</span>
+                <span class="launch-desc">{{ item.description }}</span>
+              </div>
+              <div class="launch-wait">{{ item.waitSec }}s</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Running progress -->
+        <div v-if="autoLaunch.running" class="test-loading">
+          <div class="spinner-small"></div>
+          <span>正在启动应用... ({{ autoLaunch.doneCount }}/{{ autoLaunch.totalCount }})</span>
+        </div>
+
+        <!-- Results -->
+        <div v-if="autoLaunch.results.length" class="test-result-block" style="margin-top: 10px;">
+          <div class="result-chips">
+            <span v-for="r in autoLaunch.results" :key="r.itemId" :class="['chip', r.success ? 'chip-ok' : 'chip-fail']">
+              {{ r.name }}: {{ r.success ? '✓ 已启动' : '✗ ' + (r.error || '失败') }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="!autoLaunch.running && !autoLaunch.results.length" class="test-hint">
+          <p>一键打开 Edge 浏览器标签页、Outlook、爱奇艺客户端及文件夹文件（替代 open_all_files.bat）</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Mode Switch Test -->
     <div class="card">
       <div class="card-header">
@@ -256,7 +359,16 @@
 </template>
 
 <script>
-import { TestBrightness, TestFNQ, TestModeSwitch } from '../../wailsjs/go/main/App'
+import {
+  TestBrightness,
+  TestFNQ,
+  TestModeSwitch,
+  GetAutoLaunchItems,
+  GetFolderFiles,
+  BatchLaunchAutoLaunchItems,
+  LaunchAllEnabledItems,
+  ToggleAutoLaunchItem,
+} from '../../wailsjs/go/main/App'
 
 export default {
   name: 'TestFunction',
@@ -266,7 +378,27 @@ export default {
       brightness: { running: false, done: false, result: null },
       fnq: { running: false, done: false, result: null },
       mode: { running: false, done: false, result: null, anyVerified: false },
+      autoLaunch: {
+        browserItems: [],
+        appItems: [],
+        folderItems: [],
+        running: false,
+        results: [],
+        doneCount: 0,
+        totalCount: 0,
+      },
     }
+  },
+  computed: {
+    allItems() {
+      return [...this.autoLaunch.browserItems, ...this.autoLaunch.appItems, ...this.autoLaunch.folderItems]
+    },
+    allSelected() {
+      return this.allItems.length > 0 && this.allItems.every(i => i.enabled)
+    },
+    running() {
+      return this.launch.running || this.brightness.running || this.fnq.running || this.mode.running
+    },
   },
   methods: {
     async testLaunchSpeed() {
@@ -274,9 +406,6 @@ export default {
       this.launch.done = false
       this.launch.result = null
       const start = performance.now()
-      // Simulate a lightweight measurement by checking Wails init time
-      // The actual launch time is already elapsed when this UI is shown
-      // Measure how fast we can get a simple system info call
       try {
         const { GetSystemInfo } = await import('../../wailsjs/go/main/App')
         await GetSystemInfo()
@@ -339,7 +468,62 @@ export default {
       await this.testBrightness()
       await this.testFNQ()
       await this.testModeSwitch()
-    }
+    },
+
+    // === Auto Launch methods ===
+    async loadAutoLaunchItems() {
+      try {
+        const [items, folderCfg] = await GetAutoLaunchItems()
+        this.autoLaunch.browserItems = items.filter(i => i.category === 'browser').map(i => ({...i}))
+        this.autoLaunch.appItems = items.filter(i => i.category === 'protocol' || i.category === 'app').map(i => ({...i}))
+
+        // Load folder files
+        try {
+          const folderItems = await GetFolderFiles()
+          this.autoLaunch.folderItems = folderItems.map(i => ({...i}))
+        } catch (e) {
+          console.warn('Folder scan skipped:', e)
+        }
+      } catch (e) {
+        console.error('Failed to load auto launch items:', e)
+      }
+    },
+
+    toggleItem(item) {
+      item.enabled = !item.enabled
+      ToggleAutoLaunchItem(item.id, item.enabled).catch(() => {})
+    },
+
+    toggleSelectAll() {
+      const target = !this.allSelected
+      this.allItems.forEach(item => {
+        item.enabled = target
+        ToggleAutoLaunchItem(item.id, target).catch(() => {})
+      })
+    },
+
+    async launchSelected() {
+      const selected = this.allItems.filter(i => i.enabled).map(i => i.id)
+      if (selected.length === 0) return
+
+      this.autoLaunch.running = true
+      this.autoLaunch.results = []
+      this.autoLaunch.doneCount = 0
+      this.autoLaunch.totalCount = selected.length
+
+      try {
+        const results = await BatchLaunchAutoLaunchItems(selected)
+        this.autoLaunch.results = results || []
+        this.autoLaunch.doneCount = (results || []).length
+      } catch (e) {
+        this.autoLaunch.results = [{ itemId: 'error', name: '错误', error: String(e) }]
+      }
+
+      this.autoLaunch.running = false
+    },
+  },
+  mounted() {
+    this.loadAutoLaunchItems()
   }
 }
 </script>
@@ -546,7 +730,7 @@ export default {
 
 .mode-attempt-row.failed {
   background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.3);
 }
 
 .mode-attempt-row.skipped {
@@ -618,6 +802,11 @@ export default {
   margin-top: 10px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .result-text {
   font-size: 12px;
 }
@@ -648,5 +837,113 @@ export default {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* === Auto Launch Styles === */
+.launch-section {
+  margin-bottom: 16px;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.section-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.launch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+}
+
+.launch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.launch-item:hover {
+  border-color: var(--accent);
+}
+
+.launch-item.enabled {
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(74, 222, 128, 0.05);
+}
+
+.launch-item.disabled {
+  opacity: 0.5;
+}
+
+.launch-check {
+  flex-shrink: 0;
+}
+
+.check-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  color: transparent;
+  transition: all 0.15s;
+}
+
+.check-box.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.launch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.launch-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.launch-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.launch-wait {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 </style>
