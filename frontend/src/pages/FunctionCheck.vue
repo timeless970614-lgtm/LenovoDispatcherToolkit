@@ -37,9 +37,7 @@
             </div>
             <div class="status-item">
               <span class="status-label no-transform">PCM_Service</span>
-              <span :class="['status-value', 'mono', gpuPref.pcmServiceRunning ? 'status-ok' : 'status-na']">
-                {{ gpuPref.pcmServiceRunning ? 'Running' : 'Stopped' }}
-              </span>
+              <span class="status-value mono status-na">N/A</span>
             </div>
             <div class="status-item">
               <span class="status-label no-transform">PCM_GPUStatus</span>
@@ -54,9 +52,7 @@
             <!-- Row 2 -->
             <div class="status-item">
               <span class="status-label no-transform">Vantage_Service</span>
-              <span :class="['status-value', 'mono', gpuPref.vantageServiceRunning ? 'status-ok' : 'status-na']">
-                {{ gpuPref.vantageServiceRunning ? 'Running' : 'Stopped' }}
-              </span>
+              <span class="status-value mono status-na">N/A</span>
             </div>
             <div class="status-item">
               <span class="status-label no-transform">Vantage_GPUStatus</span>

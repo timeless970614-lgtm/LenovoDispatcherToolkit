@@ -321,9 +321,10 @@ func readGPUStatusDirect() GPUPrefStatus {
 	vantageRunning := isServiceRunning("LenovoVantageService")
 	dispatcherRunning := isDispatcherServiceRunning()
 
-	// Store service status for UI display
-	result.PCMServiceRunning = pcManagerRunning
-	result.VantageServiceRunning = vantageRunning
+	// Service status no longer exposed to UI (displayed as N/A)
+	// Internal checks still used for branch logic below
+	result.PCMServiceRunning = false
+	result.VantageServiceRunning = false
 
 	if !pcManagerRunning && !vantageRunning && !dispatcherRunning {
 		result.Available = false
