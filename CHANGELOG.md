@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.0.21 (2026-06-23)
+
+### New Features
+- **Dispatcher Dump**: Added "Enable Dispatcher Dump" button — auto-configures Windows Error Reporting LocalDumps for `LNV_DES.exe` and `LNVDispatcherService.exe`
+- **Dispatcher Service Status**: Dashboard "Service Control" renamed to "Dispatcher Service Status"
+
+### Performance
+- **CPU Usage Reduction**: Idle CPU dropped from ~3% to <0.5%
+  - Dashboard polling split: lightweight `refresh()` (registry only) vs full `fullRefresh()` (WMI)
+  - Dashboard refresh interval 5s → 10s
+  - App.vue mode polling 30s → 60s
+  - `visibilitychange` pauses all polling when window hidden/minimized
+  - WMI `GetSystemInfo` / `GetModeCheckInfo` cached, only called on first load and user actions
+- **Startup**: Merged 8 backend function calls into single batch PS + Go registry reads (2s → ~350ms)
+
+### UI Improvements
+- PCM_Service / Vantage_Service: frontend displays N/A instead of service status
+- Dispatcher Service: "Stopped" displays as "Not Supported"
+- FunctionCheck labels: removed uppercase transform, added "Auto iGPU on battery" fallback text
+- PPMDriver: title changed to "Processor Power Management Parameters"
+
+### Bug Fixes
+- Dashboard refresh button bound to `fullRefresh()` (was `refresh()` — missed WMI data)
+
+---
+
 ## v1.0.19 (2026-05-25)
 
 ### New Features
