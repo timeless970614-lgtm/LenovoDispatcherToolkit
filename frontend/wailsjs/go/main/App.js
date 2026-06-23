@@ -58,6 +58,10 @@ export function CheckToolkitInstalled(arg1) {
   return window['go']['main']['App']['CheckToolkitInstalled'](arg1);
 }
 
+export function EnableDynamicDump() {
+  return window['go']['main']['App']['EnableDynamicDump']();
+}
+
 export function EnableDynamicLog() {
   return window['go']['main']['App']['EnableDynamicLog']();
 }
@@ -116,6 +120,10 @@ export function GetDYTCInfo() {
 
 export function GetDispatcherInfo() {
   return window['go']['main']['App']['GetDispatcherInfo']();
+}
+
+export function GetDynamicDumpStatus() {
+  return window['go']['main']['App']['GetDynamicDumpStatus']();
 }
 
 export function GetDynamicLogStatus() {

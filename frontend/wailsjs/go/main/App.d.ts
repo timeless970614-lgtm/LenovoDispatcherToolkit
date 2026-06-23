@@ -31,6 +31,8 @@ export function CheckNVIDIAStatus():Promise<backend.NVIDIAStatus>;
 
 export function CheckToolkitInstalled(arg1:string):Promise<backend.ToolkitInstallStatus>;
 
+export function EnableDynamicDump():Promise<backend.DynamicLogResult>;
+
 export function EnableDynamicLog():Promise<backend.DynamicLogResult>;
 
 export function EnumerateAllNamespaces():Promise<string>;
@@ -60,6 +62,8 @@ export function GetClassesInNamespace(arg1:string):Promise<string>;
 export function GetDYTCInfo():Promise<backend.DYTCInfo>;
 
 export function GetDispatcherInfo():Promise<backend.DispatcherInfo>;
+
+export function GetDynamicDumpStatus():Promise<boolean>;
 
 export function GetDynamicLogStatus():Promise<boolean>;
 

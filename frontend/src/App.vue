@@ -158,7 +158,7 @@ export default {
   data() {
     return {
       currentPage: 'dashboard',
-      refreshInterval: parseInt(localStorage.getItem('lenovo-toolkit-refresh') || '5000'),
+      refreshInterval: parseInt(localStorage.getItem('lenovo-toolkit-refresh') || '10000'),
       theme: 'dark',
       lang: 'en',
       currentTime: '',
@@ -256,11 +256,26 @@ export default {
     this.updateTime()
     this.timeInterval = setInterval(this.updateTime, 1000)
     this.updateMode()
-    this.modeInterval = setInterval(this.updateMode, 30000)
+    this.modeInterval = setInterval(this.updateMode, 60000)
+    // Pause all polling when page is hidden to save CPU
+    this._visibilityHandler = () => {
+      if (document.hidden) {
+        if (this.timeInterval) { clearInterval(this.timeInterval); this.timeInterval = null }
+        if (this.modeInterval) { clearInterval(this.modeInterval); this.modeInterval = null }
+      } else {
+        if (!this.timeInterval) this.timeInterval = setInterval(this.updateTime, 1000)
+        if (!this.modeInterval) {
+          this.updateMode()
+          this.modeInterval = setInterval(this.updateMode, 60000)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', this._visibilityHandler)
   },
   beforeUnmount() {
     if (this.timeInterval) clearInterval(this.timeInterval)
     if (this.modeInterval) clearInterval(this.modeInterval)
+    if (this._visibilityHandler) document.removeEventListener('visibilitychange', this._visibilityHandler)
   },
   methods: {
     updateTime() {

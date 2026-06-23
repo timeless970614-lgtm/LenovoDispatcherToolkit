@@ -475,6 +475,16 @@ func (a *App) EnableDynamicLog() backend.DynamicLogResult {
 	return backend.EnableDynamicLog()
 }
 
+// GetDynamicDumpStatus checks if dynamic dump is enabled
+func (a *App) GetDynamicDumpStatus() bool {
+	return backend.GetDynamicDumpStatus()
+}
+
+// EnableDynamicDump enables the dynamic PLx dump and restarts the service
+func (a *App) EnableDynamicDump() backend.DynamicLogResult {
+	return backend.EnableDynamicDump()
+}
+
 // ============ Auto Gear & EPOT ============
 
 // GetEPOTStatus returns ML_Scenario EPOT parameters

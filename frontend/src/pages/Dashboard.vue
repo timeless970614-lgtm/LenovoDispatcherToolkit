@@ -13,7 +13,7 @@
             </svg>
             System Information
           </span>
-          <button class="btn-icon" @click="refresh" title="Refresh">
+          <button class="btn-icon" @click="fullRefresh" title="Refresh">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"/>
               <polyline points="1 20 1 14 7 14"/>
@@ -61,7 +61,7 @@
             Dispatcher Device Information
           </span>
           <div style="display: flex; gap: 8px;">
-            <button class="btn-enable-log" @click="enableLog" :disabled="enablingLog" :title="logEnabled ? 'Log already enabled' : 'Enable Dynamic Log'">
+            <button class="btn-enable-log" @click="enableLog" :disabled="enablingLog" :title="logEnabled ? 'Dispatcher log already enabled' : 'Enable Dispatcher Log'">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
@@ -69,8 +69,18 @@
                 <line x1="16" y1="17" x2="8" y2="17"/>
               </svg>
               <span v-if="enablingLog">Enabling...</span>
-              <span v-else-if="logEnabled">Log Enabled</span>
-              <span v-else>EnableLog</span>
+              <span v-else-if="logEnabled">Dispatcher Log Enabled</span>
+              <span v-else>Enable Dispatcher Log</span>
+            </button>
+            <button class="btn-enable-dump" @click="enableDump" :disabled="enablingDump" :title="dumpEnabled ? 'Dispatcher dump already enabled' : 'Enable Dispatcher Dump'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+              <span v-if="enablingDump">Enabling...</span>
+              <span v-else-if="dumpEnabled">Dispatcher Dump Enabled</span>
+              <span v-else>Enable Dispatcher Dump</span>
             </button>
             <button class="btn-test-mode" @click="openTestMode" title="Open Test Mode CMD">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -106,7 +116,7 @@
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            Service Control
+            Dispatcher Service Status
           </span>
           <span :class="['status-badge', serviceStatus === 'Running' ? 'status-running' : 'status-stopped']">
             {{ serviceStatus }}
@@ -136,7 +146,8 @@ export default {
   name: 'Dashboard',
   props: {
     theme: { type: String, default: 'dark' },
-    serviceRunning: { type: Boolean, default: null }
+    serviceRunning: { type: Boolean, default: null },
+    pollInterval: { type: Number, default: 10000 }
   },
   data() {
     return {
@@ -145,6 +156,8 @@ export default {
       _timer: null,
       enablingLog: false,
       logEnabled: false,
+      enablingDump: false,
+      dumpEnabled: false,
 
     }
   },
@@ -161,27 +174,57 @@ export default {
     }
   },
   async mounted() {
-    await this.refresh()
+    await this.fullRefresh()
     this._timer = setInterval(this.refresh, this.pollInterval)
+    // Pause Dashboard polling when page is hidden
+    this._visHandler = () => {
+      if (document.hidden) {
+        if (this._timer) { clearInterval(this._timer); this._timer = null }
+      } else {
+        if (!this._timer) {
+          this.refresh()
+          this._timer = setInterval(this.refresh, this.pollInterval)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', this._visHandler)
   },
   beforeUnmount() {
     if (this._timer) clearInterval(this._timer)
+    if (this._visHandler) document.removeEventListener('visibilitychange', this._visHandler)
   },
   methods: {
     async refresh() {
       try {
         if (window.go && window.go.main && window.go.main.App) {
-          const [sysInfo, modeInfo, logStatus] = await Promise.all([
+          // Light refresh: only service status + log/dump (fast registry reads, no WMI)
+          const [logStatus, dumpStatus] = await Promise.all([
+            window.go.main.App.GetDynamicLogStatus(),
+            window.go.main.App.GetDynamicDumpStatus(),
+          ])
+          if (logStatus !== undefined) this.logEnabled = logStatus
+          if (dumpStatus !== undefined) this.dumpEnabled = dumpStatus
+        }
+      } catch (e) {
+        console.error('Refresh error:', e)
+      }
+    },
+    async fullRefresh() {
+      try {
+        if (window.go && window.go.main && window.go.main.App) {
+          const [sysInfo, modeInfo, logStatus, dumpStatus] = await Promise.all([
             window.go.main.App.GetSystemInfo(),
             window.go.main.App.GetModeCheckInfo(),
             window.go.main.App.GetDynamicLogStatus(),
+            window.go.main.App.GetDynamicDumpStatus(),
           ])
           if (sysInfo) this.sysInfo = sysInfo
           if (modeInfo) this.deviceInfo = modeInfo
           if (logStatus !== undefined) this.logEnabled = logStatus
+          if (dumpStatus !== undefined) this.dumpEnabled = dumpStatus
         }
       } catch (e) {
-        console.error('Refresh error:', e)
+        console.error('Full refresh error:', e)
       }
     },
     async startService() {
@@ -189,7 +232,7 @@ export default {
         if (window.go && window.go.main && window.go.main.App) {
           await window.go.main.App.StartService()
           this.$emit('service-changed')
-          await this.refresh()
+          await this.fullRefresh()
         }
       } catch (e) { console.error('Start service error:', e) }
     },
@@ -198,7 +241,7 @@ export default {
         if (window.go && window.go.main && window.go.main.App) {
           await window.go.main.App.StopService()
           this.$emit('service-changed')
-          await this.refresh()
+          await this.fullRefresh()
         }
       } catch (e) { console.error('Stop service error:', e) }
     },
@@ -207,7 +250,7 @@ export default {
         if (window.go && window.go.main && window.go.main.App) {
           await window.go.main.App.RestartService()
           this.$emit('service-changed')
-          await this.refresh()
+          await this.fullRefresh()
         }
       } catch (e) { console.error('Restart service error:', e) }
     },
@@ -227,6 +270,24 @@ export default {
         alert('Error: ' + e)
       } finally {
         this.enablingLog = false
+      }
+    },
+    async enableDump() {
+      this.enablingDump = true
+      try {
+        if (window.go && window.go.main && window.go.main.App) {
+          const result = await window.go.main.App.EnableDynamicDump()
+          if (result.success) {
+            this.dumpEnabled = true
+            alert(result.message)
+          } else {
+            alert('Failed to enable dump: ' + result.message)
+          }
+        }
+      } catch (e) {
+        alert('Error: ' + e)
+      } finally {
+        this.enablingDump = false
       }
     },
     async openTestMode() {
@@ -305,6 +366,33 @@ export default {
 }
 
 .btn-enable-log:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-enable-dump {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.btn-enable-dump:hover:not(:disabled) {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.btn-enable-dump:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
