@@ -42,6 +42,10 @@ export function BatchLaunchAutoLaunchItems(arg1) {
   return window['go']['main']['App']['BatchLaunchAutoLaunchItems'](arg1);
 }
 
+export function CaptureSystemEventLog(arg1, arg2) {
+  return window['go']['main']['App']['CaptureSystemEventLog'](arg1, arg2);
+}
+
 export function CheckAllToolkitInstalled() {
   return window['go']['main']['App']['CheckAllToolkitInstalled']();
 }
@@ -76,6 +80,10 @@ export function EnumerateGPUProcesses() {
 
 export function EnumerateGPUs() {
   return window['go']['main']['App']['EnumerateGPUs']();
+}
+
+export function ExportSystemEventLog(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ExportSystemEventLog'](arg1, arg2, arg3);
 }
 
 export function GenerateWMIEventCode(arg1) {

@@ -23,6 +23,8 @@ export function BatchLaunchApps(arg1:Array<string>):Promise<Array<Record<string,
 
 export function BatchLaunchAutoLaunchItems(arg1:Array<string>):Promise<Array<backend.AutoLaunchResult>>;
 
+export function CaptureSystemEventLog(arg1:number,arg2:number):Promise<backend.EventLogSummary>;
+
 export function CheckAllToolkitInstalled():Promise<Array<backend.ToolkitInstallStatus>>;
 
 export function CheckDYTCCapabilities():Promise<Record<string, boolean>>;
@@ -40,6 +42,8 @@ export function EnumerateAllNamespaces():Promise<string>;
 export function EnumerateGPUProcesses():Promise<Array<backend.GPUProcess>>;
 
 export function EnumerateGPUs():Promise<Array<backend.GPUInfo>>;
+
+export function ExportSystemEventLog(arg1:string,arg2:number,arg3:number):Promise<string>;
 
 export function GenerateWMIEventCode(arg1:string):Promise<string>;
 

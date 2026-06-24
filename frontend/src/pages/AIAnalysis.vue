@@ -168,6 +168,122 @@
         </div>
       </div>
 
+      <!-- Capture System Event Log -->
+      <div class="card event-log-card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+            Capture System Event Log
+          </span>
+          <span v-if="eventLogResult" class="capture-badge" style="background: rgba(76,175,80,0.1); color:#4CAF50; border-color:rgba(76,175,80,0.2);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Captured
+          </span>
+        </div>
+        <div class="event-log-body">
+          <p class="event-log-hint">Capture Windows System event log (errors, warnings, crashes) for quick diagnostics — no ETL trace needed.</p>
+          <div class="event-log-controls">
+            <div class="event-log-presets">
+              <button v-for="p in eventLogPresets" :key="p.label"
+                :class="['preset-btn', { active: selectedEventLogPreset === p.label }]"
+                @click="selectedEventLogPreset = p.label">
+                {{ p.label }}
+              </button>
+            </div>
+            <button class="btn-capture-eventlog" @click="captureEventLog" :disabled="capturingEventLog">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: capturingEventLog }">
+                <circle v-if="capturingEventLog" cx="12" cy="12" r="10"/>
+                <path v-if="capturingEventLog" d="M12 6v6l4 2"/>
+                <polyline v-else points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              {{ capturingEventLog ? 'Capturing...' : 'Capture Event Log' }}
+            </button>
+            <button v-if="eventLogResult" class="btn-export-eventlog" @click="exportEventLog">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Event Log Results -->
+        <div v-if="eventLogResult" class="event-log-results">
+          <!-- Summary Bar -->
+          <div class="event-log-summary">
+            <div class="event-stat critical">
+              <span class="stat-count">{{ eventLogResult.criticalCount }}</span>
+              <span class="stat-label">Critical</span>
+            </div>
+            <div class="event-stat error">
+              <span class="stat-count">{{ eventLogResult.errorCount }}</span>
+              <span class="stat-label">Errors</span>
+            </div>
+            <div class="event-stat warning">
+              <span class="stat-count">{{ eventLogResult.warningCount }}</span>
+              <span class="stat-label">Warnings</span>
+            </div>
+            <div class="event-stat info">
+              <span class="stat-count">{{ eventLogResult.infoCount }}</span>
+              <span class="stat-label">Info</span>
+            </div>
+            <div class="event-stat total">
+              <span class="stat-count">{{ eventLogResult.totalEvents }}</span>
+              <span class="stat-label">{{ eventLogResult.timeRange }}</span>
+            </div>
+          </div>
+
+          <!-- Error Events Table -->
+          <div v-if="eventLogResult.recentErrors && eventLogResult.recentErrors.length" class="event-error-table">
+            <div class="table-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F44336" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Recent Critical / Errors
+            </div>
+            <div class="table-scroll">
+              <table class="event-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Level</th>
+                    <th>Source</th>
+                    <th>ID</th>
+                    <th>Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(ev, i) in eventLogResult.recentErrors" :key="i">
+                    <td class="cell-time">{{ formatEventTime(ev.time) }}</td>
+                    <td><span :class="'level-badge level-' + ev.level.toLowerCase()">{{ ev.level }}</span></td>
+                    <td class="cell-source">{{ ev.providerName }}</td>
+                    <td class="cell-id">{{ ev.eventId }}</td>
+                    <td class="cell-msg">{{ ev.message }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Top Providers -->
+          <div v-if="eventLogResult.topProviders && eventLogResult.topProviders.length" class="event-providers">
+            <div class="table-title">Top Event Sources</div>
+            <div class="provider-list">
+              <div v-for="(p, i) in eventLogResult.topProviders" :key="i" class="provider-row">
+                <span class="provider-name">{{ p.name }}</span>
+                <span class="provider-count">{{ p.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Analysis Results -->
       <div v-if="analysisResult" class="analysis-results">
 
@@ -793,6 +909,17 @@ export default {
       rawLog: '',
       tailLines: 200,
       analyzing: false,
+      // Event Log
+      eventLogPresets: [
+        { label: 'Last 1h', hours: 1, maxEvents: 200 },
+        { label: 'Last 6h', hours: 6, maxEvents: 500 },
+        { label: 'Last 24h', hours: 24, maxEvents: 1000 },
+        { label: 'Last 500', hours: 0, maxEvents: 500 },
+        { label: 'Last 1000', hours: 0, maxEvents: 1000 },
+      ],
+      selectedEventLogPreset: 'Last 24h',
+      capturingEventLog: false,
+      eventLogResult: null,
       // Toolkit
       toolkitTools: [],
       toolkitInstallDir: 'C:\\LenovoDispatcherToolkit\\Tools',
@@ -908,6 +1035,40 @@ export default {
           await window.go.main.App.OpenETLInWPA(this.analysisResult.traceInfo.path)
         }
       } catch (e) { console.error(e) }
+    },
+    // ============ System Event Log ============
+    async captureEventLog() {
+      this.capturingEventLog = true
+      this.eventLogResult = null
+      try {
+        const preset = this.eventLogPresets.find(p => p.label === this.selectedEventLogPreset)
+        if (!preset) return
+        if (window.go?.main?.App) {
+          this.eventLogResult = await window.go.main.App.CaptureSystemEventLog(preset.hours, preset.maxEvents)
+        }
+      } catch (e) {
+        console.error(e)
+        this.eventLogResult = { error: e.message || String(e), totalEvents: 0, recentErrors: [] }
+      } finally {
+        this.capturingEventLog = false
+      }
+    },
+    async exportEventLog() {
+      try {
+        const preset = this.eventLogPresets.find(p => p.label === this.selectedEventLogPreset)
+        if (!preset) return
+        if (window.go?.main?.App) {
+          await window.go.main.App.ExportSystemEventLog('', preset.hours, preset.maxEvents)
+          // Open folder after export
+          await OpenFolder('C:\\Users\\Public\\ETL_Traces')
+        }
+      } catch (e) { console.error(e) }
+    },
+    formatEventTime(ts) {
+      if (!ts) return ''
+      // Handle various timestamp formats
+      const m = ts.match(/(\d{4}-\d{2}-\d{2}\s?T?\d{2}:\d{2}:\d{2})/)
+      return m ? m[1].replace('T', ' ') : ts.substring(0, 19)
     },
     async loadLogs() {
       try {
@@ -1191,6 +1352,95 @@ export default {
   word-break: break-all;
   flex: 1;
 }
+
+/* ===== System Event Log ===== */
+.event-log-card { border: 1px dashed rgba(76,175,80,0.3); }
+.event-log-body { padding: 16px 20px; }
+.event-log-hint { margin: 0 0 12px 0; font-size: 12px; color: var(--text-tertiary); }
+.event-log-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.event-log-presets { display: flex; gap: 4px; }
+.preset-btn {
+  padding: 4px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: 5px; color: var(--text-secondary); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: var(--transition); font-family: inherit;
+}
+.preset-btn.active { background: var(--lenovo-red); border-color: var(--lenovo-red); color: white; }
+.preset-btn:hover:not(.active) { border-color: var(--lenovo-red); }
+.btn-capture-eventlog {
+  padding: 8px 16px; border-radius: 8px; color: white; font-size: 13px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); font-family: inherit;
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  border: none;
+}
+.btn-capture-eventlog:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-capture-eventlog:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-export-eventlog {
+  padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 8px;
+  background: var(--bg-tertiary); color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); font-family: inherit;
+}
+.btn-export-eventlog:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--border-light); }
+
+.event-log-results { padding: 0 20px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.event-log-summary {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.event-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 16px; border-radius: 8px; min-width: 80px;
+}
+.event-stat.critical { background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.2); }
+.event-stat.error { background: rgba(255,152,0,0.08); border: 1px solid rgba(255,152,0,0.2); }
+.event-stat.warning { background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.2); }
+.event-stat.info { background: rgba(33,150,243,0.08); border: 1px solid rgba(33,150,243,0.2); }
+.event-stat.total { background: var(--bg-tertiary); border: 1px solid var(--border-color); }
+.stat-count { font-size: 22px; font-weight: 700; font-family: 'Consolas','Monaco',monospace; color: var(--text-primary); }
+.event-stat.critical .stat-count { color: #F44336; }
+.event-stat.error .stat-count { color: #FF9800; }
+.event-stat.warning .stat-count { color: #FFC107; }
+.event-stat.info .stat-count { color: #2196F3; }
+.stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); }
+
+.event-error-table { }
+.table-title {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+  color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.table-scroll { max-height: 300px; overflow-y: auto; border-radius: 6px; border: 1px solid var(--border-color); }
+.event-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.event-table th {
+  position: sticky; top: 0; background: var(--bg-tertiary);
+  padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+.event-table td { padding: 5px 8px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+.event-table tr:last-child td { border-bottom: none; }
+.event-table tr:hover td { background: var(--bg-card-hover); }
+.cell-time { white-space: nowrap; font-family: 'Consolas','Monaco',monospace; font-size: 10px; color: var(--text-tertiary); }
+.cell-source { font-family: 'Consolas','Monaco',monospace; font-size: 11px; color: var(--text-primary); white-space: nowrap; }
+.cell-id { font-family: 'Consolas','Monaco',monospace; font-size: 11px; color: var(--lenovo-red); font-weight: 600; text-align: center; }
+.cell-msg { font-size: 11px; color: var(--text-secondary); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.level-badge {
+  padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; white-space: nowrap;
+}
+.level-critical, .level-严重 { background: rgba(244,67,54,0.15); color: #F44336; }
+.level-error, .level-错误 { background: rgba(255,152,0,0.15); color: #FF9800; }
+.level-warning, .level-警告 { background: rgba(255,193,7,0.12); color: #FFC107; }
+.level-information, .level-信息, .level-verbose { background: rgba(33,150,243,0.1); color: #2196F3; }
+
+.event-providers { }
+.provider-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.provider-row {
+  display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: 5px; font-size: 11px;
+}
+.provider-name { color: var(--text-primary); font-family: 'Consolas','Monaco',monospace; }
+.provider-count { color: var(--lenovo-red); font-weight: 700; }
 
 /* ===== Progress Steps ===== */
 .step-list { display: flex; flex-direction: column; gap: 6px; }

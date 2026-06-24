@@ -989,3 +989,15 @@ func (a *App) TestModeSwitch() map[string]interface{} {
 	return backend.TestModeSwitch()
 }
 
+// ============ System Event Log ============
+
+// CaptureSystemEventLog captures System event log entries
+func (a *App) CaptureSystemEventLog(hoursBack int, maxEvents int) backend.EventLogSummary {
+	return backend.CaptureSystemEventLog(hoursBack, maxEvents)
+}
+
+// ExportSystemEventLog exports System event log to CSV
+func (a *App) ExportSystemEventLog(outputPath string, hoursBack int, maxEvents int) string {
+	return backend.ExportSystemEventLog(outputPath, hoursBack, maxEvents)
+}
+
