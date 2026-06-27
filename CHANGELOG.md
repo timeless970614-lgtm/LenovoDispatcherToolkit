@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.0.25 (2026-06-27)
+
+### New Features
+- **Performance Analysis Knowledge Base**: Expanded ETL Trace knowledge base from 8 to 14 sections based on WinHEC 2026 Lab Guide
+  - WAT (Windows Assessment Toolkit) — WAT vs WPR selection, WAC workflow
+  - CPA Drill-Down Views — 4 bottleneck types × corresponding WPA views (Browse Wait Chain, Interference CPU, Disk IO DrillDown, Disk Interference)
+  - CPU Starvation vs Preemption — root cause distinction and remediation direction
+  - ETW MCP AI-Assisted Analysis — GitHub Copilot CLI complete workflow
+  - Energy Saver A/B Comparison — CPU frequency/utilization/critical-path quantified impact table
+  - Troubleshooting — 8 common WPA/ETW MCP issues with solutions
+
+## v1.0.24 (2026-06-27)
+
+### Improvements
+- **Test Function**: Added 5-second idle between app launches in BenchmarkLaunchSpeed() to let each app settle before the next — 15 apps × 5s = ~75s total
+- **Test Function**: Fixed user path in GetCommonAppsList() (`3-64` → `Zhou`) for VSCode detection
+
+## v1.0.23 (2026-06-27)
+
+### Performance
+- **AIAnalysis.vue Split**: 2236 lines → 120 lines (↓95%), split into 4 sub-components (ETLTrace, SALog, LogAnalysis, ToolkitTab) with `v-if` on-demand rendering
+- **ai_agent.go Batch PS**: Merged 12 independent PowerShell processes into 1 batch call + 1 powercfg — ~3s → ~350ms
+
+### Bug Fixes
+- **Error Handling**: Fixed 30+ high-risk ignored errors across 7 backend files (etl_analyzer.go, nvidia_api.go, scripts.go, registrywatcher.go, syspower.go, event_log.go)
+- **dynamicnpu.go**: 6 `syscall.Syscall` calls now capture errno instead of discarding (`ret, _, _` → `ret, _, errno`)
+
+### Infrastructure
+- **Repository Migrated**: github.com/timeless970614-lgtm/LenovoDispatcherToolkit → github.com/timeless970614-lgtm/LenovoToolkit
+- **.gitignore**: Added `*.bak`, `test_*.ps1`
+
 ## v1.0.22 (2026-06-24)
 
 ### New Features
