@@ -386,6 +386,201 @@
       </svg>
       <span>Parsing ETL trace with tracerpt...</span>
     </div>
+
+    <!-- Performance Analysis Knowledge Base -->
+    <div class="card kb-card">
+      <div class="card-header kb-main-header" @click="showKnowledgeBase = !showKnowledgeBase">
+        <span class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          📖 Performance Analysis Knowledge Base
+        </span>
+        <svg :class="['kb-chevron', { expanded: showKnowledgeBase }]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+
+      <div v-if="showKnowledgeBase" class="kb-body">
+
+        <!-- Section 1: ETW Fundamentals -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('etw')">
+            <span class="kb-section-title">1. ETW Fundamentals</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.etw }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.etw" class="kb-section-body">
+            <p class="kb-text"><strong>What is ETW?</strong> Event Tracing for Windows — kernel-level tracing infrastructure. Providers emit events → WPR records to .etl → WPA visualizes.</p>
+            <table class="kb-table">
+              <thead>
+                <tr><th>Term</th><th>Meaning</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Provider</strong></td><td>Component that emits events (kernel scheduler, driver, app)</td></tr>
+                <tr><td><strong>ETL Trace</strong></td><td>Binary file (.etl) containing recorded events</td></tr>
+                <tr><td><strong>Region of Interest</strong></td><td>Labeled time interval (e.g., "Boot Main Path", "App Launch")</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 2: Thread States -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('threadStates')">
+            <span class="kb-section-title">2. Thread States</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.threadStates }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.threadStates" class="kb-section-body">
+            <p class="kb-text">Three key states for Critical Path Analysis:</p>
+            <table class="kb-table">
+              <thead>
+                <tr><th>State</th><th>Meaning</th><th>Performance Implication</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Running</strong></td><td>Executing on CPU</td><td>Direct compute cost</td></tr>
+                <tr><td><strong>Ready</strong></td><td>Runnable but waiting for CPU</td><td>CPU contention — other threads blocking</td></tr>
+                <tr><td><strong>Waiting</strong></td><td>Blocked on I/O, lock, timer, or another thread</td><td>Dependency — must wait for something to complete</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 3: Critical Path Analysis -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('cpa')">
+            <span class="kb-section-title">3. Critical Path Analysis (CPA)</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.cpa }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.cpa" class="kb-section-body">
+            <p class="kb-text"><strong>Definition:</strong> The longest sequential chain through an activity — operations that directly determine total duration.</p>
+            <p class="kb-text"><strong>Analysis Process:</strong></p>
+            <ol class="kb-list">
+              <li>Identify the activity — find start/end timestamps and completing thread</li>
+              <li>Work backwards — classify time as Running, Ready, or Waiting</li>
+              <li>Follow the wait chain — find the readying thread for each wait</li>
+              <li>Repeat until full duration is accounted for</li>
+            </ol>
+            <div class="kb-insight">
+              <strong>Key Insight:</strong> Reducing any operation on the critical path reduces total duration. Optimizing non-critical-path operations has no effect.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Wait Causes -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('waitCauses')">
+            <span class="kb-section-title">4. Wait Causes</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.waitCauses }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.waitCauses" class="kb-section-body">
+            <table class="kb-table">
+              <thead>
+                <tr><th>Wait Cause</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>CPU Activity</strong></td><td>Thread is running direct compute on the critical path</td></tr>
+                <tr><td><strong>General CPU Starvation</strong></td><td>Thread ready but no CPU core available</td></tr>
+                <tr><td><strong>Preemption</strong></td><td>Higher-priority thread took the core</td></tr>
+                <tr><td><strong>Disk Activity</strong></td><td>Waiting for disk I/O to complete</td></tr>
+                <tr><td><strong>Network Activity</strong></td><td>Waiting to receive network packet</td></tr>
+                <tr><td><strong>NPU Activity</strong></td><td>Waiting for NPU work completion</td></tr>
+                <tr><td><strong>Timer Activity</strong></td><td>Called timed wait (e.g., Sleep)</td></tr>
+                <tr><td><strong>DPC Activity</strong></td><td>Waiting on Deferred Procedure Call</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 5: WPA Workflow -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('wpaWorkflow')">
+            <span class="kb-section-title">5. WPA Workflow</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.wpaWorkflow }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.wpaWorkflow" class="kb-section-body">
+            <ol class="kb-list">
+              <li>Open ETL trace in WPA</li>
+              <li>Apply .wpaProfile (Profiles → Apply → Browse)</li>
+              <li>Configure symbol paths (Trace → Configure Symbol Paths → SymCache)</li>
+              <li>Load symbols (Trace → Load Symbols)</li>
+              <li>Find Regions of Interest → zoom to activity region</li>
+              <li>Right-click region → Critical Path Analysis (CPA)</li>
+              <li>Read Wait Cause View (sorted by Sum:Duration descending)</li>
+              <li>Drill into bottleneck: Browse Wait Chain / Interference CPU / Disk IO DrillDown</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Section 6: CPU Usage (Precise) -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('cpuPrecise')">
+            <span class="kb-section-title">6. CPU Usage (Precise) — Key Columns</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.cpuPrecise }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.cpuPrecise" class="kb-section-body">
+            <table class="kb-table">
+              <thead>
+                <tr><th>Column</th><th>What it tells you</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>NewProcess / NewThreadId</strong></td><td>Thread switched in</td></tr>
+                <tr><td><strong>CPU Usage (ms)</strong></td><td>How long thread ran</td></tr>
+                <tr><td><strong>Waits (ms)</strong></td><td>Time in Waiting state</td></tr>
+                <tr><td><strong>Ready (ms)</strong></td><td>Time in Ready queue (CPU contention)</td></tr>
+                <tr><td><strong>ReadyingProcess / ReadyingThreadId</strong></td><td>Thread that unblocked it — next link in critical path</td></tr>
+                <tr><td><strong>NewThreadStack</strong></td><td>Call stack when switched in</td></tr>
+                <tr><td><strong>ReadyThreadStack</strong></td><td>Call stack of readying thread</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 7: Sync vs Async Waits -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('syncAsync')">
+            <span class="kb-section-title">7. Synchronous vs Asynchronous Waits</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.syncAsync }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.syncAsync" class="kb-section-body">
+            <p class="kb-text"><strong>Synchronous (Wait):</strong> Thread yields CPU and blocks until result ready. Thread 1 calls Thread 2 and blocks; Thread 2 readies Thread 1 when done.</p>
+            <p class="kb-text"><strong>Asynchronous (Wait[Work Item]):</strong> Thread enqueues task and continues. Readying event comes from different thread that picked up work item. Common in async/await patterns — wait chain may jump between processes.</p>
+          </div>
+        </div>
+
+        <!-- Section 8: A/B Comparison -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('abComparison')">
+            <span class="kb-section-title">8. A/B Comparison Methodology</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.abComparison }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.abComparison" class="kb-section-body">
+            <ul class="kb-list">
+              <li>Same scenario, one variable changed (e.g., Energy Saver On vs Off)</li>
+              <li>Compare: total duration, CPU frequency, CPU utilization, critical-path wait causes</li>
+              <li>Energy Saver reduces CPU frequency → CPU-bound work takes longer → longer end-to-end time</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
 </template>
 
@@ -414,6 +609,17 @@ export default {
       isElevated: false,
       loadedETLPath: '',
       loadingETL: false,
+      showKnowledgeBase: false,
+      kbSections: {
+        etw: false,
+        threadStates: false,
+        cpa: false,
+        waitCauses: false,
+        wpaWorkflow: false,
+        cpuPrecise: false,
+        syncAsync: false,
+        abComparison: false,
+      },
     }
   },
   async mounted() {
@@ -528,6 +734,9 @@ export default {
     truncatePath(path) {
       if (!path) return ''
       return path.length <= 65 ? path : '...' + path.slice(-62)
+    },
+    toggleKbSection(key) {
+      this.kbSections[key] = !this.kbSections[key]
     },
   },
 }
@@ -727,4 +936,104 @@ export default {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 0.8s linear infinite; }
+
+/* Knowledge Base Card */
+.kb-card { border: 1px solid var(--border-color); }
+.kb-main-header { cursor: pointer; user-select: none; }
+.kb-main-header:hover { background: var(--bg-card-hover); }
+.kb-chevron { transition: transform 0.2s ease; flex-shrink: 0; }
+.kb-chevron.expanded { transform: rotate(180deg); }
+.kb-chevron-sm { transition: transform 0.2s ease; flex-shrink: 0; }
+.kb-chevron-sm.expanded { transform: rotate(180deg); }
+
+.kb-body {
+  padding: 12px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kb-section {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.kb-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+.kb-section-header:hover { background: var(--bg-card-hover); }
+
+.kb-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lenovo-red);
+}
+
+.kb-section-body {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.kb-text {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.kb-text:last-child { margin-bottom: 0; }
+
+.kb-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.kb-list li { margin-bottom: 3px; }
+
+.kb-insight {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(230,63,50,0.06);
+  border: 1px solid rgba(230,63,50,0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.kb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.kb-table th {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.kb-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  vertical-align: top;
+}
+.kb-table tbody tr:last-child td { border-bottom: none; }
+.kb-table tbody tr:hover { background: var(--bg-card-hover); }
 </style>
