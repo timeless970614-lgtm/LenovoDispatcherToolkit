@@ -216,7 +216,11 @@ func truncateStr(s string, maxLen int) string {
 func tryWevtUtilFallback(hoursBack int, maxEvents int, summary EventLogSummary) EventLogSummary {
 	// Get total count
 	countCmd := exec.Command("wevtutil", "qe", "System", "/c:1", "/rd:true", "/f:text")
-	countOut, _ := countCmd.CombinedOutput()
+	countOut, err := countCmd.CombinedOutput()
+
+	if err != nil {
+		// Count query failed, keep countOut nil
+	}
 
 	reCount := regexp.MustCompile(`Event\[(\d+)\]`)
 	if matches := reCount.FindStringSubmatch(string(countOut)); len(matches) > 1 {
@@ -267,10 +271,22 @@ func enrichWithWevtUtil(summary *EventLogSummary) {
 	re := regexp.MustCompile(`Critical:(\d+) Error:(\d+) Warning:(\d+) Info:(\d+)`)
 	matches := re.FindStringSubmatch(string(out))
 	if len(matches) == 5 {
-		c, _ := strconv.Atoi(matches[1])
-		e, _ := strconv.Atoi(matches[2])
-		w, _ := strconv.Atoi(matches[3])
-		inf, _ := strconv.Atoi(matches[4])
+		c, err := strconv.Atoi(matches[1])
+		if err != nil {
+			c = 0
+		}
+		e, err := strconv.Atoi(matches[2])
+		if err != nil {
+			e = 0
+		}
+		w, err := strconv.Atoi(matches[3])
+		if err != nil {
+			w = 0
+		}
+		inf, err := strconv.Atoi(matches[4])
+		if err != nil {
+			inf = 0
+		}
 		summary.CriticalCount = c
 		summary.ErrorCount = e
 		summary.WarningCount = w

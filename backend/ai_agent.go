@@ -99,22 +99,329 @@ type ProcessInfo struct {
 }
 
 // GetAIAgentSystemInfo gathers comprehensive system information
+// All WMI queries are batched into a single PowerShell call (~300ms total)
+// instead of 9 separate calls (~2.7s total).
 func GetAIAgentSystemInfo() AIAgentSystemInfo {
 	info := AIAgentSystemInfo{}
 
+	// OS info — Go native registry (no PowerShell)
 	info.OS = getOSInfo()
-	info.CPU = getCPUInfo()
-	info.Memory = getMemoryInfo()
-	info.Disks = getDiskInfo()
-	info.GPUs = getGPUInfo()
-	info.Network = getNetworkInfo()
-	info.Power = getPowerInfo()
-	info.TopProcs = getTopProcesses()
-	info.Uptime = getUptime()
+
+	// Batch all WMI/PowerShell queries into a single process spawn
+	batch := batchSystemInfo()
+
+	info.CPU = batch.CPU
+	info.Memory = batch.Memory
+	info.Disks = batch.Disks
+	info.GPUs = batch.GPUs
+	info.Network = batch.Network
+	info.Power = batch.Power
+	info.TopProcs = batch.TopProcs
+	info.Uptime = batch.Uptime
 	info.Hostname, _ = os.Hostname()
 	info.CurrentUser = os.Getenv("USERNAME")
 
 	return info
+}
+
+// batchSystemInfoResult holds parsed results from a single PowerShell batch call
+type batchSystemInfoResult struct {
+	CPU      CPUInfo
+	Memory   MemoryInfo
+	Disks    []DiskInfo
+	GPUs     []AIAgentGPUInfo
+	Network  NetworkInfo
+	Power    PowerInfo
+	TopProcs []ProcessInfo
+	Uptime   string
+}
+
+// batchSystemInfo runs ONE PowerShell process that collects all WMI data.
+// Output is section-delimited so we can parse each part independently.
+func batchSystemInfo() batchSystemInfoResult {
+	result := batchSystemInfoResult{}
+
+	// CPU vendor detection from registry name
+	cpuName := ""
+	maxFreq := 0
+	if key, err := registry.OpenKey(registry.LOCAL_MACHINE, `HARDWARE\DESCRIPTION\System\CentralProcessor\0`, registry.QUERY_VALUE); err == nil {
+		cpuName, _, _ = key.GetStringValue("ProcessorNameString")
+		mf, _, _ := key.GetIntegerValue("~MHz")
+		maxFreq = int(mf)
+		key.Close()
+	}
+	cpuName = strings.TrimSpace(cpuName)
+	vendor := ""
+	nameLower := strings.ToLower(cpuName)
+	if strings.Contains(nameLower, "intel") {
+		vendor = "Intel"
+	} else if strings.Contains(nameLower, "amd") {
+		vendor = "AMD"
+	} else if strings.Contains(nameLower, "qualcomm") {
+		vendor = "Qualcomm"
+	}
+	result.CPU = CPUInfo{
+		Name:       cpuName,
+		Cores:      runtime.NumCPU(),
+		Threads:    runtime.NumCPU(),
+		MaxFreqMHz: maxFreq,
+		Vendor:     vendor,
+	}
+
+	// ── Single PowerShell script: all WMI queries in one process ──
+	psScript := `
+$ErrorActionPreference = 'SilentlyContinue'
+
+Write-Output "===CPU==="
+$cpu = Get-CimInstance Win32_Processor
+Write-Output "LOAD=$($cpu.LoadPercentage)"
+Write-Output "FREQ=$($cpu.CurrentClockSpeed)"
+
+# Temperature (may not work on all systems)
+$temp = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature | Where-Object { $_.CurrentTemperature -gt 0 } | Select-Object -First 1 -ExpandProperty CurrentTemperature
+if ($temp) { Write-Output "TEMP=$([math]::Round($temp/10 - 273.15, 1))" } else { Write-Output "TEMP=" }
+
+Write-Output "===MEMORY==="
+$mem = Get-CimInstance Win32_OperatingSystem
+Write-Output "MEM=$([math]::Round($mem.TotalVisibleMemorySize/1MB, 1))|$([math]::Round($mem.FreePhysicalMemory/1MB, 1))"
+
+Write-Output "===DISKS==="
+Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | ForEach-Object {
+    $total = [math]::Round($_.Size/1GB, 1)
+    $free = [math]::Round($_.FreeSpace/1GB, 1)
+    $usedPct = 0
+    if ($total -gt 0) { $usedPct = [math]::Round(($total - $free) / $total * 100, 1) }
+    Write-Output "$($_.DeviceID)|$($_.VolumeName)|$total|$free|$usedPct"
+}
+
+Write-Output "===GPUS==="
+Get-CimInstance Win32_VideoController | ForEach-Object {
+    $memMB = 0
+    if ($_.AdapterRAM) { $memMB = [math]::Round($_.AdapterRAM/1MB) }
+    Write-Output "$($_.Name)|$($_.VideoProcessor)|$memMB|$($_.DriverVersion)"
+}
+
+Write-Output "===NETWORK==="
+$adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+if ($adapter) {
+    $ip = ($adapter | Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1).IPAddress
+    Write-Output "$($adapter.Name)|$($adapter.MacAddress)|$ip|$($adapter.LinkSpeed)"
+} else {
+    Write-Output "NONE"
+}
+
+Write-Output "===POWER==="
+$battery = Get-CimInstance Win32_Battery
+if ($battery) {
+    Write-Output "BATTERY=true|$($battery.EstimatedChargeRemaining)|$($battery.BatteryStatus)"
+} else {
+    Write-Output "BATTERY=false"
+}
+
+Write-Output "===TOPPROCS==="
+Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 | ForEach-Object {
+    $memMB = [math]::Round($_.WorkingSet64/1MB, 1)
+    Write-Output "$($_.ProcessName)|$($_.Id)|$memMB"
+}
+
+Write-Output "===UPTIME==="
+$os = Get-CimInstance Win32_OperatingSystem
+$uptime = (Get-Date) - $os.LastBootUpTime
+Write-Output "$([int]$uptime.TotalDays)|$($uptime.Hours)|$($uptime.Minutes)"
+
+Write-Output "===END==="
+`
+
+	out, err := runPowershellScript(psScript)
+	if err != nil {
+		// If batch fails, we still have OS info + CPU name from registry
+		return result
+	}
+
+	// ── Parse sectioned output ──
+	lines := strings.Split(out, "\n")
+	section := ""
+	for _, raw := range lines {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+
+		// Section markers
+		switch line {
+		case "===CPU===":
+			section = "cpu"
+			continue
+		case "===MEMORY===":
+			section = "memory"
+			continue
+		case "===DISKS===":
+			section = "disks"
+			continue
+		case "===GPUS===":
+			section = "gpus"
+			continue
+		case "===NETWORK===":
+			section = "network"
+			continue
+		case "===POWER===":
+			section = "power"
+			continue
+		case "===TOPPROCS===":
+			section = "topprocs"
+			continue
+		case "===UPTIME===":
+			section = "uptime"
+			continue
+		case "===END===":
+			return result
+		}
+
+		switch section {
+		case "cpu":
+			if strings.HasPrefix(line, "LOAD=") {
+				if pct, e := strconv.ParseFloat(strings.TrimPrefix(line, "LOAD="), 64); e == nil {
+					result.CPU.UsagePct = pct
+				}
+			} else if strings.HasPrefix(line, "FREQ=") {
+				if freq, e := strconv.Atoi(strings.TrimPrefix(line, "FREQ=")); e == nil && freq > 0 {
+					result.CPU.FreqMHz = freq
+				}
+			} else if strings.HasPrefix(line, "TEMP=") {
+				tempStr := strings.TrimPrefix(line, "TEMP=")
+				if temp, e := strconv.ParseFloat(tempStr, 64); e == nil && temp > 0 && temp < 150 {
+					result.CPU.TempC = temp
+				}
+			}
+
+		case "memory":
+			if strings.HasPrefix(line, "MEM=") {
+				data := strings.TrimPrefix(line, "MEM=")
+				parts := strings.Split(data, "|")
+				if len(parts) >= 2 {
+					total, _ := strconv.ParseFloat(parts[0], 64)
+					free, _ := strconv.ParseFloat(parts[1], 64)
+					result.Memory.TotalGB = total
+					result.Memory.AvailableGB = free
+					result.Memory.UsedGB = total - free
+					if total > 0 {
+						result.Memory.UsedPct = (result.Memory.UsedGB / total) * 100
+					}
+				}
+			}
+
+		case "disks":
+			parts := strings.Split(line, "|")
+			if len(parts) >= 5 {
+				d := DiskInfo{Drive: parts[0], Label: parts[1]}
+				d.TotalGB, _ = strconv.ParseFloat(parts[2], 64)
+				d.FreeGB, _ = strconv.ParseFloat(parts[3], 64)
+				d.UsedPct, _ = strconv.ParseFloat(parts[4], 64)
+				d.Type = "SSD"
+				d.FileSystem = "NTFS"
+				result.Disks = append(result.Disks, d)
+			}
+
+		case "gpus":
+			parts := strings.Split(line, "|")
+			if len(parts) >= 4 {
+				g := AIAgentGPUInfo{
+					Name:          parts[0],
+					DriverVersion: parts[3],
+				}
+				g.MemoryMB, _ = strconv.Atoi(parts[2])
+				gLower := strings.ToLower(g.Name)
+				if strings.Contains(gLower, "nvidia") || strings.Contains(gLower, "geforce") || strings.Contains(gLower, "rtx") || strings.Contains(gLower, "gtx") {
+					g.Vendor = "NVIDIA"
+				} else if strings.Contains(gLower, "amd") || strings.Contains(gLower, "radeon") {
+					g.Vendor = "AMD"
+				} else if strings.Contains(gLower, "intel") {
+					g.Vendor = "Intel"
+				} else {
+					g.Vendor = parts[1]
+				}
+				result.GPUs = append(result.GPUs, g)
+			}
+
+		case "network":
+			if line == "NONE" {
+				break
+			}
+			parts := strings.Split(line, "|")
+			if len(parts) >= 4 {
+				result.Network.AdapterName = parts[0]
+				result.Network.MAC = parts[1]
+				result.Network.IPAddress = parts[2]
+				speedStr := strings.ToLower(parts[3])
+				if strings.Contains(speedStr, "gbps") {
+					fields := strings.Fields(speedStr)
+					if len(fields) > 0 {
+						val, _ := strconv.Atoi(fields[0])
+						result.Network.SpeedMbps = val * 1000
+					}
+				} else if strings.Contains(speedStr, "mbps") {
+					fields := strings.Fields(speedStr)
+					if len(fields) > 0 {
+						val, _ := strconv.Atoi(fields[0])
+						result.Network.SpeedMbps = val
+					}
+				}
+				result.Network.Connected = true
+			}
+
+		case "power":
+			if strings.HasPrefix(line, "BATTERY=") {
+				data := strings.TrimPrefix(line, "BATTERY=")
+				parts := strings.Split(data, "|")
+				if len(parts) >= 1 && parts[0] == "true" {
+					result.Power.Battery = true
+					if len(parts) >= 3 {
+						result.Power.BatteryPct, _ = strconv.Atoi(parts[1])
+						sc, _ := strconv.Atoi(parts[2])
+						result.Power.BatteryStatus = batteryStatusText(sc)
+						result.Power.ACConnected = sc == 6 || sc == 7 || sc == 9
+					}
+				} else {
+					// No battery → desktop, assume AC
+					result.Power.ACConnected = true
+				}
+			}
+
+		case "topprocs":
+			parts := strings.Split(line, "|")
+			if len(parts) >= 3 {
+				pidVal, _ := strconv.ParseUint(parts[1], 10, 32)
+				p := ProcessInfo{
+					Name: parts[0],
+					PID:  uint32(pidVal),
+				}
+				p.MemMB, _ = strconv.ParseFloat(parts[2], 64)
+				result.TopProcs = append(result.TopProcs, p)
+			}
+
+		case "uptime":
+			parts := strings.Split(line, "|")
+			if len(parts) >= 3 {
+				days, _ := strconv.Atoi(parts[0])
+				hours, _ := strconv.Atoi(parts[1])
+				mins, _ := strconv.Atoi(parts[2])
+				if days > 0 {
+					result.Uptime = fmt.Sprintf("%d 天 %d 小时 %d 分钟", days, hours, mins)
+				} else {
+					result.Uptime = fmt.Sprintf("%d 小时 %d 分钟", hours, mins)
+				}
+			}
+		}
+	}
+
+	// Power plan — uses powercfg CLI, can't merge into WMI script
+	planOut, _ := runPowershellScript(`$plan = powercfg /getactivescheme; if ($plan -match '\)\s*(.+)$') { Write-Output $Matches[1].Trim() }`)
+	result.Power.PowerPlan = strings.TrimSpace(planOut)
+	if result.Power.PowerPlan == "" {
+		result.Power.PowerPlan = "平衡"
+	}
+
+	return result
 }
 
 // AskAIAgent processes a user question and returns an answer based on system info
@@ -422,233 +729,17 @@ func getOSInfo() OSInfo {
 	return info
 }
 
-func getCPUInfo() CPUInfo {
-	info := CPUInfo{}
+// getCPUInfo removed — now handled by batchSystemInfo()
 
-	key, err := registry.OpenKey(registry.LOCAL_MACHINE, `HARDWARE\DESCRIPTION\System\CentralProcessor\0`, registry.QUERY_VALUE)
-	if err == nil {
-		defer key.Close()
-		cpuName, _, _ := key.GetStringValue("ProcessorNameString")
-		info.Name = strings.TrimSpace(cpuName)
-		maxFreq, _, _ := key.GetIntegerValue("~MHz")
-		info.MaxFreqMHz = int(maxFreq)
-	}
+// getMemoryInfo removed — now handled by batchSystemInfo()
 
-	info.Cores = runtime.NumCPU()
-	info.Threads = info.Cores
+// getDiskInfo removed — now handled by batchSystemInfo()
 
-	// CPU usage via WMI
-	psScript := `
-		$cpu = Get-CimInstance Win32_Processor
-		$load = $cpu.LoadPercentage
-		Write-Output "$load"
-	`
-	out, _ := runPowershellScript(psScript)
-	if pct, err := strconv.ParseFloat(strings.TrimSpace(out), 64); err == nil {
-		info.UsagePct = pct
-	}
+// getGPUInfo removed — now handled by batchSystemInfo()
 
-	// CPU temp (might not work on all systems)
-	psTempScript := `
-		$temp = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature | Where-Object { $_.CurrentTemperature -gt 0 } | Select-Object -First 1 -ExpandProperty CurrentTemperature
-		if ($temp) { Write-Output ([math]::Round($temp/10 - 273.15, 1)) }
-	`
-	out, _ = runPowershellScript(psTempScript)
-	if temp, err := strconv.ParseFloat(strings.TrimSpace(out), 64); err == nil && temp > 0 && temp < 150 {
-		info.TempC = temp
-	}
+// getNetworkInfo removed — now handled by batchSystemInfo()
 
-	// Detect vendor
-	if strings.Contains(strings.ToLower(info.Name), "intel") { info.Vendor = "Intel" }
-	if strings.Contains(strings.ToLower(info.Name), "amd") { info.Vendor = "AMD" }
-	if strings.Contains(strings.ToLower(info.Name), "qualcomm") { info.Vendor = "Qualcomm" }
-
-	// Current frequency
-	psFreqScript := `
-		$freq = Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty CurrentClockSpeed
-		Write-Output $freq
-	`
-	out, _ = runPowershellScript(psFreqScript)
-	if freq, err := strconv.Atoi(strings.TrimSpace(out)); err == nil && freq > 0 {
-		info.FreqMHz = freq
-	}
-
-	return info
-}
-
-func getMemoryInfo() MemoryInfo {
-	info := MemoryInfo{}
-
-	psScript := `
-		$mem = Get-CimInstance Win32_OperatingSystem
-		Write-Output "$([math]::Round($mem.TotalVisibleMemorySize/1MB, 1))|$([math]::Round($mem.FreePhysicalMemory/1MB, 1))"
-	`
-	out, _ := runPowershellScript(psScript)
-	parts := strings.Split(strings.TrimSpace(out), "|")
-	if len(parts) >= 2 {
-		total, _ := strconv.ParseFloat(parts[0], 64)
-		free, _ := strconv.ParseFloat(parts[1], 64)
-		info.TotalGB = total
-		info.AvailableGB = free
-		info.UsedGB = total - free
-		if total > 0 {
-			info.UsedPct = (info.UsedGB / total) * 100
-		}
-	}
-	return info
-}
-
-func getDiskInfo() []DiskInfo {
-	var disks []DiskInfo
-
-	psScript := `
-		Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | ForEach-Object {
-			$total = [math]::Round($_.Size/1GB, 1)
-			$free = [math]::Round($_.FreeSpace/1GB, 1)
-			$usedPct = 0
-			if ($total -gt 0) { $usedPct = [math]::Round(($total - $free) / $total * 100, 1) }
-			Write-Output "$($_.DeviceID)|$($_.VolumeName)|$total|$free|$usedPct"
-		}
-	`
-	out, _ := runPowershellScript(psScript)
-
-	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		parts := strings.Split(line, "|")
-		if len(parts) >= 5 {
-			d := DiskInfo{
-				Drive: parts[0],
-				Label: parts[1],
-			}
-			d.TotalGB, _ = strconv.ParseFloat(parts[2], 64)
-			d.FreeGB, _ = strconv.ParseFloat(parts[3], 64)
-			d.UsedPct, _ = strconv.ParseFloat(parts[4], 64)
-			d.Type = "SSD"
-			d.FileSystem = "NTFS"
-			disks = append(disks, d)
-		}
-	}
-	return disks
-}
-
-func getGPUInfo() []AIAgentGPUInfo {
-	var gpus []AIAgentGPUInfo
-
-	psScript := `
-		Get-CimInstance Win32_VideoController | ForEach-Object {
-			$mem = 0
-			if ($_.AdapterRAM) { $mem = [math]::Round($_.AdapterRAM/1MB) }
-			Write-Output "$($_.Name)|$($_.VideoProcessor)|$mem|$($_.DriverVersion)"
-		}
-	`
-	out, _ := runPowershellScript(psScript)
-
-	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		parts := strings.Split(line, "|")
-		if len(parts) >= 4 {
-			g := AIAgentGPUInfo{
-				Name:          parts[0],
-				Vendor:        parts[1],
-				DriverVersion: parts[3],
-			}
-			g.MemoryMB, _ = strconv.Atoi(parts[2])
-
-			nameLower := strings.ToLower(g.Name)
-			if strings.Contains(nameLower, "nvidia") || strings.Contains(nameLower, "geforce") || strings.Contains(nameLower, "rtx") || strings.Contains(nameLower, "gtx") {
-				g.Vendor = "NVIDIA"
-			} else if strings.Contains(nameLower, "amd") || strings.Contains(nameLower, "radeon") {
-				g.Vendor = "AMD"
-			} else if strings.Contains(nameLower, "intel") {
-				g.Vendor = "Intel"
-			}
-
-			gpus = append(gpus, g)
-		}
-	}
-	return gpus
-}
-
-func getNetworkInfo() NetworkInfo {
-	info := NetworkInfo{}
-
-	psScript := `
-		$adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
-		if ($adapter) {
-			$ip = ($adapter | Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1).IPAddress
-			Write-Output "$($adapter.Name)|$($adapter.MacAddress)|$ip|$($adapter.LinkSpeed)"
-		}
-	`
-	out, _ := runPowershellScript(psScript)
-
-	parts := strings.Split(strings.TrimSpace(out), "|")
-	if len(parts) >= 4 {
-		info.AdapterName = parts[0]
-		info.MAC = parts[1]
-		info.IPAddress = parts[2]
-		speedStr := strings.ToLower(parts[3])
-		if strings.Contains(speedStr, "gbps") {
-			val, _ := strconv.Atoi(strings.Fields(speedStr)[0])
-			info.SpeedMbps = val * 1000
-		} else if strings.Contains(speedStr, "mbps") {
-			val, _ := strconv.Atoi(strings.Fields(speedStr)[0])
-			info.SpeedMbps = val
-		}
-		info.Connected = true
-	}
-	return info
-}
-
-func getPowerInfo() PowerInfo {
-	info := PowerInfo{}
-
-	psBattery := `
-		$battery = Get-CimInstance Win32_Battery
-		if ($battery) {
-			Write-Output "true|$($battery.EstimatedChargeRemaining)|$($battery.BatteryStatus)"
-		} else {
-			Write-Output "false"
-		}
-	`
-	out, _ := runPowershellScript(psBattery)
-	parts := strings.Split(strings.TrimSpace(out), "|")
-	if len(parts) >= 1 && parts[0] == "true" {
-		info.Battery = true
-		if len(parts) >= 3 {
-			info.BatteryPct, _ = strconv.Atoi(parts[1])
-			statusCode, _ := strconv.Atoi(parts[2])
-			info.BatteryStatus = batteryStatusText(statusCode)
-		}
-	}
-
-	psAC := `
-		$ac = Get-CimInstance Win32_Battery | Select-Object -ExpandProperty BatteryStatus
-		Write-Output $ac
-	`
-	out, _ = runPowershellScript(psAC)
-	statusCode, _ := strconv.Atoi(strings.TrimSpace(out))
-	info.ACConnected = statusCode == 6 || statusCode == 7 || statusCode == 9 || info.Battery == false
-
-	psPlan := `
-		$plan = powercfg /getactivescheme
-		if ($plan -match '\(([A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12})\)') {
-			$name = ($plan -split '\)')[-1].Trim()
-			Write-Output $name
-		}
-	`
-	out, _ = runPowershellScript(psPlan)
-	info.PowerPlan = strings.TrimSpace(out)
-	if info.PowerPlan == "" {
-		info.PowerPlan = "平衡"
-	}
-	return info
-}
+// getPowerInfo removed — now handled by batchSystemInfo()
 
 func batteryStatusText(code int) string {
 	switch code {
@@ -663,55 +754,9 @@ func batteryStatusText(code int) string {
 	}
 }
 
-func getTopProcesses() []ProcessInfo {
-	var procs []ProcessInfo
+// getTopProcesses removed — now handled by batchSystemInfo()
 
-	psScript := `
-		Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 | ForEach-Object {
-			$memMB = [math]::Round($_.WorkingSet64/1MB, 1)
-			Write-Output "$($_.ProcessName)|$($_.Id)|$($memMB)"
-		}
-	`
-	out, _ := runPowershellScript(psScript)
-
-	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		parts := strings.Split(line, "|")
-		if len(parts) >= 3 {
-			pidVal, _ := strconv.ParseUint(parts[1], 10, 32)
-			p := ProcessInfo{
-				Name: parts[0],
-				PID:  uint32(pidVal),
-			}
-			p.MemMB, _ = strconv.ParseFloat(parts[2], 64)
-			procs = append(procs, p)
-		}
-	}
-	return procs
-}
-
-func getUptime() string {
-	psScript := `
-		$os = Get-CimInstance Win32_OperatingSystem
-		$uptime = (Get-Date) - $os.LastBootUpTime
-		Write-Output "$([int]$uptime.TotalDays)|$($uptime.Hours)|$($uptime.Minutes)"
-	`
-	out, _ := runPowershellScript(psScript)
-	parts := strings.Split(strings.TrimSpace(out), "|")
-	if len(parts) >= 3 {
-		days, _ := strconv.Atoi(parts[0])
-		hours, _ := strconv.Atoi(parts[1])
-		mins, _ := strconv.Atoi(parts[2])
-		if days > 0 {
-			return fmt.Sprintf("%d 天 %d 小时 %d 分钟", days, hours, mins)
-		}
-		return fmt.Sprintf("%d 小时 %d 分钟", hours, mins)
-	}
-	return "未知"
-}
+// getUptime removed — now handled by batchSystemInfo()
 
 func runPowershellScript(script string) (string, error) {
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script)

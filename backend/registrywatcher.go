@@ -136,11 +136,14 @@ func (w *GPUStatusWatcher) Watch() {
 
 		if err != nil {
 			// Error occurred, wait a bit and retry
-			result, _ = windows.WaitForMultipleObjects(
+			result, err = windows.WaitForMultipleObjects(
 				allHandles,
 				false,
 				1000, // 1 second timeout
 			)
+			if err != nil {
+				continue
+			}
 		}
 
 		if result == windows.WAIT_FAILED {
@@ -485,7 +488,10 @@ func isServiceRunning(serviceName string) bool {
 	}
 	defer windows.CloseServiceHandle(scm)
 
-	namePtr, _ := windows.UTF16PtrFromString(serviceName)
+	namePtr, err := windows.UTF16PtrFromString(serviceName)
+	if err != nil {
+		return false
+	}
 	hService, err := windows.OpenService(scm, namePtr, windows.SERVICE_QUERY_STATUS)
 	if err != nil {
 		return false

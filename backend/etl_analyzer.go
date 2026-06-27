@@ -265,7 +265,10 @@ func ForceStopWPR() {
 	}
 
 	log := func(msg string) {
-		f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return
+		}
 		f.WriteString(fmt.Sprintf("[%s] %s\n", time.Now().Format("15:04:05.000"), msg))
 		f.Close()
 	}
@@ -332,11 +335,13 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 
 	// Log the start result
 	logFile := etlOutputDir + "\\wpr_goroutine_log.txt"
-	f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	f.WriteString(fmt.Sprintf("[%s] wpr -start: profile=%s -instancename dispatcher_trace\n", time.Now().Format("15:04:05.000"), profile))
-	f.WriteString(fmt.Sprintf("[%s] wpr -start exit: %v\n", time.Now().Format("15:04:05.000"), startErr))
-	f.WriteString(fmt.Sprintf("[%s] wpr -start output:\n%s\n", time.Now().Format("15:04:05.000"), string(startOut)))
-	f.Close()
+	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err == nil {
+		f.WriteString(fmt.Sprintf("[%s] wpr -start: profile=%s -instancename dispatcher_trace\n", time.Now().Format("15:04:05.000"), profile))
+		f.WriteString(fmt.Sprintf("[%s] wpr -start exit: %v\n", time.Now().Format("15:04:05.000"), startErr))
+		f.WriteString(fmt.Sprintf("[%s] wpr -start output:\n%s\n", time.Now().Format("15:04:05.000"), string(startOut)))
+		f.Close()
+	}
 
 	if startErr != nil {
 		return ETLCaptureState{
@@ -364,20 +369,29 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 	// Background: auto-stop after duration ends and update UI state
 	go func() {
 		logFile := etlOutputDir + "\\wpr_goroutine_log.txt"
-		f, _ := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return
+		}
 		f.WriteString(fmt.Sprintf("[%s] goroutine started, will stop in %ds\n", time.Now().Format("15:04:05.000"), sleepSec))
 		f.Close()
 
 		time.Sleep(time.Duration(sleepSec) * time.Second)
 
-		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		f, err = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return
+		}
 		f.WriteString(fmt.Sprintf("[%s] sleep done, taking lock...\n", time.Now().Format("15:04:05.000")))
 		f.Close()
 
 		captureMu.Lock()
 		if !captureState.IsCapturing {
 			captureMu.Unlock()
-			f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+			f, err = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+			if err != nil {
+				return
+			}
 			f.WriteString(fmt.Sprintf("[%s] not capturing, returning\n", time.Now().Format("15:04:05.000")))
 			f.Close()
 			return
@@ -395,12 +409,18 @@ func StartETLCapture(profile string, durationSecs int) ETLCaptureState {
 		// -instancename must match the -start value
 		// Use wprCmd for reliable ETW session management
 		cmd := wprCmd("wpr.exe", "-stop", outputPath, "-force", "-instancename", "dispatcher_trace")
-		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		f, err = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return
+		}
 		f.WriteString(fmt.Sprintf("[%s] wpr -stop: path=%s -force -instancename dispatcher_trace\n",
 			time.Now().Format("15:04:05.000"), outputPath))
 		f.Close()
 		out, err := cmd.CombinedOutput()
-		f, _ = os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		f, e := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0644)
+		if e != nil {
+			return
+		}
 		f.WriteString(fmt.Sprintf("[%s] wpr -stop done. err=%v output=%s\n", time.Now().Format("15:04:05.000"), err, string(out)))
 		f.Close()
 	}()
@@ -555,7 +575,10 @@ func AnalyzeETLFile(etlPath string) ETLAnalysisResult {
 			continue // skip header
 		}
 		// Try to extract event name from CSV columns
-		fields, _ := parseCSVRow(line)
+		fields, err := parseCSVRow(line)
+		if err != nil {
+			continue
+		}
 		for _, f := range fields {
 			f = strings.TrimSpace(f)
 			// Match typical ETW event names like "Process/Start", "DiskIO/Read"
@@ -751,7 +774,10 @@ func parseSummaryCSV(result ETLAnalysisResult, csvData string) ETLAnalysisResult
 			continue
 		}
 		// Simple CSV parse (handles quoted fields)
-		fields, _ := parseCSVRow(line)
+		fields, err := parseCSVRow(line)
+		if err != nil {
+			continue
+		}
 		if headers == nil {
 			headers = fields
 		} else {
@@ -873,7 +899,10 @@ func parseCPUCSV(result ETLAnalysisResult, csvData string) ETLAnalysisResult {
 		if line == "" {
 			continue
 		}
-		fields, _ := parseCSVRow(line)
+		fields, err := parseCSVRow(line)
+		if err != nil {
+			continue
+		}
 		if headers == nil {
 			headers = fields
 			continue

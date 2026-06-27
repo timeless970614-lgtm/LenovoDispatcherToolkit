@@ -29,7 +29,7 @@ var scriptsDir = func() string {
 		}
 		p := filepath.Join(dir, name)
 		// Only write if missing or content differs (avoids unnecessary writes on restart)
-		if existing, _ := os.ReadFile(p); string(existing) != string(data) {
+		if existing, err := os.ReadFile(p); err != nil || string(existing) != string(data) {
 			_ = os.WriteFile(p, data, 0644)
 		}
 		return p

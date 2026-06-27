@@ -30,3 +30,9 @@ backend/dynamic_npu/*.obj
 backend/dynamic_npu/*.pdb
 backend/dynamic_npu/*.user
 backend/dynamic_npu/x64/
+
+# Backup files
+*.bak
+
+# Temp scripts
+test_*.ps1

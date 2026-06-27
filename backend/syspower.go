@@ -166,7 +166,9 @@ try {
 } catch {}
 Write-Host CPU:$cpuPwr GPU:$gpuPwr UTIL:$cpuUtil FREQ:$freq
 `
-	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	var out []byte
+	var err error
+	out, err = hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
 	if err != nil {
 		return ""
 	}
@@ -219,7 +221,10 @@ try {
 } catch {}
 $np
 `, hmPath)
-	out, _ := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	if err != nil {
+		return 0
+	}
 	val := strings.TrimSpace(string(out))
 	v, err := strconv.ParseFloat(val, 64)
 	if err != nil || v <= 0 {

@@ -86,7 +86,10 @@ func DefaultModels() []NVIDIAModelItem {
 
 // GetNVIDIAConfigPath returns the config file path (next to exe)
 func GetNVIDIAConfigPath() string {
-	exe, _ := os.Executable()
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
 	dir := filepath.Dir(exe)
 	return filepath.Join(dir, NVIDIA_CONFIG_FILE)
 }
@@ -169,7 +172,10 @@ func CallNVIDIAChat(messages []NVIDIAChatMessage, modelOverride string) (string,
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("读取响应失败: %v", err)
+	}
 
 	var chatResp NVIDIAChatResponse
 	if err := json.Unmarshal(body, &chatResp); err != nil {
@@ -221,7 +227,10 @@ func AskNVIDIACloud(question string) (string, error) {
 	}
 
 	info := GetAIAgentSystemInfo()
-	infoJSON, _ := json.Marshal(info)
+	infoJSON, err := json.Marshal(info)
+	if err != nil {
+		return "", fmt.Errorf("系统信息序列化失败: %v", err)
+	}
 	sysPrompt := buildSystemPrompt(string(infoJSON))
 
 	messages := []NVIDIAChatMessage{
@@ -234,7 +243,10 @@ func AskNVIDIACloud(question string) (string, error) {
 // GetNVIDIAModelList returns the built-in selectable model list as JSON string
 func GetNVIDIAModelList() string {
 	models := DefaultModels()
-	data, _ := json.Marshal(models)
+	data, err := json.Marshal(models)
+	if err != nil {
+		return "[]"
+	}
 	return string(data)
 }
 
@@ -254,9 +266,15 @@ func TestNVIDIAConnection(apiKey string, model string) string {
 		Temperature: 0,
 	}
 
-	jsonData, _ := json.Marshal(reqBody)
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Sprintf(`{"success":false,"error":"请求序列化失败: %v"}`, err)
+	}
 	url := NVIDIA_API_BASE + "/chat/completions"
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Sprintf(`{"success":false,"error":"创建请求失败: %v"}`, err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
@@ -267,7 +285,10 @@ func TestNVIDIAConnection(apiKey string, model string) string {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Sprintf(`{"success":false,"error":"读取响应失败: %v"}`, err)
+	}
 	if resp.StatusCode != 200 {
 		bStr := string(body)
 		if len(bStr) > 200 {
