@@ -342,12 +342,12 @@ func npuLoad() error {
 	// ── Step 4: Quick enumerate devices (mirrors C++ test.cpp) ─────────────────
 	// Call hm_sys_get_device_info immediately to confirm the driver is functional.
 	var info hmDeviceInfo
-	ret, _, _ := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&info)), 0, 0)
+	ret, _, errno := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&info)), 0, 0)
 	n := info.NumDevices
 	if n == 0 {
 		n = uint32(ret)
 	}
-	npuLoadDebug += fmt.Sprintf("\n[NPU Probe] hm_sys_get_device_info returned: numDevices=%d ret=%d\n", n, ret)
+	npuLoadDebug += fmt.Sprintf("\n[NPU Probe] hm_sys_get_device_info returned: numDevices=%d ret=%d errno=%d\n", n, ret, errno)
 
 	if n == 0 {
 		// Treat 0 devices as a valid (but empty) enumeration, not an error.
@@ -409,8 +409,8 @@ func GetNPUREport() string {
 			DeviceIDs  [32]uint32
 		}
 		var info hmDI
-		ret, _, _ := syscall.Syscall(proc.Addr(), 1, uintptr(unsafe.Pointer(&info)), 0, 0)
-		npuLoadDebug += "\n[Direct Load] " + testPath + " - ret=" + fmt.Sprintf("%d", ret) + " NumDevices=" + fmt.Sprintf("%d", info.NumDevices) + "\n"
+		ret, _, errno := syscall.Syscall(proc.Addr(), 1, uintptr(unsafe.Pointer(&info)), 0, 0)
+		npuLoadDebug += "\n[Direct Load] " + testPath + " - ret=" + fmt.Sprintf("%d", ret) + " errno=" + fmt.Sprintf("%d", errno) + " NumDevices=" + fmt.Sprintf("%d", info.NumDevices) + "\n"
 	}
 	return npuLoadDebug + "\n\n[Raw Probe Report]\n" + report
 }
@@ -447,9 +447,9 @@ func NPURawProbe() (string, error) {
 	var infoV2 hmDeviceInfoV2
 	var infoV3 hmDeviceInfoV3
 
-	ret1, _, _ := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&infoV1)), 0, 0)
-	ret2, _, _ := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&infoV2)), 0, 0)
-	ret3, _, _ := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&infoV3)), 0, 0)
+	ret1, _, errno1 := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&infoV1)), 0, 0)
+	ret2, _, errno2 := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&infoV2)), 0, 0)
+	ret3, _, errno3 := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&infoV3)), 0, 0)
 
 	// Also capture raw bytes
 	_, _, _ = syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&raw)), 0, 0)
@@ -483,15 +483,15 @@ func NPURawProbe() (string, error) {
 
 	report := fmt.Sprintf(
 		"[Raw Probe] sizeof(hm_device_info_t) expected ~136 bytes\n\n"+
-			"V1 (no pad,  offset[0]=num):  ret=%d  numDevices=%d  deviceIds=%v\n"+
-			"V2 (4B pad,  offset[8]=num):  ret=%d  numDevices=%d  deviceIds=%v\n"+
-			"V3 (8B pad,  offset[12]=num): ret=%d  numDevices=%d  deviceIds=%v\n\n"+
+			"V1 (no pad,  offset[0]=num):  ret=%d errno=%d  numDevices=%d  deviceIds=%v\n"+
+			"V2 (4B pad,  offset[8]=num):  ret=%d errno=%d  numDevices=%d  deviceIds=%v\n"+
+			"V3 (8B pad,  offset[12]=num): ret=%d errno=%d  numDevices=%d  deviceIds=%v\n\n"+
 			"Raw bytes[0..63]: % x\n"+
 			"  offset[0] num=%d  offset[4] num=%d  offset[8] num=%d\n\n"+
 			"npuLoadDebug:\n%s",
-		ret1, infoV1.NumDevices, v1Devs,
-		ret2, infoV2.NumDevices, v2Devs,
-		ret3, infoV3.NumDevices, v3Devs,
+		ret1, errno1, infoV1.NumDevices, v1Devs,
+		ret2, errno2, infoV2.NumDevices, v2Devs,
+		ret3, errno3, infoV3.NumDevices, v3Devs,
 		raw[:64],
 		rawN0, rawN4, rawN8,
 		npuLoadDebug,
@@ -512,7 +512,7 @@ func GetNPUDeviceInfo() (NPUDeviceInfo, error) {
 	var info hmDeviceInfo
 	npuMutex.RLock()
 	defer npuMutex.RUnlock()
-	ret, _, _ := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&info)), 0, 0)
+	ret, _, errno := syscall.Syscall(npuFunc.getDeviceInfo, 1, uintptr(unsafe.Pointer(&info)), 0, 0)
 	devCount := info.NumDevices
 	if devCount == 0 {
 		devCount = uint32(ret)
@@ -520,7 +520,7 @@ func GetNPUDeviceInfo() (NPUDeviceInfo, error) {
 	// DIAGNOSTIC: always write to file so we know what happened
 	diagPath := "C:\\LenovoDispatcherToolkit\\build\\bin\\npu_devcount.txt"
 	if f, err := os.Create(diagPath); err == nil {
-		fmt.Fprintf(f, "LazyDLL: NumDevices=%d ret=%d devCount=%d\n", info.NumDevices, ret, devCount)
+		fmt.Fprintf(f, "LazyDLL: NumDevices=%d ret=%d errno=%d devCount=%d\n", info.NumDevices, ret, errno, devCount)
 		if devCount == 0 {
 			fmt.Fprintf(f, "Calling direct LoadLibrary fallback...\n")
 			if altCount, altIDs, altErr := tryDirectDLLLoad(); altErr == nil {
@@ -895,9 +895,9 @@ func NPUSetDVFSMode(devIndex int, mode string) error {
 	}
 	npuMutex.Lock()
 	defer npuMutex.Unlock()
-	ret, _, _ := syscall.Syscall(npuFunc.setDVFSMode, 2, uintptr(devIndex), uintptr(m), 0)
+	ret, _, errno := syscall.Syscall(npuFunc.setDVFSMode, 2, uintptr(devIndex), uintptr(m), 0)
 	if int(ret) < 0 {
-		return fmt.Errorf("hm_sys_set_dvfs_mode failed for dev %d", devIndex)
+		return fmt.Errorf("hm_sys_set_dvfs_mode failed for dev %d (ret=%d, errno=%d)", devIndex, ret, errno)
 	}
 	return nil
 }
@@ -925,9 +925,9 @@ func GetNPUCTCPHYInfo(devIndex int) (NPUCTCPHYInfo, error) {
 	npuMutex.RLock()
 	defer npuMutex.RUnlock()
 	var gid, cid int32
-	ret, _, _ := syscall.Syscall(npuFunc.getCTCPHYID, 3, uintptr(devIndex), uintptr(unsafe.Pointer(&gid)), uintptr(unsafe.Pointer(&cid)))
+	ret, _, errno := syscall.Syscall(npuFunc.getCTCPHYID, 3, uintptr(devIndex), uintptr(unsafe.Pointer(&gid)), uintptr(unsafe.Pointer(&cid)))
 	if int(ret) < 0 {
-		return NPUCTCPHYInfo{}, fmt.Errorf("hm_sys_get_ctc_phy_id failed for dev %d", devIndex)
+		return NPUCTCPHYInfo{}, fmt.Errorf("hm_sys_get_ctc_phy_id failed for dev %d (ret=%d, errno=%d)", devIndex, ret, errno)
 	}
 	return NPUCTCPHYInfo{GroupID: int(gid), ChipID: int(cid)}, nil
 }
