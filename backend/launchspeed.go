@@ -85,11 +85,15 @@ func BenchmarkLaunchSpeed(method string) LaunchSpeedReport {
 	var results []LaunchSpeedResult
 	var totalLaunchMs float64
 
-	for _, app := range commonApps {
+	for i, app := range commonApps {
 		result := measureLaunch(app.name, app.path, app.category, method)
 		results = append(results, result)
 		if result.Success {
 			totalLaunchMs += result.LaunchMs
+		}
+		// Idle 5s between apps so each one can settle before the next starts
+		if i < len(commonApps)-1 {
+			time.Sleep(5 * time.Second)
 		}
 	}
 
