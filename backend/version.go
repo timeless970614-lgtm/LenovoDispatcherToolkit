@@ -42,12 +42,12 @@ var (
 )
 
 // getDispatcherExeVersion reads the DriverVersion of "Lenovo Dispatcher"
-// from Win32_PnPSignedDriver (matching Device Manager).
+// from the registry (fast path) with WMI/exe fallback.
 // Result is cached after the first call.
 func getDispatcherExeVersion() string {
 	driverVersionOnce.Do(func() {
-		// Try WMI first (what Device Manager shows)
-		if v := getPnPDriverVersion("Lenovo Dispatcher"); v != "" {
+		// Fast path: read DriverVersion from Control\Class registry
+		if v := getDriverVersionFromRegistry(); v != "" {
 			driverVersionVal = v
 			return
 		}
@@ -57,22 +57,51 @@ func getDispatcherExeVersion() string {
 	return driverVersionVal
 }
 
-// getPnPDriverVersion queries Win32_PnPSignedDriver for a device's DriverVersion.
-func getPnPDriverVersion(deviceName string) string {
-	script := fmt.Sprintf(
-		`Get-CimInstance Win32_PnPSignedDriver | Where-Object { $_.DeviceName -eq '%s' } | Select-Object -ExpandProperty DriverVersion`,
-		deviceName,
-	)
-	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-Command", script).Output()
+// getDriverVersionFromRegistry reads the DriverVersion for "Lenovo Dispatcher"
+// from HKLM\SYSTEM\CurrentControlSet\Control\Class\{guid}\nnnn.
+// This is the same value shown in Device Manager, but read via registry (instant)
+// instead of WMI/PowerShell (3-5 seconds).
+func getDriverVersionFromRegistry() string {
+	// Step 1: Find the Lenovo Dispatcher device in the Enum tree
+	// Try ACPI\IDEA200C (known hardware ID for Lenovo Dispatcher)
+	enumKey := `SYSTEM\CurrentControlSet\Enum\ACPI\IDEA200C`
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, enumKey, registry.ENUMERATE_SUB_KEYS)
 	if err != nil {
 		return ""
 	}
-	v := strings.TrimSpace(string(out))
-	if v == "" {
+	subKeys, err := k.ReadSubKeyNames(-1)
+	k.Close()
+	if err != nil || len(subKeys) == 0 {
 		return ""
 	}
-	return v
+
+	// Step 2: For each instance, read the Driver value and then DriverVersion from Class
+	for _, inst := range subKeys {
+		instKey, err := registry.OpenKey(registry.LOCAL_MACHINE, enumKey+"\\"+inst, registry.QUERY_VALUE)
+		if err != nil {
+			continue
+		}
+		driverVal, _, err := instKey.GetStringValue("Driver")
+		instKey.Close()
+		if err != nil || driverVal == "" {
+			continue
+		}
+		// driverVal looks like "{4d36e97d-e325-11ce-bfc1-08002be10318}\0074"
+		classKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
+			`SYSTEM\CurrentControlSet\Control\Class\`+driverVal, registry.QUERY_VALUE)
+		if err != nil {
+			continue
+		}
+		ver, _, err := classKey.GetStringValue("DriverVersion")
+		classKey.Close()
+		if err == nil && ver != "" {
+			return ver
+		}
+	}
+	return ""
 }
+
+// (removed getPnPDriverVersion — replaced by getDriverVersionFromRegistry for speed)
 
 // getServiceExeVersion reads the FileVersion from LNVDispatcherService.exe (legacy fallback).
 func getServiceExeVersion() string {

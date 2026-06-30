@@ -389,6 +389,10 @@ export default {
     itsFanModeName() {
       const fanModes = { 0: 'Quiet', 1: 'Balanced', 2: 'Performance', 3: 'Full Speed', 4: 'Auto' }
       return fanModes[this.itsFanMode] || `Unknown (${this.itsFanMode})`
+    },
+    pollInterval() {
+      // Poll every 3 seconds — fast enough for service status, light on SCM
+      return 3000
     }
   },
   watch: {
@@ -528,7 +532,7 @@ export default {
     },
     
     startServiceWatcher() {
-      // Poll every 1 second
+      // Poll every 3 seconds
       this.serviceInterval = setInterval(() => this.pollServiceAndMode(), this.pollInterval)
       // Initial poll
       this.pollServiceAndMode()
