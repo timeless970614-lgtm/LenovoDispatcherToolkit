@@ -72,6 +72,12 @@ func (a *App) GetServiceStatus() string {
 	return status
 }
 
+// GetServiceAndModeInfo returns service status + dispatcher mode in one call (reduces polling round-trips)
+func (a *App) GetServiceAndModeInfo() backend.ServiceAndModeInfo {
+	info, _ := backend.GetServiceAndModeInfo()
+	return info
+}
+
 // StartService starts the LenovoProcessManagement service
 func (a *App) StartService() string {
 	err := backend.StartService()

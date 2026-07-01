@@ -314,6 +314,10 @@ export function GetSSDInfo() {
   return window['go']['main']['App']['GetSSDInfo']();
 }
 
+export function GetServiceAndModeInfo() {
+  return window['go']['main']['App']['GetServiceAndModeInfo']();
+}
+
 export function GetServiceControlCodes() {
   return window['go']['main']['App']['GetServiceControlCodes']();
 }

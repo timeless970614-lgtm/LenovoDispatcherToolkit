@@ -12,6 +12,27 @@ import (
 
 const serviceName = "LenovoProcessManagement"
 
+// ServiceAndModeInfo combines service status and dispatcher mode info in one call
+// to reduce Wails binding round-trips during polling.
+type ServiceAndModeInfo struct {
+	ServiceStatus string         `json:"serviceStatus"`
+	Dispatcher    DispatcherInfo `json:"dispatcher"`
+}
+
+// GetServiceAndModeInfo returns service status and dispatcher mode info in one call
+func GetServiceAndModeInfo() (ServiceAndModeInfo, error) {
+	var result ServiceAndModeInfo
+	status, err := GetServiceStatus()
+	if err != nil {
+		result.ServiceStatus = "Error"
+	} else {
+		result.ServiceStatus = status
+	}
+	dispInfo, _ := GetDispatcherInfo()
+	result.Dispatcher = dispInfo
+	return result, nil
+}
+
 // ServiceControlCode contains common Lenovo service control codes
 var ServiceControlCodes = map[uint32]string{
 	0x94: "OEM_EXTRA_PERFORMANCE_MODE (Group 2/3/4 Turbo)",

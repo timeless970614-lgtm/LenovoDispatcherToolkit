@@ -159,6 +159,8 @@ export function GetPowerStatus():Promise<Record<string, boolean>>;
 
 export function GetSSDInfo():Promise<Array<backend.SSDInfo>>;
 
+export function GetServiceAndModeInfo():Promise<backend.ServiceAndModeInfo>;
+
 export function GetServiceControlCodes():Promise<Record<number, string>>;
 
 export function GetServiceStatus():Promise<string>;

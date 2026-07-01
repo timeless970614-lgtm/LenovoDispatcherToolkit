@@ -469,6 +469,8 @@ export default {
         console.log('[pinMode] PinDYTCMode returned:', odvMsg)
         this.pinnedMode = this.selectedMode
         this.pinResult = { success: true, message: `Dispatcher stopped, Mode fixed to ${this.selectedMode} Successfully${odvMsg || ''}` }
+        // Immediately poll — don't wait for next interval
+        this.pollServiceAndMode()
       } catch (e) {
         this.pinResult = { success: false, message: 'Failed to pin mode: ' + e }
       } finally {
@@ -484,6 +486,8 @@ export default {
         await UnpinDYTCMode()
         this.pinnedMode = ''
         this.pinResult = { success: true, message: 'Pin removed. Dispatcher service restarted, auto mode switching resumed.' }
+        // Immediately poll — don't wait for next interval
+        this.pollServiceAndMode()
       } catch (e) {
         this.pinResult = { success: false, message: 'Failed to unpin mode: ' + e }
       } finally {
@@ -494,34 +498,28 @@ export default {
     // Real-time service status and mode polling
     async pollServiceAndMode() {
       try {
-        // Poll service status
-        const status = await GetServiceStatus()
-        this.serviceRunning = status.toLowerCase().includes('running')
-        
-        // Poll current mode from dispatcher info (ITS_AutomaticModeSetting)
-        const info = await GetDispatcherInfo()
-        if (info) {
-          // Use AutoMode directly (ITS_CurrentSetting with fallback to ITS_AutomaticModeSetting)
-          const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
-          if (info.autoMode !== undefined && info.autoMode !== 0) {
-            this.currentMode = numToMode[info.autoMode] || ('Unknown(' + info.autoMode + ')')
-          } else if (info.currentMode) {
-            const raw = info.currentMode
-            const numMatch = raw.match(/\((\d+)\)$/)
-            if (numMatch) {
-              const num = parseInt(numMatch[1])
-              this.currentMode = numToMode[num] || raw
-            } else {
-              this.currentMode = raw
+        // Single Wails call — service status + dispatcher mode in one round-trip
+        const data = await GetServiceAndModeInfo()
+        if (data) {
+          this.serviceRunning = (data.serviceStatus || '').toLowerCase().includes('running')
+          const info = data.dispatcher
+          if (info) {
+            const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
+            if (info.autoMode !== undefined && info.autoMode !== 0) {
+              this.currentMode = numToMode[info.autoMode] || ('Unknown(' + info.autoMode + ')')
+            } else if (info.currentMode) {
+              const raw = info.currentMode
+              const numMatch = raw.match(/\((\d+)\)$/)
+              if (numMatch) {
+                const num = parseInt(numMatch[1])
+                this.currentMode = numToMode[num] || raw
+              } else {
+                this.currentMode = raw
+              }
             }
+            this.itsCurrentMode = info.itsCurrentMode || 'N/A (DTT not active)'
+            this.itsTargetMode = info.itsTargetMode || 'N/A'
           }
-        }
-        // If no info, keep the existing currentMode value (don't change)
-
-        // Update ITS mode fields
-        if (info) {
-          this.itsCurrentMode = info.itsCurrentMode || 'N/A (DTT not active)'
-          this.itsTargetMode = info.itsTargetMode || 'N/A'
         }
       } catch (e) {
         console.warn('Failed to poll service/mode:', e)
