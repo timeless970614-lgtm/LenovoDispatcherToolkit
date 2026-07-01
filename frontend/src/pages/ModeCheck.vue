@@ -386,8 +386,8 @@ export default {
       return fanModes[this.itsFanMode] || `Unknown (${this.itsFanMode})`
     },
     pollInterval() {
-      // Poll every 1 second — responsive Current Mode feedback in fixed mode
-      return 1000
+      // Poll every 500ms — ultra-responsive Current Mode feedback
+      return 500
     }
   },
   watch: {

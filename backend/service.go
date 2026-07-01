@@ -4,6 +4,7 @@ package backend
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/sys/windows/svc"
@@ -19,14 +20,73 @@ type ServiceAndModeInfo struct {
 	Dispatcher    DispatcherInfo `json:"dispatcher"`
 }
 
+// --- SCM connection cache: avoid Connect/Disconnect on every poll ---
+var (
+	scmMu       sync.Mutex
+	scmMgr      *mgr.Mgr
+	scmService  *mgr.Service
+	scmInitOnce sync.Once
+)
+
+// getSCMService returns cached service handle, reconnecting if needed.
+func getSCMService() (*mgr.Mgr, *mgr.Service, error) {
+	scmMu.Lock()
+	defer scmMu.Unlock()
+	// Try cached handles first
+	if scmMgr != nil && scmService != nil {
+		// Verify with a lightweight query
+		_, err := scmService.Query()
+		if err == nil {
+			return scmMgr, scmService, nil
+		}
+		// Stale handle — close and reconnect
+		scmService.Close()
+		scmService = nil
+	}
+	if scmMgr == nil {
+		m, err := mgr.Connect()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to connect to SCM: %w", err)
+		}
+		scmMgr = m
+	}
+	s, err := scmMgr.OpenService(serviceName)
+	if err != nil {
+		return scmMgr, nil, fmt.Errorf("service %s not found: %w", serviceName, err)
+	}
+	scmService = s
+	return scmMgr, scmService, nil
+}
+
 // GetServiceAndModeInfo returns service status and dispatcher mode info in one call
 func GetServiceAndModeInfo() (ServiceAndModeInfo, error) {
 	var result ServiceAndModeInfo
-	status, err := GetServiceStatus()
-	if err != nil {
-		result.ServiceStatus = "Error"
-	} else {
-		result.ServiceStatus = status
+	// Fast path: use cached SCM handle
+	scmMu.Lock()
+	if scmMgr != nil && scmService != nil {
+		status, err := scmService.Query()
+		if err == nil {
+			result.ServiceStatus = serviceStateToString(status.State)
+		} else {
+			// Stale handle, will reconnect below
+			scmService.Close()
+			scmService = nil
+		}
+	}
+	scmMu.Unlock()
+	if result.ServiceStatus == "" {
+		// Slow path: reconnect SCM
+		_, svc, err := getSCMService()
+		if err != nil {
+			result.ServiceStatus = "Not Installed"
+		} else {
+			status, err := svc.Query()
+			if err != nil {
+				result.ServiceStatus = "Error"
+			} else {
+				result.ServiceStatus = serviceStateToString(status.State)
+			}
+		}
 	}
 	dispInfo, _ := GetDispatcherInfo()
 	result.Dispatcher = dispInfo

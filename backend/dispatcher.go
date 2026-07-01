@@ -4,6 +4,7 @@ package backend
 
 import (
 	"fmt"
+	"sync"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -14,9 +15,28 @@ type DispatcherInfo struct {
 	Description   string `json:"description"`
 	CurrentMode   string `json:"currentMode"`
 	AIEngineMode  string `json:"aiEngineMode"`
-	AutoMode        int    `json:"autoMode"`
-	ITSCurrentMode  string `json:"itsCurrentMode"`
-	ITSTargetMode   string `json:"itsTargetMode"`
+	AutoMode      int    `json:"autoMode"`
+	ITSCurrentMode string `json:"itsCurrentMode"`
+	ITSTargetMode  string `json:"itsTargetMode"`
+}
+
+// Cached description — service display name never changes at runtime
+var (
+	descriptionOnce sync.Once
+	descriptionVal  string
+)
+
+// getCachedDescription returns the cached service display name
+func getCachedDescription() string {
+	descriptionOnce.Do(func() {
+		descriptionVal = readRegString(
+			registry.LOCAL_MACHINE,
+			`SYSTEM\CurrentControlSet\Services\LenovoProcessManagement`,
+			"DisplayName",
+			"Lenovo Process Management",
+		)
+	})
+	return descriptionVal
 }
 
 // dispatcherModeMap maps ITS_AutomaticModeSetting values to mode names
@@ -37,13 +57,8 @@ var dispatcherModeMap = map[uint32]string{
 // GetDispatcherInfo retrieves Dispatcher driver info and current mode (pure registry, no WMI)
 func GetDispatcherInfo() (DispatcherInfo, error) {
 	info := DispatcherInfo{}
-	info.DriverVersion = getDispatcherExeVersion()
-	info.Description = readRegString(
-		registry.LOCAL_MACHINE,
-		`SYSTEM\CurrentControlSet\Services\LenovoProcessManagement`,
-		"DisplayName",
-		"Lenovo Process Management",
-	)
+	info.DriverVersion = getDispatcherExeVersion() // cached via sync.Once
+	info.Description = getCachedDescription()       // cached via sync.Once
 	values, err := ReadAllDispatcherValues()
 	if err != nil {
 		info.CurrentMode = "Registry unavailable"

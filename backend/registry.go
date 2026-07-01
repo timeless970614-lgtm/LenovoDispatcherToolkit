@@ -4,11 +4,38 @@ package backend
 
 import (
 	"fmt"
+	"sync"
 
 	"golang.org/x/sys/windows/registry"
 )
 
 const registryPath = `SYSTEM\CurrentControlSet\Services\LenovoProcessManagement\Performance\PowerSlider`
+
+// --- Persistent read-only registry handle for fast polling ---
+var (
+	readKeyOnce sync.Once
+	readKey     registry.Key
+	readKeyErr  error
+)
+
+// getReadKey returns a cached read-only registry key handle.
+// The handle stays open for the lifetime of the process, avoiding
+// repeated OpenKey/CloseKey on every poll (~5-10ms each).
+func getReadKey() (registry.Key, error) {
+	readKeyOnce.Do(func() {
+		readKey, readKeyErr = registry.OpenKey(registry.LOCAL_MACHINE, registryPath, registry.QUERY_VALUE)
+	})
+	if readKeyErr != nil {
+		// Retry once in case it was a transient error (e.g. service just installed)
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, registryPath, registry.QUERY_VALUE)
+		if err != nil {
+			return 0, err
+		}
+		readKey = k
+		readKeyErr = nil
+	}
+	return readKey, nil
+}
 
 // ReadDWORD reads a DWORD value from the Dispatcher registry path
 func ReadDWORD(valueName string) (uint32, error) {
@@ -39,11 +66,10 @@ func WriteDWORD(valueName string, value uint32) error {
 
 // ReadAllDispatcherValues reads all relevant Dispatcher registry values
 func ReadAllDispatcherValues() (map[string]uint32, error) {
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, registryPath, registry.QUERY_VALUE)
+	k, err := getReadKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open registry key: %w", err)
 	}
-	defer k.Close()
 
 	keys := []string{
 		"ITS_CurrentSetting",
