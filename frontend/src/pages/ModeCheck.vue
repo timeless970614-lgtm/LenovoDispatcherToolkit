@@ -386,8 +386,8 @@ export default {
       return fanModes[this.itsFanMode] || `Unknown (${this.itsFanMode})`
     },
     pollInterval() {
-      // Poll every 3 seconds — fast enough for service status, light on SCM
-      return 3000
+      // Poll every 1 second — responsive Current Mode feedback in fixed mode
+      return 1000
     }
   },
   watch: {
