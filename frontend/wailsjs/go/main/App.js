@@ -530,6 +530,10 @@ export function SetSSDMode(arg1, arg2) {
   return window['go']['main']['App']['SetSSDMode'](arg1, arg2);
 }
 
+export function ShowWindow() {
+  return window['go']['main']['App']['ShowWindow']();
+}
+
 export function ShutdownPowerMonitor() {
   return window['go']['main']['App']['ShutdownPowerMonitor']();
 }

@@ -30,25 +30,29 @@ func (a *App) startup(ctx context.Context) {
 }
 
 // onDomReady is called when the frontend DOM is fully loaded.
-// We pre-fetch all Dashboard data here so the frontend can render instantly,
-// then show the window — eliminating the skeleton/loading flash.
+// We pre-fetch all Dashboard data here so the frontend can render instantly.
+// The window is shown when the frontend calls ShowWindow() after Vue mount + data render.
 func (a *App) onDomReady(ctx context.Context) {
-	// Emit a "backend:ready" event with pre-fetched Dashboard data so the
-	// frontend can populate everything in one shot before first paint.
 	sysInfo, _ := backend.GetSystemInfo()
 	modeInfo := backend.GetModeCheckInfo()
 	logStatus := backend.GetDynamicLogStatus()
 	dumpStatus := backend.GetDynamicDumpStatus()
 
 	runtime.EventsEmit(ctx, "backend:ready", map[string]interface{}{
-		"sysInfo":    sysInfo,
-		"modeInfo":   modeInfo,
-		"logEnabled": logStatus,
+		"sysInfo":     sysInfo,
+		"modeInfo":    modeInfo,
+		"logEnabled":  logStatus,
 		"dumpEnabled": dumpStatus,
 	})
+}
 
-	// Now show the window — the frontend has data ready to render immediately.
-	runtime.WindowShow(ctx)
+// ShowWindow makes the hidden window visible. Called from the frontend
+// after Vue has mounted and rendered all data, so the user sees the
+// fully-painted UI instead of a black/skeleton flash.
+func (a *App) ShowWindow() {
+	if a.ctx != nil {
+		runtime.WindowShow(a.ctx)
+	}
 }
 
 // ============ System Info ============

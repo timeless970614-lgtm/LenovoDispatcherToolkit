@@ -242,20 +242,17 @@ export default {
       return labels[this.theme] || 'Dark'
     }
   },
-  mounted() {
+  async mounted() {
     // Load saved theme from localStorage
     const savedTheme = localStorage.getItem('lenovo-toolkit-theme')
-    if (savedTheme) {
-      this.theme = savedTheme
-    }
+    if (savedTheme) this.theme = savedTheme
     // Load saved language from localStorage
     const savedLang = localStorage.getItem('lenovo-toolkit-lang')
-    if (savedLang) {
-      this.lang = savedLang
-    }
+    if (savedLang) this.lang = savedLang
     this.updateTime()
     this.timeInterval = setInterval(this.updateTime, 1000)
-    this.updateMode()
+    // Wait for mode data so the sidebar shows correct mode badge on first paint
+    await this.updateMode()
     this.modeInterval = setInterval(this.updateMode, 60000)
     // Pause all polling when page is hidden to save CPU
     this._visibilityHandler = () => {
@@ -271,6 +268,17 @@ export default {
       }
     }
     document.addEventListener('visibilitychange', this._visibilityHandler)
+
+    // Show the window after Vue has mounted + data rendered.
+    // nextTick ensures the DOM is patched, then requestAnimationFrame
+    // ensures the browser has actually painted before we reveal.
+    this.$nextTick(() => {
+      requestAnimationFrame(() => {
+        if (window.go && window.go.main && window.go.main.App && window.go.main.App.ShowWindow) {
+          window.go.main.App.ShowWindow()
+        }
+      })
+    })
   },
   beforeUnmount() {
     if (this.timeInterval) clearInterval(this.timeInterval)

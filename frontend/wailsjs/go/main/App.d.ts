@@ -267,6 +267,8 @@ export function SetPowerSettingRaw(arg1:string,arg2:number,arg3:number):Promise<
 
 export function SetSSDMode(arg1:number,arg2:number):Promise<backend.SSDModeResult>;
 
+export function ShowWindow():Promise<void>;
+
 export function ShutdownPowerMonitor():Promise<void>;
 
 export function StartETLCapture(arg1:string,arg2:number):Promise<backend.ETLCaptureState>;
