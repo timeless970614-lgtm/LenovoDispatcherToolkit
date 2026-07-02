@@ -206,7 +206,6 @@ func RestartService() error {
 	if err := StopService(); err != nil {
 		return fmt.Errorf("failed to stop service during restart: %w", err)
 	}
-	time.Sleep(1 * time.Second)
 	if err := StartService(); err != nil {
 		return fmt.Errorf("failed to start service during restart: %w", err)
 	}
