@@ -173,7 +173,26 @@ export default {
     }
   },
   mounted() {
-    this.fullRefresh()
+    // Listen for backend pre-fetched data (emitted from onDomReady) for instant render.
+    // Falls back to fullRefresh() if the event already fired (e.g. slow component mount).
+    this._backendReadyHandler = (data) => {
+      if (data) {
+        if (data.sysInfo) this.sysInfo = data.sysInfo
+        if (data.modeInfo) this.deviceInfo = data.modeInfo
+        if (data.logEnabled !== undefined) this.logEnabled = data.logEnabled
+        if (data.dumpEnabled !== undefined) this.dumpEnabled = data.dumpEnabled
+        this.loading = false
+      }
+    }
+    // Register listener — Wails EventsOn is available after DOM ready
+    if (window.runtime && window.runtime.EventsOn) {
+      window.runtime.EventsOn('backend:ready', this._backendReadyHandler)
+    }
+    // Fallback: if backend:ready already fired before listener was attached,
+    // do a normal fetch.
+    if (!this.sysInfo) {
+      this.fullRefresh()
+    }
     this._timer = setInterval(this.refresh, this.pollInterval)
     // Pause Dashboard polling when page is hidden
     this._visHandler = () => {
@@ -191,6 +210,9 @@ export default {
   beforeUnmount() {
     if (this._timer) clearInterval(this._timer)
     if (this._visHandler) document.removeEventListener('visibilitychange', this._visHandler)
+    if (this._backendReadyHandler && window.runtime && window.runtime.EventsOff) {
+      window.runtime.EventsOff('backend:ready')
+    }
   },
   methods: {
     async refresh() {

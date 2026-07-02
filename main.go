@@ -27,6 +27,11 @@ func main() {
 	log.Println("=== LenovoToolkit starting ===")
 
 	app := NewApp()
+
+	// Dedicated WebView2 user data directory — avoids bloat from the default
+	// %APPDATA% folder which can accumulate stale cache from other WebView2 apps.
+	webviewDataPath := filepath.Join(logDir, "WebView2")
+
 	err = wails.Run(&options.App{
 		Title:     "Lenovo Toolkit",
 		Width:     1150,
@@ -37,7 +42,9 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 20, G: 20, B: 20, A: 1},
+		StartHidden:      true, // hide until DOM is ready → eliminates flash/skeleton
 		OnStartup:        app.startup,
+		OnDomReady:       app.onDomReady,
 		Bind: []interface{}{
 			app,
 		},
@@ -45,6 +52,7 @@ func main() {
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			DisableWindowIcon:    false,
+			WebviewUserDataPath:  webviewDataPath,
 		},
 	})
 	if err != nil {
