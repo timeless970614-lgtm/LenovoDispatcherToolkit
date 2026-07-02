@@ -199,49 +199,40 @@ func GetSystemInfo() (SystemInfo, error) {
 	return info, nil
 }
 
-// getCPUCodeName reads CPU ProcessorId via WMI and returns the Intel Code Name
+// getCPUCodeName reads CPU Identifier from registry and returns the Intel Code Name.
+// Registry path: HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0 → "Identifier"
+// Value format: "Intel64 Family 6 Model 198 Stepping 2"
+// This replaces the old PowerShell+WMI approach which took 1-3 seconds;
+// registry read is ~0.1ms.
 func getCPUCodeName() string {
-	// Use PowerShell to get ProcessorId (same method as CPU-Z)
-	script := `
-$ErrorActionPreference = 'SilentlyContinue'
-$cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
-if ($cpu.ProcessorId) {
-    $id = $cpu.ProcessorId
-    # Parse Family, Model, Stepping from ProcessorId
-    # ProcessorId format: BFEBFBFF000C06C2 (hex, little-endian)
-    # For Intel CPUs: EAX contains CPUID info
-    # EAX[3:0] = Stepping, EAX[7:4] = Model, EAX[11:8] = Family
-    # EAX[19:16] = Extended Model (when Family=6 or 15)
-    # Full Model = (Extended Model << 4) + Model
-    $eax = [Convert]::ToInt32($id.Substring(8,8), 16)
-    $family = ($eax -shr 8) -band 0xF
-    $model = ($eax -shr 4) -band 0xF
-    $ext_model = ($eax -shr 16) -band 0xF
-    if ($family -eq 6 -or $family -eq 15) {
-        $model = ($ext_model -shl 4) -bor $model
-    }
-    Write-Output "Model:$model"
-} else {
-    Write-Output "N/A"
-}
-`
-	out, err := hiddenCmd("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script).Output()
+	k, err := registry.OpenKey(
+		registry.LOCAL_MACHINE,
+		`HARDWARE\DESCRIPTION\System\CentralProcessor\0`,
+		registry.QUERY_VALUE,
+	)
 	if err != nil {
 		return "Unknown"
 	}
-	
-	output := strings.TrimSpace(string(out))
-	if output == "N/A" || output == "" {
+	defer k.Close()
+
+	identifier, _, err := k.GetStringValue("Identifier")
+	if err != nil || identifier == "" {
 		return "Unknown"
 	}
-	
-	// Parse Model from output
-	var model uint32
-	if _, err := fmt.Sscanf(output, "Model:%d", &model); err != nil {
-		return "Unknown"
+
+	// Parse "Intel64 Family 6 Model 198 Stepping 2"
+	var family, model uint32
+	_, err = fmt.Sscanf(identifier, "Intel64 Family %d Model %d", &family, &model)
+	if err != nil {
+		// Try alternate format without "Intel64" prefix
+		_, err = fmt.Sscanf(identifier, "Family %d Model %d", &family, &model)
+		if err != nil {
+			return "Unknown"
+		}
 	}
-	
-	// Look up Code Name
+
+	// For Intel CPUs (Family 6), the registry already stores the full model number
+	// (Extended Model << 4 | Model), so no need to manually combine.
 	if name, ok := intelCodeNames[model]; ok {
 		return name
 	}
